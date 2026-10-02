@@ -1,6 +1,6 @@
 **KeepMD Roadmap — Windows 原生 Markdown 阅读器**
 
-日期：2026-10-02。状态：P0–P5 已完成并交付 0.2 便携版；实测范围与限制见 [验证报告](docs/VALIDATION.zh-CN.md)。
+日期：2026-10-02。状态：P0–P6 已完成；0.3 增加 Prompt Flow 集成，阅读／编辑基线延续 0.2；实测范围与限制见 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 目标：快速打开、可靠阅读 Markdown 与常见 Mermaid 流程图，保持低空闲 CPU 和可控内存；轻量源码编辑后置。仅 Windows，禁止 Electron、Tauri、WebView2、CEF、Qt WebEngine 及隐藏浏览器运行时。
 
@@ -134,3 +134,14 @@ P0 的出口是可运行的验证结果和决策记录。若图表候选在规�
 **交付记录**
 
 2026-10-02：已完成 plan → exec → review → e2e → fix 多轮迭代，交付 Windows 11 x64 便携包及完整源码。实际 EXE 哈希、102 项核心检查、GUI/输入法/压力测试及性能数据见 [验证报告](docs/VALIDATION.zh-CN.md)。包内文件校验和解压后运行检查见 bench/results/package.json。
+
+
+**P6 — Prompt Flow 集成（0.3）**
+
+- [x] 调研同级原生 Prompt Flow，确认真实功能及旧 JSON 格式，记录功能对应。
+- [x] 原生全局快捷键、按需创建提示词窗口、Markdown／流程图预览、草稿保存与复制收起。
+- [x] 托盘常驻、单配置实例转发、置顶／透明度／定位、显式登录启动、旧数据导入和 Markdown 导出。
+- [x] 剪贴板冲突、热键冲突、IME、写入失败及外部草稿修改保护。
+- [x] 完整回归、性能复测；0.3 便携 ZIP 26 个成员校验通过，实际解压 EXE 的阅读和提示词复制／保存通过；完整源码随包交付。
+
+集成设计与限制见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。双 Ctrl 状态机与旧工具共存冲突已验证；旧工具运行期间不执行实际双 Ctrl 桌面注入测试。

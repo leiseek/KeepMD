@@ -1,14 +1,25 @@
 {
-  "version": "0.2.0",
-  "generated_at": "2026-10-02T11:46:26.802939+08:00",
-  "exe_sha256": "afeb7c3c4a97e67d3258fe0b9029842902963969d91371b1622685e4a1fa93da",
-  "exe_bytes": 731136,
-  "core_checks_passed": 102,
-  "startup_launch_p95_ms": 84.0542,
-  "private_median_mib": 15.2421875,
-  "working_set_median_mib": 40.39453125,
-  "large_50mib_launch_p95_ms": 709.2877,
-  "large_50mib_private_median_mib": 409.67578125,
+  "version": "0.3.0",
+  "generated_at": "2026-10-02T12:40:46.259574+08:00",
+  "exe_sha256": "4f9a0bc433e0873cd27c637af9b66c7c04b7725531d2e8643fe325d9257db00b",
+  "exe_bytes": 820736,
+  "core_checks_passed": 132,
+  "prompt_measurements": {
+    "cold_resident_private_mib": 4.46875,
+    "first_summon_observed_ms": 95.48869999707676,
+    "double_ctrl_live": "not run: existing user Prompt Flow is active; state machine covered by core tests",
+    "hidden_idle_seconds": 5,
+    "hidden_idle_cpu_seconds": 0.0,
+    "hidden_idle_write_bytes": 0,
+    "hidden_private_mib": 7.60546875,
+    "hidden_draft_changed": false
+  },
+  "prompt_e2e_checks": 17,
+  "startup_launch_p95_ms": 84.7615,
+  "private_median_mib": 15.2578125,
+  "working_set_median_mib": 40.47265625,
+  "large_50mib_launch_p95_ms": 738.9767,
+  "large_50mib_private_median_mib": 409.6640625,
   "gui_suites": [
     "reader",
     "navigation and real file dialogs",
@@ -16,7 +27,8 @@
     "native IME keyboard input",
     "DPI target rendering/hit testing",
     "bounded stress and device-target recreation",
-    "class style/image formats/uppercase MMD"
+    "class style/image formats/uppercase MMD",
+    "global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME"
   ],
   "limitations": [
     "No verified cold-cache startup number",
@@ -24,6 +36,7 @@
     "Windows 10/ARM64 not tested",
     "Mermaid flowchart subset; no full Mermaid parity",
     "No complete reader UI Automation text provider",
-    "Unsigned portable binary"
+    "Unsigned portable binary",
+    "Live double-Ctrl summon not exercised while original Prompt Flow is running"
   ]
 }

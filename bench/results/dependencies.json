@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "afeb7c3c4a97e67d3258fe0b9029842902963969d91371b1622685e4a1fa93da",
+  "exe_sha256": "4f9a0bc433e0873cd27c637af9b66c7c04b7725531d2e8643fe325d9257db00b",
   "static_imports": [
     "d2d1.dll",
     "DWrite.dll",
@@ -7,6 +7,7 @@
     "COMDLG32.dll",
     "COMCTL32.dll",
     "SHELL32.dll",
+    "dwmapi.dll",
     "IMM32.dll",
     "ADVAPI32.dll",
     "KERNEL32.dll",

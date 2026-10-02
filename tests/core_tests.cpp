@@ -1,6 +1,7 @@
 #include "diagram.h"
 #include "document.h"
 #include "file_io.h"
+#include "prompt_model.h"
 #include "settings.h"
 #include "shell_integration.h"
 #include <cmath>
@@ -195,6 +196,79 @@ int main() {
     check(prefix.starts_with(L"Software\\KeepMD.IntegrationTests\\") &&
               RegDeleteTreeW(HKEY_CURRENT_USER, prefix.c_str()) == ERROR_SUCCESS,
           "isolated registry test values removed");
+    PromptHotkey hotkey;
+    check(parse_prompt_hotkey(L" ctrl + ALT + p ", hotkey, error) && hotkey.key == 'P' &&
+              hotkey.modifiers == (MOD_CONTROL | MOD_ALT) && hotkey.label == L"Ctrl+Alt+P",
+          "global shortcut normalizes a combination");
+    for (const auto *invalid :
+         {L"P", L"Shift+A", L"Ctrl+F12", L"Ctrl+P+Q", L"Ctrl++P", L"Ctrl+P+", L"Ctrl+Ctrl+P"})
+        check(!parse_prompt_hotkey(invalid, hotkey, error), "unsafe or malformed shortcut rejected");
+    check(parse_prompt_hotkey(L"LCtrl x2", hotkey, error) && hotkey.doubleCtrl,
+          "legacy double Ctrl supported");
+    CtrlTap tap;
+    check(!tap.event(true, true, 1000) && !tap.event(true, false, 1020) && !tap.event(true, true, 1100) &&
+              tap.event(true, false, 1120),
+          "two completed clean Ctrl taps trigger");
+    tap = {};
+    tap.event(true, true, 1000);
+    tap.event(false, true, 1010);
+    tap.event(true, false, 1020);
+    tap.event(true, true, 1050);
+    check(!tap.event(true, false, 1080), "Ctrl+C followed by Ctrl cannot summon prompt");
+    tap = {};
+    tap.event(true, true, 1000);
+    tap.event(true, true, 1010);
+    tap.event(true, false, 1800);
+    tap.event(true, true, 1820);
+    check(!tap.event(true, false, 1840), "held Ctrl and repeats cannot summon prompt");
+    tap = {};
+    tap.event(true, true, 1000, true);
+    tap.event(true, false, 1020, true);
+    tap.event(true, true, 1100, true);
+    check(!tap.event(true, false, 1120, true), "another held key prevents double Ctrl");
+    tap.event(true, true, 1200);
+    tap.event(true, false, 1220);
+    tap.event(true, true, 1300);
+    check(tap.event(true, false, 1320), "double Ctrl recovers after another held modifier is released");
+    PromptSettings ps;
+    ps.hotkey = L"Ctrl+Shift+F9";
+    ps.resident = true;
+    ps.opacity = 70;
+    ps.preview = false;
+    auto promptConfig = temp / L"prompts.ini";
+    check(save_prompt_settings(promptConfig, ps, error), "prompt preferences saved atomically");
+    auto ps2 = load_prompt_settings(promptConfig);
+    check(ps2.hotkey == ps.hotkey && ps2.resident && ps2.opacity == 70 && !ps2.preview,
+          "prompt preferences survive restart independently from reader");
+    std::filesystem::remove(promptConfig);
+    std::wstring draft = L"untouched";
+    check(
+        import_prompt_flow(
+            R"({"Prompt":"# 标题\n\n  缩进\n\ud83d\ude00\n","Hotkey":"LCtrl x2","AlwaysOnTop":false,"Opacity":80,"Autostart":true})",
+            ps2, draft, error) &&
+            draft == L"# 标题\n\n  缩进\n😀\n" && ps2.hotkey == L"LCtrl x2" && !ps2.top && ps2.opacity == 80,
+        "Prompt Flow import preserves Markdown whitespace, Chinese and escaped emoji");
+    const auto baseline = draft;
+    for (const char *invalid :
+         {R"({"Prompt":"unterminated})", R"({"Prompt":"\ud800"})", R"({"Prompt":"\u0000"})",
+          R"({"Prompt":"a","Prompt":"b"})", R"({"Prompt":"a",})", R"({"Opacity":70})",
+          R"({"Prompt":"a","Opacity":500})", R"({"Prompt":{}})", R"({"Prompt":"a"}trailing)"})
+        check(!import_prompt_flow(invalid, ps2, draft, error) && draft == baseline,
+              "bad legacy input leaves draft unchanged");
+    check(
+        !import_prompt_flow("{\"Prompt\":\"" + std::string(PromptLimit + 1, 'a') + "\"}", ps2, draft, error),
+        "oversized prompt import rejected");
+    auto startup = prompt_startup_command(L"C:\\Apps with spaces\\KeepMD.exe", L"C:\\用户\\profile.ini");
+    check(startup == L"\"C:\\Apps with spaces\\KeepMD.exe\" --resident --config \"C:\\用户\\profile.ini\"",
+          "startup command quotes executable and profile path");
+    auto startupKey = L"Software\\KeepMD.IntegrationTests\\Startup-" + std::to_wstring(GetCurrentProcessId());
+    check(set_prompt_startup(L"test", startup, true, error, startupKey) &&
+              prompt_startup_enabled(L"test", startup, startupKey),
+          "startup registration uses isolated test key");
+    check(set_prompt_startup(L"test", startup, false, error, startupKey) &&
+              !prompt_startup_enabled(L"test", startup, startupKey),
+          "startup registration can be removed");
+    RegDeleteTreeW(HKEY_CURRENT_USER, startupKey.c_str());
     std::cout << checks << " checks, " << failures << " failures\n";
     return failures ? 1 : 0;
 }

@@ -13,6 +13,8 @@ try {
     if (-not $SkipIme) {
         & python "$PSScriptRoot/test_ime.py"
         if ($LASTEXITCODE -ne 0) { throw 'Native IME validation failed' }
+        & python "$PSScriptRoot/test_prompt.py"
+        if ($LASTEXITCODE -ne 0) { throw 'Prompt integration validation failed' }
     }
     if ($Performance) {
         & python "$PSScriptRoot/benchmark.py" --runs 30

@@ -586,11 +586,15 @@ void View::render(ID2D1RenderTarget *target) {
     target->BeginDraw();
     target->Clear(background());
     if (!doc_ || doc_->blocks.empty()) {
-        draw_text(target, L"KeepMD", D2D1::RectF(48, 60, width_ - 48, 110), 34, foreground(), true);
-        draw_text(target,
-                  L"打开 Markdown，专注阅读。\n\nCtrl+O 打开文件 · Ctrl+F 查找 · F6 编辑\nCtrl+滚轮缩放 · F9 "
-                  L"目录 · Ctrl+D 切换主题",
-                  D2D1::RectF(48, 125, width_ - 48, height_), 17, rgb(dark_ ? 0x9cacbf : 0x66758a));
+        draw_text(target, emptyTitle_.empty() ? L"KeepMD" : emptyTitle_,
+                  D2D1::RectF(48, 60, width_ - 48, 110), 34, foreground(), true);
+        draw_text(
+            target,
+            emptyTitle_.empty()
+                ? L"打开 Markdown，专注阅读。\n\nCtrl+O 打开文件 · Ctrl+F 查找 · F6 编辑\nCtrl+滚轮缩放 · F9 "
+                  L"目录 · Ctrl+D 切换主题"
+                : emptyHelp_,
+            D2D1::RectF(48, 125, width_ - 48, height_), 17, rgb(dark_ ? 0x9cacbf : 0x66758a));
     } else {
         size_t first = heights_.locate(std::max(0.f, scrollY_ - 20));
         float y = heights_.prefix(first) + 24 - scrollY_;

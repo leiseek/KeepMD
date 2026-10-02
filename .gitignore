@@ -8,3 +8,5 @@
 *.pdb
 __pycache__/
 keepmd.ini
+keepmd.prompt.ini
+keepmd.prompt.md

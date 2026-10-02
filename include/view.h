@@ -52,6 +52,10 @@ class View {
     void goto_block(size_t block);
     void set_zoom(float factor);
     void set_dark(bool value);
+    void set_empty_message(std::wstring title, std::wstring help) {
+        emptyTitle_ = std::move(title);
+        emptyHelp_ = std::move(help);
+    }
     void set_reading_width(float value);
     void collect_assets();
     void invalidate();
@@ -144,6 +148,7 @@ class View {
         std::wstring error;
     };
     HWND hwnd_;
+    std::wstring emptyTitle_, emptyHelp_;
     std::shared_ptr<Document> doc_;
     std::filesystem::path path_;
     ComPtr<ID2D1Factory> d2d_;

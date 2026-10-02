@@ -1,0 +1,32 @@
+{
+  "exe_sha256": "4f9a0bc433e0873cd27c637af9b66c7c04b7725531d2e8643fe325d9257db00b",
+  "checks": [
+    "resident startup: hidden, editor and RichEdit DLL not loaded",
+    "Markdown/flowchart preview, semantic preview selection and draft autosave",
+    "Ctrl+Enter copies exact Markdown and returns focus; target pastes source",
+    "clipboard contention keeps panel and draft visible",
+    "failed shortcut change preserves previous registered shortcut",
+    "custom shortcut summons from another process",
+    "existing Prompt Flow double-Ctrl conflict is explicit and preserves combination shortcut",
+    "undoable clear, Markdown export and original Prompt Flow JSON import",
+    "second --prompt invocation reuses profile owner",
+    "close-to-tray, explicit exit and draft/settings restoration",
+    "installed Chinese IME commits text; Esc cancels composition without dismissing prompt",
+    "hidden prompt idles without rewriting draft or significant CPU",
+    "startup conflict shows settings and accepts alternative shortcut",
+    "locked save retries safely; external draft conflict supports cancel/export/discard without overwriting disk",
+    "corrupt saved draft preserved and editing disabled until repaired",
+    "ordinary reader exits normally and never creates a prompt editor",
+    "forwarded --resident request enables tray residency in an existing ordinary reader"
+  ],
+  "measurements": {
+    "cold_resident_private_mib": 4.46875,
+    "first_summon_observed_ms": 95.48869999707676,
+    "double_ctrl_live": "not run: existing user Prompt Flow is active; state machine covered by core tests",
+    "hidden_idle_seconds": 5,
+    "hidden_idle_cpu_seconds": 0.0,
+    "hidden_idle_write_bytes": 0,
+    "hidden_private_mib": 7.60546875,
+    "hidden_draft_changed": false
+  }
+}

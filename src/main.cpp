@@ -1,5 +1,6 @@
 #include "editor.h"
 #include "file_io.h"
+#include "prompt_window.h"
 #include "settings.h"
 #include "shell_integration.h"
 #include "view.h"
@@ -43,7 +44,8 @@ enum Command {
     ReplaceOne,
     ReplaceAll,
     Split,
-    RegisterOpenWith
+    RegisterOpenWith,
+    Prompt
 };
 constexpr int SearchId = 200, TocId = 201, EditorId = 202;
 const auto processStart = std::chrono::steady_clock::now();
@@ -86,6 +88,8 @@ struct App {
     uint64_t openedAt = 0;
     std::filesystem::path settingsPath;
     ReaderSettings preferences;
+    std::unique_ptr<PromptWindow> prompt;
+    bool forceExit = false, skipSettingsSave = false;
     unsigned renderDpi = 0;
     HMENU recentMenu = nullptr;
     std::unique_ptr<Editor> editor;
@@ -594,7 +598,11 @@ void command(App &app, int id) {
         open_dialog(app);
         break;
     case Exit:
+        app.forceExit = true;
         SendMessageW(app.hwnd, WM_CLOSE, 0, 0);
+        break;
+    case Prompt:
+        app.prompt->show();
         break;
     case Find:
         app.showSearch = !app.showSearch;
@@ -619,6 +627,7 @@ void command(App &app, int id) {
         break;
     case Theme:
         app.view->set_dark(!app.view->dark());
+        app.prompt->theme(app.view->dark());
         if (app.editor) {
             app.suppressEdit = true;
             app.editor->theme(app.view->dark());
@@ -946,7 +955,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         } buttons[] = {{Open, L"打开"},  {Back, L"←"},         {Forward, L"→"},      {Toc, L"目录"},
                        {Find, L"查找"},  {ZoomOut, L"−"},      {ZoomReset, L"100%"}, {ZoomIn, L"＋"},
                        {Theme, L"主题"}, {Width, L"阅读宽度"}, {Edit, L"编辑"},      {Save, L"保存"},
-                       {Split, L"双栏"}};
+                       {Split, L"双栏"}, {Prompt, L"提示词"}};
         for (const auto &button : buttons) {
             TBBUTTON b{};
             b.iBitmap = I_IMAGENONE;
@@ -975,6 +984,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
             app->settingsPath = std::filesystem::path(executablePath).parent_path() / L"keepmd.ini";
         }
         app->preferences = load_settings(app->settingsPath);
+        app->prompt = std::make_unique<PromptWindow>(hwnd, app->settingsPath, app->preferences.dark);
         app->view->set_dark(app->preferences.dark);
         app->view->set_zoom(app->preferences.zoom);
         app->view->set_reading_width(app->preferences.reading_width);
@@ -1203,11 +1213,31 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         if (!app->report.empty())
             app->view->reset_device();
         return 0;
+    case WM_PROMPT_OWNER:
+        if (w == 1) {
+            ShowWindow(hwnd, SW_SHOWNORMAL);
+            SetForegroundWindow(hwnd);
+            SetFocus(app->reader);
+            SetTimer(hwnd, 1, 1000, nullptr);
+        } else if (w == 2) {
+            app->forceExit = true;
+            SendMessageW(hwnd, WM_CLOSE, 0, 0);
+        }
+        return 0;
+    case WM_QUERYENDSESSION:
+        return app->prompt->flush() && allow_navigation(*app);
     case WM_CLOSE:
-        if (allow_navigation(*app))
-            DestroyWindow(hwnd);
+        if (app->prompt->flush() && allow_navigation(*app)) {
+            if (!app->forceExit && app->prompt->resident()) {
+                ShowWindow(hwnd, SW_HIDE);
+                KillTimer(hwnd, 1);
+            } else
+                DestroyWindow(hwnd);
+        }
+        app->forceExit = false;
         return 0;
     case WM_DESTROY:
+        app->prompt.reset();
         KillTimer(hwnd, 1);
         KillTimer(hwnd, 2);
         if (app->cancel)
@@ -1218,7 +1248,8 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         app->preferences.zoom = app->view->zoom();
         app->preferences.reading_width = app->view->reading_width();
         app->preferences.remember(app->path, app->view->anchor_block());
-        store_settings(app->settingsPath, app->preferences);
+        if (!app->skipSettingsSave)
+            store_settings(app->settingsPath, app->preferences);
         delete app->view;
         app->view = nullptr;
         PostQuitMessage(0);
@@ -1248,12 +1279,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     cls.style = CS_DBLCLKS;
     RegisterClassExW(&cls);
     App app;
+    bool residentStart = false, promptStart = false;
     std::filesystem::path initial;
     int argc = 0;
     auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     for (int i = 1; i < argc; ++i) {
         std::wstring arg = argv[i];
-        if (arg == L"--snapshot" && i + 1 < argc)
+        if (arg == L"--resident")
+            residentStart = true;
+        else if (arg == L"--prompt")
+            promptStart = true;
+        else if (arg == L"--snapshot" && i + 1 < argc)
             app.snapshot = argv[++i];
         else if (arg == L"--report" && i + 1 < argc)
             app.report = argv[++i];
@@ -1287,12 +1323,23 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     AppendMenuW(view, MF_STRING, Theme, L"深浅主题\tCtrl+D");
     AppendMenuW(view, MF_STRING, ZoomReset, L"重置缩放\tCtrl+0");
     AppendMenuW(menu, MF_POPUP, (UINT_PTR)view, L"视图");
+    AppendMenuW(menu, MF_STRING, Prompt, L"提示词");
     AppendMenuW(menu, MF_STRING, About, L"关于");
     auto hwnd = CreateWindowExW(0, L"KeepMD.Window", L"KeepMD", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
                                 CW_USEDEFAULT, 1060, 820, nullptr, menu, instance, &app);
     if (!hwnd)
         return 1;
-    ShowWindow(hwnd, show);
+    bool promptOwner = app.prompt->start(residentStart || promptStart, promptStart);
+    if ((residentStart || promptStart) && !promptOwner && initial.empty()) {
+        app.skipSettingsSave = true;
+        app.forceExit = true;
+        DestroyWindow(hwnd);
+        CoUninitialize();
+        return 0;
+    }
+    ShowWindow(hwnd, (residentStart || promptStart) && initial.empty() ? SW_HIDE : show);
+    if ((residentStart || promptStart) && initial.empty())
+        KillTimer(hwnd, 1);
     UpdateWindow(hwnd);
     if (!initial.empty()) {
         std::error_code ec;
@@ -1322,6 +1369,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     auto accel = CreateAcceleratorTableW(keys, (int)std::size(keys));
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+        if (app.prompt && app.prompt->translate(message))
+            continue;
         bool inSearch = (app.searchBox && GetFocus() == app.searchBox) ||
                         (app.replaceBox && GetFocus() == app.replaceBox);
         bool inEditor = app.editor && GetFocus() == app.editor->hwnd();

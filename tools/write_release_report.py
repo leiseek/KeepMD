@@ -13,19 +13,21 @@ def read(name):return json.loads((RESULTS/name).read_text(encoding='utf-8-sig'))
 exe=ROOT/'build/release/keepmd.exe';sha=hashlib.sha256(exe.read_bytes()).hexdigest()
 startup=read('software-s100.json');scroll=read('scroll.json');idle=read('idle.json');large=read('software-l50.json')
 imports=read('dependencies.json');smoke=read('release-smoke.json');environment=read('environment.json')
-for item in (startup,idle,large,imports,smoke):
+prompt=read('prompt-e2e.json');pm=prompt['measurements']
+for item in (startup,idle,large,imports,smoke,prompt):
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
 core=subprocess.run([str(ROOT/'build/release/core_tests.exe')],capture_output=True,text=True,check=True)
 count=int(re.search(r'(\d+) checks, 0 failures',core.stdout).group(1))
 working=statistics.median(r['working_set']for r in startup['records'])/1048576
-summary={'version':'0.2.0','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+summary={'version':'0.3.0','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+         'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
          'startup_launch_p95_ms':startup['launch_to_first_paint_p95_ms'],'private_median_mib':startup['private_p50_mib'],'working_set_median_mib':working,
          'large_50mib_launch_p95_ms':large['launch_to_first_paint_p95_ms'],'large_50mib_private_median_mib':large['private_p50_mib'],
-         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD'],
-         'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary']}
+         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME'],
+         'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Live double-Ctrl summon not exercised while original Prompt Flow is running']}
 (RESULTS/'release-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 rows='\n'.join(f"| {r['fixture']} | {r['draw_p95_ms']:.2f} ms | {r['dispatch_to_submit_p95_ms']:.2f} ms | {r['samples']} |" for r in scroll['records'])
-report=f'''**KeepMD 0.2 交付验证报告**
+report=f'''**KeepMD 0.3 交付验证报告**
 
 生成时间：{summary['generated_at']}。目标平台：Windows 11 x64。所有以下正式结果绑定到同一个 Release EXE；历史探索数据保留在源码仓库，不混入最终数据。
 
@@ -45,6 +47,12 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 功能证据：[编辑](../bench/results/editor-e2e.json)、[导航](../bench/results/navigation-e2e.json)、[输入法](../bench/results/ime-e2e.json)、[DPI](../bench/results/dpi-e2e.json)、[压力](../bench/results/stress.json)、[显示检查](../bench/results/release-smoke.json)。
 
 **启动与内存**
+
+提示词集成完成 {len(prompt['checks'])} 组端到端检查：真实全局快捷键、独立进程粘贴目标、原文复制与焦点返回、快捷键冲突恢复、旧 JSON 导入、导出、单配置实例、重启草稿、中文 IME、锁定文件写入失败、外部更改保护及损坏草稿保留。详见 [提示词验证记录](../bench/results/prompt-e2e.json)。
+
+新进程静默常驻、尚未打开编辑器时 Private Bytes 为 {pm['cold_resident_private_mib']:.2f} MiB；编辑后收起为 {pm['hidden_private_mib']:.2f} MiB。收起并待焦点/IME 消息稳定后观察 {pm['hidden_idle_seconds']} 秒，CPU 增量 {pm['hidden_idle_cpu_seconds']:.5f} 秒，草稿文件没有重写。此处是小草稿单次观察，不代表所有输入规模的保证。首次唤起测试用例的观察值包含测试程序约 90 ms 的主动等待，因此没有当作精确响应延迟发布。
+
+本机原 Prompt Flow 仍运行，未执行会同时唤起旧程序的双 Ctrl 桌面输入序列；已通过其状态机检查和旧工具共存冲突处理。真实组合键、中文输入、Esc 取消组词后继续编辑已验证。
 
 S100 为约 100 KiB 的中英混排 Markdown。每次新建进程、文件缓存温热，重复 {startup['runs']} 次。正式口径从启动器的 QPC 采样到正文首屏绘制提交，包含进程创建，不包括物理显示器扫描呈现。
 
