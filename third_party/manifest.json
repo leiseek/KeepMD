@@ -1,0 +1,47 @@
+[
+  {
+    "path": "third_party/md4c/md4c.c",
+    "source": "https://raw.githubusercontent.com/mity/md4c/729e6b8b320caa96328968ab27d7db2235e4fb47/src/md4c.c",
+    "sha256": "52e39843b96b64d0281bf795128bcc88c9c4dc52d7436737e9f4306648dc4590"
+  },
+  {
+    "path": "third_party/md4c/md4c.h",
+    "source": "https://raw.githubusercontent.com/mity/md4c/729e6b8b320caa96328968ab27d7db2235e4fb47/src/md4c.h",
+    "sha256": "4efd19bf7ec270691d5b4189f496886e421768a814b5e817eb945aa85e859f18"
+  },
+  {
+    "path": "third_party/md4c/entity.c",
+    "source": "https://raw.githubusercontent.com/mity/md4c/729e6b8b320caa96328968ab27d7db2235e4fb47/src/entity.c",
+    "sha256": "69d9362cd3b61261c3ed9d9f226ae1c66a3209f9db03805b1d114841ee3a6c1f"
+  },
+  {
+    "path": "third_party/md4c/entity.h",
+    "source": "https://raw.githubusercontent.com/mity/md4c/729e6b8b320caa96328968ab27d7db2235e4fb47/src/entity.h",
+    "sha256": "7d021cb683c0e7643df6ce0db51d75f8cbc313be9ec754cb4dc18c40ebaa400b"
+  },
+  {
+    "path": "third_party/md4c/LICENSE.md",
+    "source": "https://raw.githubusercontent.com/mity/md4c/729e6b8b320caa96328968ab27d7db2235e4fb47/LICENSE.md",
+    "sha256": "d30937367d5413e7eaa218b1640b8946ff76fd34d97152f6979fd96169d5d0fc"
+  },
+  {
+    "path": "third_party/tinta/mermaid.h",
+    "source": "https://raw.githubusercontent.com/oipoistar/tinta/db70698e49a1f700c7ad98add1bebe713ac796bd/include/mermaid.h",
+    "sha256": "168737fa0f7204a02bb0c6e5a229c2d7832c8ffb8f862e19a88d57ebebe64c63"
+  },
+  {
+    "path": "third_party/tinta/mermaid.cpp",
+    "source": "https://raw.githubusercontent.com/oipoistar/tinta/db70698e49a1f700c7ad98add1bebe713ac796bd/src/mermaid.cpp",
+    "sha256": "73eaface48f583a14a411990d4d0bd12d8d1a5820e91e7df59e0685d0cd3e38d"
+  },
+  {
+    "path": "third_party/tinta/LICENSE",
+    "source": "https://raw.githubusercontent.com/oipoistar/tinta/db70698e49a1f700c7ad98add1bebe713ac796bd/LICENSE",
+    "sha256": "9bf6c38b89b434081cc146a9469940b1d253c01ce951e1ced537640ada3eb2d1"
+  },
+  {
+    "path": "third_party/tinta/upstream_mermaid_tests.cpp",
+    "source": "https://raw.githubusercontent.com/oipoistar/tinta/db70698e49a1f700c7ad98add1bebe713ac796bd/tests/mermaid_tests.cpp",
+    "sha256": "5fc2da1211a554eb2890f26b213855067dd4ac10156790e30aef9e218669677c"
+  }
+]

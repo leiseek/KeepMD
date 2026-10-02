@@ -1,0 +1,31 @@
+{
+  "commit": "db70698e49a1f700c7ad98add1bebe713ac796bd",
+  "build": "Release x64 unchanged source",
+  "scope": "single exploratory run per fixture; 512 MiB process stop limit; fixed settle windows; startup not measured; not a timing ranking",
+  "earlier_probe": "An initial unbounded L10 probe was stopped manually after >10 GiB Private Bytes; excluded from ordinary metrics.",
+  "records": [
+    {
+      "fixture": "s100",
+      "private_top_mib": 186.10546875,
+      "private_end_mib": 177.125,
+      "sampled_peak_mib": 186.10546875,
+      "idle_cpu_seconds": 0.0,
+      "idle_window_seconds": 3.045910199998616
+    },
+    {
+      "fixture": "l10",
+      "stopped": [
+        "512 MiB process memory budget exceeded"
+      ],
+      "sampled_peak_mib": 743.2109375
+    },
+    {
+      "fixture": "images100",
+      "private_top_mib": 131.42578125,
+      "private_end_mib": 130.9609375,
+      "sampled_peak_mib": 131.42578125,
+      "idle_cpu_seconds": 0.0,
+      "idle_window_seconds": 3.026022100000773
+    }
+  ]
+}

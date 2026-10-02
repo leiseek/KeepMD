@@ -1,0 +1,17 @@
+{
+  "exe_sha256": "afeb7c3c4a97e67d3258fe0b9029842902963969d91371b1622685e4a1fa93da",
+  "checks": [
+    {
+      "classDef_rendered_pixels": 5180,
+      "shape_and_group_snapshot": "release-style.png"
+    },
+    {
+      "PNG_JPEG_BMP_rendered_pixels": 28203,
+      "asset_bytes": 115200
+    },
+    {
+      "uppercase_MMD_native_render": "passed",
+      "asset_bytes": 1152
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "zip_sha256": "68151c41febf0aa7e0c7648ac8cd183f9f02abfd45a1c37e6465add786ac4654",
+  "exe_sha256": "afeb7c3c4a97e67d3258fe0b9029842902963969d91371b1622685e4a1fa93da",
+  "verified_members": 22,
+  "extracted_package_launch": "passed",
+  "snapshot": "tests\\output\\packaged-reader.png"
+}

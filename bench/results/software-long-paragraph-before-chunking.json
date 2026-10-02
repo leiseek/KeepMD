@@ -1,0 +1,61 @@
+{
+  "backend": "software",
+  "fixture": "long-paragraph",
+  "runs": 3,
+  "cache": "warm file cache; new processes; interactive desktop",
+  "startup_scope": "internal process initialization to submitted document first paint; excludes OS process creation",
+  "first_paint_p50_ms": 4938.94,
+  "first_paint_p95_ms": 4953.03,
+  "first_paint_max_ms": 4953.03,
+  "private_p50_mib": 59.828125,
+  "private_max_mib": 60.03125,
+  "records": [
+    {
+      "first_paint_ms": 4953.03,
+      "first_paint_qpc": 84702122617,
+      "qpc_frequency": 10000000,
+      "parse_ms": 6.4713,
+      "blocks": 2,
+      "private_bytes": 62947328,
+      "working_set": 80396288,
+      "layouts": 2,
+      "asset_bytes": 0,
+      "paint_count": 2,
+      "last_paint_ms": 4884.4,
+      "process_wall_ms": 4981.704600000739,
+      "launch_to_first_paint_ms": 4961.1243
+    },
+    {
+      "first_paint_ms": 4915.37,
+      "first_paint_qpc": 84751568577,
+      "qpc_frequency": 10000000,
+      "parse_ms": 6.3326,
+      "blocks": 2,
+      "private_bytes": 62730240,
+      "working_set": 80220160,
+      "layouts": 2,
+      "asset_bytes": 0,
+      "paint_count": 2,
+      "last_paint_ms": 4844.48,
+      "process_wall_ms": 4946.2674999995215,
+      "launch_to_first_paint_ms": 4924.0035
+    },
+    {
+      "first_paint_ms": 4938.94,
+      "first_paint_qpc": 84801268705,
+      "qpc_frequency": 10000000,
+      "parse_ms": 6.2788,
+      "blocks": 2,
+      "private_bytes": 62734336,
+      "working_set": 80216064,
+      "layouts": 2,
+      "asset_bytes": 0,
+      "paint_count": 2,
+      "last_paint_ms": 4865.73,
+      "process_wall_ms": 4969.057499998598,
+      "launch_to_first_paint_ms": 4947.7339
+    }
+  ],
+  "launch_to_first_paint_p50_ms": 4947.7339,
+  "launch_to_first_paint_p95_ms": 4961.1243
+}

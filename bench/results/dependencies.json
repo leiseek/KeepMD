@@ -1,0 +1,19 @@
+{
+  "exe_sha256": "afeb7c3c4a97e67d3258fe0b9029842902963969d91371b1622685e4a1fa93da",
+  "static_imports": [
+    "d2d1.dll",
+    "DWrite.dll",
+    "ole32.dll",
+    "COMDLG32.dll",
+    "COMCTL32.dll",
+    "SHELL32.dll",
+    "IMM32.dll",
+    "ADVAPI32.dll",
+    "KERNEL32.dll",
+    "USER32.dll",
+    "GDI32.dll",
+    "api-ms-win-core-synch-l1-2-0.dll"
+  ],
+  "static_import_audit": "No browser, Node, Qt, or separate MSVC runtime DLL imports.",
+  "optional_editor": "Windows system Msftedit.dll loaded on demand; not bundled."
+}

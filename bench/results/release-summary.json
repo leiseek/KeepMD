@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "generated_at": "2026-10-02T11:46:26.802939+08:00",
+  "exe_sha256": "afeb7c3c4a97e67d3258fe0b9029842902963969d91371b1622685e4a1fa93da",
+  "exe_bytes": 731136,
+  "core_checks_passed": 102,
+  "startup_launch_p95_ms": 84.0542,
+  "private_median_mib": 15.2421875,
+  "working_set_median_mib": 40.39453125,
+  "large_50mib_launch_p95_ms": 709.2877,
+  "large_50mib_private_median_mib": 409.67578125,
+  "gui_suites": [
+    "reader",
+    "navigation and real file dialogs",
+    "editor encodings/undo/save/conflicts/cache reuse",
+    "native IME keyboard input",
+    "DPI target rendering/hit testing",
+    "bounded stress and device-target recreation",
+    "class style/image formats/uppercase MMD"
+  ],
+  "limitations": [
+    "No verified cold-cache startup number",
+    "Physical cross-monitor DPI transitions not exercised",
+    "Windows 10/ARM64 not tested",
+    "Mermaid flowchart subset; no full Mermaid parity",
+    "No complete reader UI Automation text provider",
+    "Unsigned portable binary"
+  ]
+}

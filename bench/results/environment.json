@@ -1,0 +1,40 @@
+{
+  "measured_at": "2026-10-02T10:27:28.9460004+08:00",
+  "os": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26300",
+    "OSArchitecture": "64 位",
+    "TotalVisibleMemorySize": 33337668
+  },
+  "cpu": {
+    "Name": "Intel(R) Core(TM) i5-14600KF",
+    "NumberOfCores": 14,
+    "NumberOfLogicalProcessors": 20
+  },
+  "gpu": [
+    {
+      "Name": "NVIDIA GeForce RTX 5060",
+      "DriverVersion": "32.0.16.1656"
+    },
+    {
+      "Name": "GameViewer Virtual Display Adapter",
+      "DriverVersion": "15.6.5.199"
+    },
+    {
+      "Name": "OrayIddDriver Device",
+      "DriverVersion": "17.50.19.949"
+    }
+  ],
+  "storage": [
+    {
+      "FriendlyName": "WDC WD20EZRX-00DC0B0",
+      "MediaType": "Unspecified"
+    },
+    {
+      "FriendlyName": "KINGSTON SNV3S1000G",
+      "MediaType": "SSD"
+    }
+  ],
+  "render_backend": "Direct2D software",
+  "system_dpi": 96
+}

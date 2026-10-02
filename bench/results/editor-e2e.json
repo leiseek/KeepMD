@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "utf-8: load, unchanged save, Unicode edit, undo/redo, replace, encoded save, release",
+    "utf-8-sig: load, unchanged save, Unicode edit, undo/redo, replace, encoded save, release",
+    "utf-16: load, unchanged save, Unicode edit, undo/redo, replace, encoded save, release",
+    "utf-16-be-bom: load, unchanged save, Unicode edit, undo/redo, replace, encoded save, release",
+    "external conflict does not overwrite; cancelled close retains draft; explicit discard closes",
+    "unchanged diagram and text layouts reused across preview update"
+  ]
+}

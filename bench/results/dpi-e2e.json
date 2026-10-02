@@ -1,0 +1,29 @@
+{
+  "method": "Direct2D reader target DPI explicitly set to 96/120/144/192 on a 96-DPI desktop. Tests rendering and input coordinate conversion; physical cross-monitor transitions not exercised.",
+  "records": [
+    {
+      "dpi": 96,
+      "text_copy_and_emoji": "passed",
+      "link_hit_testing": "passed",
+      "light_dark_snapshots": "captured"
+    },
+    {
+      "dpi": 120,
+      "text_copy_and_emoji": "passed",
+      "link_hit_testing": "passed",
+      "light_dark_snapshots": "captured"
+    },
+    {
+      "dpi": 144,
+      "text_copy_and_emoji": "passed",
+      "link_hit_testing": "passed",
+      "light_dark_snapshots": "captured"
+    },
+    {
+      "dpi": 192,
+      "text_copy_and_emoji": "passed",
+      "link_hit_testing": "passed",
+      "light_dark_snapshots": "captured"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "Save As dialog and identical source bytes",
+    "Mouse link hit testing and percent-encoded local path",
+    "Open dialog and Back restores logical reading block",
+    "Unicode recent file, reading block and zoom survive restart",
+    "Failed reload preserves current source editor"
+  ]
+}

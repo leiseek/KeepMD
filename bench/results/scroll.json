@@ -1,0 +1,49 @@
+{
+  "scope": "Application timing from delivered scroll event through native draw submission. Not hardware input latency or physical monitor frame interval. 60 events/second target.",
+  "records": [
+    {
+      "fixture": "s100",
+      "samples": 240,
+      "draw_p95_ms": 2.9989,
+      "draw_p99_ms": 4.1314,
+      "dispatch_to_submit_p95_ms": 3.7786,
+      "dispatch_to_submit_p99_ms": 5.1732,
+      "idle_cpu_seconds": 0.0,
+      "idle_observation_seconds": 3.000494700001582,
+      "private_mib": 17.26171875
+    },
+    {
+      "fixture": "l10",
+      "samples": 240,
+      "draw_p95_ms": 3.0469,
+      "draw_p99_ms": 3.8353,
+      "dispatch_to_submit_p95_ms": 3.9495,
+      "dispatch_to_submit_p99_ms": 6.435,
+      "idle_cpu_seconds": 0.0,
+      "idle_observation_seconds": 3.000426900001912,
+      "private_mib": 94.83203125
+    },
+    {
+      "fixture": "images100",
+      "samples": 240,
+      "draw_p95_ms": 3.1733,
+      "draw_p99_ms": 3.9042,
+      "dispatch_to_submit_p95_ms": 4.6388,
+      "dispatch_to_submit_p99_ms": 5.7489,
+      "idle_cpu_seconds": 0.0,
+      "idle_observation_seconds": 3.0002271000012115,
+      "private_mib": 35.80859375
+    },
+    {
+      "fixture": "flow200",
+      "samples": 240,
+      "draw_p95_ms": 8.0595,
+      "draw_p99_ms": 8.5895,
+      "dispatch_to_submit_p95_ms": 8.6153,
+      "dispatch_to_submit_p99_ms": 8.9258,
+      "idle_cpu_seconds": 0.0,
+      "idle_observation_seconds": 3.000586199999816,
+      "private_mib": 20.77734375
+    }
+  ]
+}

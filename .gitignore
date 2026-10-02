@@ -1,0 +1,10 @@
+/build/
+/.cache/
+/dist/
+/bench/corpus/
+/bench/results/raw/
+/tests/output/
+*.user
+*.pdb
+__pycache__/
+keepmd.ini
