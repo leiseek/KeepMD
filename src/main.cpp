@@ -47,8 +47,76 @@ enum Command {
     ReplaceAll,
     Split,
     RegisterOpenWith,
-    Prompt
+    Prompt,
+    ToggleToolbar
 };
+ui::Icon toolbar_icon(int id, bool editing, bool dark) {
+    using ui::Icon;
+    switch (id) {
+    case Open:
+        return Icon::Folder;
+    case Back:
+        return Icon::Back;
+    case Forward:
+        return Icon::Forward;
+    case Toc:
+        return Icon::Outline;
+    case Find:
+        return Icon::Search;
+    case ZoomOut:
+        return Icon::Minus;
+    case ZoomIn:
+        return Icon::Plus;
+    case Theme:
+        return dark ? Icon::Sun : Icon::Moon;
+    case Width:
+        return Icon::Width;
+    case Edit:
+        return editing ? Icon::Book : Icon::Edit;
+    case Save:
+        return Icon::Save;
+    case Split:
+        return Icon::Split;
+    case Prompt:
+        return Icon::Prompt;
+    default:
+        return Icon::None;
+    }
+}
+const wchar_t *toolbar_tip(int id, bool editing) {
+    switch (id) {
+    case Open:
+        return L"打开 Markdown · Ctrl+O";
+    case Back:
+        return L"返回 · Alt+←";
+    case Forward:
+        return L"前进 · Alt+→";
+    case Toc:
+        return L"目录 · F9";
+    case Find:
+        return L"查找 · Ctrl+F";
+    case ZoomOut:
+        return L"缩小 · Ctrl+−";
+    case ZoomIn:
+        return L"放大 · Ctrl++";
+    case ZoomReset:
+        return L"重置缩放 · Ctrl+0";
+    case Theme:
+        return L"切换深浅主题 · Ctrl+D";
+    case Width:
+        return L"切换阅读宽度";
+    case Edit:
+        return editing ? L"返回阅读 · F6" : L"编辑源码 · F6";
+    case Save:
+        return L"保存 · Ctrl+S";
+    case Split:
+        return L"切换源码 / 双栏预览";
+    case Prompt:
+        return L"打开可视化提示词编辑器";
+    default:
+        return L"";
+    }
+}
 constexpr int SearchId = 200, TocId = 201, EditorId = 202;
 const auto processStart = std::chrono::steady_clock::now();
 struct LoadResult {
@@ -129,27 +197,16 @@ void update_ui_font(App &app, unsigned dpi) {
             SendMessageW(child, WM_SETFONT, (WPARAM)app.font, TRUE);
     if (app.status)
         SendMessageW(app.status, SB_SETMINHEIGHT, MulDiv(26, dpi, 96), 0);
-    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(62, dpi, 96), MulDiv(34, dpi, 96)));
-    HDC dc = GetDC(app.toolbar);
-    auto previous = SelectObject(dc, app.font);
+    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(38, dpi, 96), MulDiv(36, dpi, 96)));
     for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
         TBBUTTON b{};
         SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
         if (b.fsStyle & BTNS_SEP)
             continue;
-        wchar_t title[128]{};
-        TBBUTTONINFOW info{sizeof(info), TBIF_TEXT};
-        info.pszText = title;
-        info.cchText = 128;
-        SendMessageW(app.toolbar, TB_GETBUTTONINFOW, b.idCommand, (LPARAM)&info);
-        SIZE extent{};
-        GetTextExtentPoint32W(dc, title, (int)wcslen(title), &extent);
-        info.dwMask = TBIF_SIZE;
-        info.cx = (WORD)(extent.cx + MulDiv(b.idCommand == Prompt ? 32 : 26, dpi, 96));
+        TBBUTTONINFOW info{sizeof(info), TBIF_SIZE};
+        info.cx = (WORD)MulDiv(b.idCommand == ZoomReset ? 58 : 38, dpi, 96);
         SendMessageW(app.toolbar, TB_SETBUTTONINFOW, b.idCommand, (LPARAM)&info);
     }
-    SelectObject(dc, previous);
-    ReleaseDC(app.toolbar, dc);
     if (old)
         DeleteObject(old);
 }
@@ -244,7 +301,12 @@ void arrange(App &app) {
         SendMessageW(app.toolbar, TB_GETITEMRECT, i, (LPARAM)&br);
         toolbarHeight = std::max(toolbarHeight, (int)br.bottom);
     }
-    int top = caption + (int)(18 * app.dpi) + toolbarHeight;
+    int top = caption + (app.preferences.toolbar ? (int)(18 * app.dpi) + toolbarHeight : (int)(6 * app.dpi));
+    ShowWindow(app.toolbar, app.preferences.toolbar ? SW_SHOWNA : SW_HIDE);
+    ui::caption_toolbar(app.hwnd, app.preferences.toolbar);
+    if (auto menu = ui::window_menu(app.hwnd))
+        CheckMenuItem(GetSubMenu(menu, 1), ToggleToolbar,
+                      MF_BYCOMMAND | (app.preferences.toolbar ? MF_CHECKED : MF_UNCHECKED));
     MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(9 * app.dpi),
                std::max(1L, r.right - (int)(24 * app.dpi)), toolbarHeight, TRUE);
     int searchHeight = app.showSearch ? (int)((app.showReplace ? 88 : 44) * app.dpi) : 0;
@@ -283,6 +345,9 @@ void arrange(App &app) {
     MoveWindow(app.reader, side + editorWidth, top + searchHeight,
                std::max<int>(1, r.right - side - editorWidth),
                std::max<int>(1, r.bottom - top - searchHeight - bottom), TRUE);
+    ui::sync_scrollbars(app.reader);
+    if (app.editor)
+        ui::sync_scrollbars(app.editor->hwnd());
     InvalidateRect(app.hwnd, nullptr, FALSE);
 }
 bool save_editor(App &app, bool saveAs = false);
@@ -693,6 +758,13 @@ void command(App &app, int id) {
         return;
     }
     switch (id) {
+    case ToggleToolbar:
+        app.preferences.toolbar = !app.preferences.toolbar;
+        arrange(app);
+        CheckMenuItem(GetSubMenu(ui::window_menu(app.hwnd), 1), ToggleToolbar,
+                      MF_BYCOMMAND | (app.preferences.toolbar ? MF_CHECKED : MF_UNCHECKED));
+        SetFocus(app.editor ? app.editor->hwnd() : app.reader);
+        break;
     case Open:
         open_dialog(app);
         break;
@@ -1052,7 +1124,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         app->toolbar =
             CreateWindowExW(0, TOOLBARCLASSNAMEW, nullptr,
                             WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE |
-                                CCS_NORESIZE | CCS_NODIVIDER | CCS_NOPARENTALIGN,
+                                TBSTYLE_TOOLTIPS | CCS_NORESIZE | CCS_NODIVIDER | CCS_NOPARENTALIGN,
                             0, 0, 0, 0, hwnd, nullptr, nullptr, nullptr);
         SendMessageW(app->toolbar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         SendMessageW(app->toolbar, WM_SETFONT, (WPARAM)app->font, TRUE);
@@ -1115,6 +1187,9 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
     }
     case WM_SIZE:
         arrange(*app);
+        return 0;
+    case ui::WM_TOGGLE_TOOLBAR:
+        command(*app, ToggleToolbar);
         return 0;
     case WM_ERASEBKGND:
         return 1;
@@ -1196,6 +1271,12 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         return 0;
     case WM_NOTIFY: {
         auto *notice = reinterpret_cast<NMHDR *>(l);
+        if (notice->hwndFrom == app->toolbar && notice->code == TBN_GETINFOTIPW) {
+            auto tip = (NMTBGETINFOTIPW *)l;
+            wcsncpy_s(tip->pszText, tip->cchTextMax, toolbar_tip(tip->iItem, app->editor != nullptr),
+                      _TRUNCATE);
+            return 0;
+        }
         if (notice->hwndFrom == app->toolbar && notice->code == NM_CUSTOMDRAW) {
             auto *draw = (NMTBCUSTOMDRAW *)l;
             if (draw->nmcd.dwDrawStage == CDDS_PREPAINT) {
@@ -1217,9 +1298,11 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
                 auto state = draw->nmcd.uItemState;
                 auto p = ui::palette(app->view && app->view->dark());
                 int saved = SaveDC(draw->nmcd.hdc);
-                ui::button_face(draw->nmcd.hdc, r, app->font, text, p, id == Prompt, selected,
-                                (state & CDIS_HOT) != 0, (state & CDIS_SELECTED) != 0,
-                                (state & CDIS_DISABLED) != 0, (state & CDIS_FOCUS) != 0, app->dpi);
+                ui::icon_face(draw->nmcd.hdc, r, app->font,
+                              toolbar_icon(id, app->editor != nullptr, app->view && app->view->dark()),
+                              id == ZoomReset ? std::wstring_view(text) : std::wstring_view(), p,
+                              id == Prompt, selected, (state & CDIS_HOT) != 0, (state & CDIS_SELECTED) != 0,
+                              (state & CDIS_DISABLED) != 0, (state & CDIS_FOCUS) != 0, app->dpi);
                 RestoreDC(draw->nmcd.hdc, saved);
                 return CDRF_SKIPDEFAULT;
             }
@@ -1515,6 +1598,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     AppendMenuW(view, MF_STRING, Toc, L"目录\tF9");
     AppendMenuW(view, MF_STRING, Theme, L"深浅主题\tCtrl+D");
     AppendMenuW(view, MF_STRING, ZoomReset, L"重置缩放\tCtrl+0");
+    AppendMenuW(view, MF_STRING | MF_CHECKED, ToggleToolbar, L"显示工具栏\tCtrl+Shift+T");
     AppendMenuW(menu, MF_POPUP, (UINT_PTR)view, L"视图");
     AppendMenuW(menu, MF_STRING, Prompt, L"提示词");
     AppendMenuW(menu, MF_STRING, About, L"关于");

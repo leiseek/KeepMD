@@ -7,6 +7,22 @@
 namespace keepmd::ui {
 namespace {
 constexpr wchar_t Style[] = L"KeepMD.ButtonStyle", Hot[] = L"KeepMD.ButtonHot";
+constexpr wchar_t IconData[] = L"KeepMD.IconButton", Tips[] = L"KeepMD.ButtonTips";
+struct IconButton {
+    Icon value = Icon::None;
+    bool label = false;
+    HWND tooltip = nullptr;
+    std::wstring tip;
+};
+LRESULT CALLBACK tips_owner(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DWORD_PTR) {
+    if (m == WM_NCDESTROY) {
+        auto tip = (HWND)RemovePropW(h, Tips);
+        if (IsWindow(tip))
+            DestroyWindow(tip);
+        RemoveWindowSubclass(h, tips_owner, id);
+    }
+    return DefSubclassProc(h, m, w, l);
+}
 LRESULT CALLBACK button_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DWORD_PTR) {
     if (m == WM_MOUSEMOVE && !GetPropW(h, Hot)) {
         SetPropW(h, Hot, (HANDLE)1);
@@ -17,6 +33,16 @@ LRESULT CALLBACK button_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DW
         RemovePropW(h, Hot);
         InvalidateRect(h, nullptr, FALSE);
     } else if (m == WM_NCDESTROY) {
+        if (auto data = (IconButton *)RemovePropW(h, IconData)) {
+            if (IsWindow(data->tooltip)) {
+                TOOLINFOW tool{sizeof(tool)};
+                tool.hwnd = GetParent(h);
+                tool.uId = (UINT_PTR)h;
+                tool.uFlags = TTF_IDISHWND;
+                SendMessageW(data->tooltip, TTM_DELTOOLW, 0, (LPARAM)&tool);
+            }
+            delete data;
+        }
         RemovePropW(h, Style);
         RemovePropW(h, Hot);
         RemoveWindowSubclass(h, button_proc, id);
@@ -24,6 +50,43 @@ LRESULT CALLBACK button_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DW
     return DefSubclassProc(h, m, w, l);
 }
 } // namespace
+void icon_button(HWND hwnd, Icon value, const wchar_t *tip, bool showLabel) {
+    auto data = (IconButton *)GetPropW(hwnd, IconData);
+    bool existing = data != nullptr;
+    if (!data) {
+        data = new IconButton;
+        SetPropW(hwnd, IconData, (HANDLE)data);
+    }
+    data->value = value;
+    data->label = showLabel;
+    data->tip = tip;
+    auto parent = GetParent(hwnd);
+    auto tooltip = (HWND)GetPropW(parent, Tips);
+    if (!tooltip) {
+        tooltip = CreateWindowExW(
+            WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr, WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX, CW_USEDEFAULT,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parent, nullptr, GetModuleHandleW(nullptr), nullptr);
+        SetPropW(parent, Tips, (HANDLE)tooltip);
+        SetWindowSubclass(parent, tips_owner, 35, 0);
+        SendMessageW(tooltip, TTM_SETMAXTIPWIDTH, 0, 360);
+        SendMessageW(tooltip, TTM_SETDELAYTIME, TTDT_INITIAL, 450);
+        SendMessageW(tooltip, TTM_SETDELAYTIME, TTDT_AUTOPOP, 10000);
+    }
+    data->tooltip = tooltip;
+    TOOLINFOW tool{sizeof(tool)};
+    tool.hwnd = parent;
+    tool.uId = (UINT_PTR)hwnd;
+    tool.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+    tool.lpszText = data->tip.data();
+    SendMessageW(tooltip, existing ? TTM_UPDATETIPTEXTW : TTM_ADDTOOLW, 0, (LPARAM)&tool);
+    InvalidateRect(hwnd, nullptr, FALSE);
+}
+void set_button_icon(HWND hwnd, Icon value) {
+    if (auto data = (IconButton *)GetPropW(hwnd, IconData)) {
+        data->value = value;
+        InvalidateRect(hwnd, nullptr, FALSE);
+    }
+}
 Palette palette(bool dark) {
     HIGHCONTRASTW high{sizeof(high)};
     if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(high), &high, 0) &&
@@ -105,11 +168,19 @@ void draw_button(const DRAWITEMSTRUCT &item, bool dark) {
     auto flags = (INT_PTR)GetPropW(item.hwndItem, Style);
     auto rect = item.rcItem;
     InflateRect(&rect, -1, -1);
-    button_face(item.hDC, rect, (HFONT)SendMessageW(item.hwndItem, WM_GETFONT, 0, 0), title, p,
-                (flags & 2) != 0, (flags & 4) != 0, GetPropW(item.hwndItem, Hot) != nullptr,
-                (item.itemState & ODS_SELECTED) != 0, (item.itemState & ODS_DISABLED) != 0,
-                (item.itemState & ODS_FOCUS) && !(item.itemState & ODS_NOFOCUSRECT),
-                GetDpiForWindow(item.hwndItem) / 96.f);
+    if (auto data = (IconButton *)GetPropW(item.hwndItem, IconData)) {
+        icon_face(item.hDC, rect, (HFONT)SendMessageW(item.hwndItem, WM_GETFONT, 0, 0), data->value,
+                  data->label ? std::wstring_view(title) : std::wstring_view(), p, (flags & 2) != 0,
+                  (flags & 4) != 0, GetPropW(item.hwndItem, Hot) != nullptr,
+                  (item.itemState & ODS_SELECTED) != 0, (item.itemState & ODS_DISABLED) != 0,
+                  (item.itemState & ODS_FOCUS) && !(item.itemState & ODS_NOFOCUSRECT),
+                  GetDpiForWindow(item.hwndItem) / 96.f);
+    } else
+        button_face(item.hDC, rect, (HFONT)SendMessageW(item.hwndItem, WM_GETFONT, 0, 0), title, p,
+                    (flags & 2) != 0, (flags & 4) != 0, GetPropW(item.hwndItem, Hot) != nullptr,
+                    (item.itemState & ODS_SELECTED) != 0, (item.itemState & ODS_DISABLED) != 0,
+                    (item.itemState & ODS_FOCUS) && !(item.itemState & ODS_NOFOCUSRECT),
+                    GetDpiForWindow(item.hwndItem) / 96.f);
     RestoreDC(item.hDC, saved);
 }
 void menu_labels(HMENU menu, std::initializer_list<const wchar_t *> labels) {

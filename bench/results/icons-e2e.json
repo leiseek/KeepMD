@@ -1,0 +1,13 @@
+{
+  "exe_sha256": "2f9070ce3821cd6d61c81ee441731c146b3070e596ed3d1edeca0c4dc8314736",
+  "checks": [
+    "reader folder icon exposes native hover explanation and Ctrl+O shortcut",
+    "format and utility icons retain descriptive native names; primary copy action retains visible text",
+    "prompt bold icon exposes Chinese tooltip and Ctrl+B on actual mouse hover",
+    "icon click executes formatting and undo; icon-only copy still activates with Space",
+    "360 icon repaints and 60 theme changes do not accumulate GDI objects"
+  ],
+  "gdi_before": 75,
+  "gdi_after": 75,
+  "implementation": "native GDI vector paths, temporary supersampling bitmap; no icon font or third-party UI runtime"
+}

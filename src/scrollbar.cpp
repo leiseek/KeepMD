@@ -183,6 +183,17 @@ void place(Bar &bar, RECT rect, bool visible) {
         if (!EqualRect(&rect, &current))
             SetWindowPos(bar.hwnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left,
                          rect.bottom - rect.top, SWP_NOACTIVATE);
+        // Split-mode changes can raise a native control without resizing it.
+        // Keep the custom lanes above their target even when geometry is unchanged.
+        bool above = false;
+        for (HWND sibling = GetWindow(bar.skin->target, GW_HWNDPREV); sibling;
+             sibling = GetWindow(sibling, GW_HWNDPREV))
+            if (sibling == bar.hwnd) {
+                above = true;
+                break;
+            }
+        if (!above)
+            SetWindowPos(bar.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         if (!IsWindowVisible(bar.hwnd))
             ShowWindow(bar.hwnd, SW_SHOWNOACTIVATE);
     } else if (IsWindowVisible(bar.hwnd))
@@ -198,6 +209,10 @@ LRESULT CALLBACK target_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DW
         delete skin;
         return DefSubclassProc(h, m, w, l);
     }
+    // Place the skin before native nonclient painting, preventing default arrow
+    // buttons from becoming visible during control theme/frame refreshes.
+    if (m == WM_NCPAINT || m == WM_NCACTIVATE || m == WM_THEMECHANGED)
+        sync_scrollbars(h);
     auto result = DefSubclassProc(h, m, w, l);
     // Native controls maintain their own scroll model. Cover the reserved nonclient
     // lanes with lightweight sibling controls; WS_CLIPSIBLINGS prevents native paint
@@ -208,6 +223,8 @@ LRESULT CALLBACK target_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DW
     case WM_WINDOWPOSCHANGED:
     case WM_SHOWWINDOW:
     case WM_STYLECHANGED:
+    case WM_THEMECHANGED:
+    case WM_NCPAINT:
     case WM_VSCROLL:
     case WM_HSCROLL:
     case WM_MOUSEWHEEL:

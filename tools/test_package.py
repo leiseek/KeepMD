@@ -8,7 +8,7 @@ import ctypes as C
 from ctypes import wintypes as W
 from test_gui import ROOT,OUT,windows,wait,activate,u,name,children,CALLBACK,clipboard
 
-archive=ROOT/'dist/KeepMD-0.4.1-windows-x64.zip'
+archive=ROOT/'dist/KeepMD-0.4.2-windows-x64.zip'
 destination=(ROOT/'.cache/package-smoke').resolve()
 destination.mkdir(parents=True,exist_ok=True)
 with zipfile.ZipFile(archive)as bundle:

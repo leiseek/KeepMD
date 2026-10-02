@@ -9,12 +9,13 @@
 namespace keepmd::ui {
 namespace {
 constexpr wchar_t Property[] = L"KeepMD.CaptionState", Hot[] = L"KeepMD.CaptionHot";
-constexpr int Minimize = 9101, Maximize = 9102, Close = 9103, MenuBase = 9200;
+constexpr int Minimize = 9101, Maximize = 9102, Close = 9103, Toolbar = 9104, MenuBase = 9200;
 struct Caption {
     HWND owner = nullptr, bar = nullptr;
     HMENU menu = nullptr;
     HFONT font = nullptr, brand = nullptr;
     bool dark = false;
+    bool toolbarExpanded = true;
     HWND lastFocus = nullptr;
     std::vector<HWND> buttons;
     ~Caption() {
@@ -50,7 +51,7 @@ struct Caption {
                 MoveWindow(button, x, px(8), px(58), px(30), TRUE);
                 x += px(60);
             } else {
-                int index = id == Close ? 0 : id == Maximize ? 1 : max ? 2 : 1;
+                int index = id == Close ? 0 : id == Maximize ? 1 : id == Toolbar ? 3 : max ? 2 : 1;
                 MoveWindow(button, r.right - px(12 + 36 * (index + 1)), px(7), px(34), px(32), TRUE);
                 if (id == Maximize)
                     SetWindowTextW(button, IsZoomed(owner) ? L"还原窗口" : L"最大化窗口");
@@ -153,6 +154,10 @@ void draw(Caption &p, const DRAWITEMSTRUCT &d) {
         if (close) {
             segment(x - s, y - s, x + s + 1, y + s + 1);
             segment(x + s, y - s, x - s - 1, y + s + 1);
+        } else if (d.CtlID == Toolbar) {
+            int sign = p.toolbarExpanded ? 1 : -1;
+            segment(x - s, y + sign * 2, x, y - sign * 3);
+            segment(x, y - sign * 3, x + s + 1, y + sign * 2);
         } else if (d.CtlID == Minimize)
             segment(x - s, y + 2, x + s + 1, y + 2);
         else {
@@ -204,7 +209,9 @@ LRESULT CALLBACK bar_proc(HWND h, UINT m, WPARAM w, LPARAM l) {
             name.resize(suffix);
         if (name == L"KeepMD" || name.starts_with(L"KeepMD ·"))
             name.clear();
-        text(dc, p->font, name, {p->px(116 + count * 60), 0, r.right - p->px(140), r.bottom}, c.muted);
+        text(dc, p->font, name,
+             {p->px(116 + count * 60), 0, r.right - p->px(GetDlgItem(h, Toolbar) ? 176 : 140), r.bottom},
+             c.muted);
         line(dc, 0, r.bottom - 1, r.right, r.bottom - 1, c.border);
         EndPaint(h, &ps);
         return 0;
@@ -216,6 +223,8 @@ LRESULT CALLBACK bar_proc(HWND h, UINT m, WPARAM w, LPARAM l) {
         int id = LOWORD(w);
         if (id >= MenuBase)
             p->menu_action(id - MenuBase);
+        else if (id == Toolbar)
+            PostMessageW(p->owner, WM_TOGGLE_TOOLBAR, 0, 0);
         else
             PostMessageW(p->owner, WM_SYSCOMMAND,
                          id == Close          ? SC_CLOSE
@@ -339,6 +348,25 @@ void add_button(Caption &p, int id, const wchar_t *label) {
 int caption_height(HWND hwnd) {
     return get(hwnd) ? MulDiv(46, GetDpiForWindow(hwnd), 96) : 0;
 }
+void caption_toolbar(HWND hwnd, bool expanded) {
+    auto p = get(hwnd);
+    if (!p)
+        return;
+    auto button = GetDlgItem(p->bar, Toolbar);
+    bool created = !button;
+    if (created) {
+        add_button(*p, Toolbar, L"收起工具栏");
+        button = GetDlgItem(p->bar, Toolbar);
+        ui::style_button(button);
+        ui::icon_button(button, Icon::None, L"收起 / 展开工具栏 · Ctrl+Shift+T");
+        p->layout();
+    }
+    if (created || p->toolbarExpanded != expanded) {
+        p->toolbarExpanded = expanded;
+        SetWindowTextW(button, expanded ? L"收起工具栏" : L"展开工具栏");
+        InvalidateRect(button, nullptr, FALSE);
+    }
+}
 HMENU window_menu(HWND hwnd) {
     auto p = get(hwnd);
     return p ? p->menu : GetMenu(hwnd);
@@ -414,6 +442,11 @@ bool caption_translate(MSG &msg) {
     auto p = get(root);
     if (!p)
         return false;
+    if (msg.message == WM_KEYDOWN && msg.wParam == 'T' && GetKeyState(VK_CONTROL) < 0 &&
+        GetKeyState(VK_SHIFT) < 0 && GetDlgItem(p->bar, Toolbar)) {
+        PostMessageW(root, WM_TOGGLE_TOOLBAR, 0, 0);
+        return true;
+    }
     if (msg.message == WM_SYSKEYDOWN && msg.wParam == VK_SPACE) {
         POINT point{p->px(12), caption_height(root)};
         ClientToScreen(root, &point);

@@ -1,0 +1,9 @@
+{
+  "exe_sha256": "2f9070ce3821cd6d61c81ee441731c146b3070e596ed3d1edeca0c4dc8314736",
+  "checks": [
+    "reader caption toggle stays visible and returns space to document when toolbar is collapsed",
+    "Ctrl+Shift+T and caption toggle work in split and source-only editing without changing content",
+    "prompt format toolbar collapses independently; copy action and caption toggle remain accessible",
+    "reader and prompt toolbar preferences survive restart and can both be expanded again"
+  ]
+}

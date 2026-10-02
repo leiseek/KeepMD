@@ -38,6 +38,7 @@ enum Action {
     Quit,
     Reposition,
     Theme,
+    ToggleToolbar,
     FormatText = 540,
     FormatH1,
     FormatH2,
@@ -85,6 +86,7 @@ struct PromptWindow::Impl {
     HFONT font = nullptr, titleFont = nullptr, smallFont = nullptr;
     HBRUSH backgroundBrush = nullptr, surfaceBrush = nullptr;
     RECT sourceCard{};
+    std::vector<POINT> formatSeparators;
     bool placed = false;
     HMENU menu = nullptr, prefsMenu = nullptr, opacityMenu = nullptr;
     std::vector<std::pair<int, HWND>> buttons;
@@ -414,6 +416,7 @@ struct PromptWindow::Impl {
         AppendMenuW(file, MF_STRING, Quit, L"退出 KeepMD");
         AppendMenuW(menu, MF_POPUP, (UINT_PTR)file, L"文件");
         AppendMenuW(prefsMenu, MF_STRING, Options, L"设置全局快捷键");
+        AppendMenuW(prefsMenu, MF_STRING, ToggleToolbar, L"显示格式工具栏\tCtrl+Shift+T");
         AppendMenuW(prefsMenu, MF_STRING, Resident, L"关闭阅读器后常驻托盘");
         AppendMenuW(prefsMenu, MF_STRING, Startup, L"登录 Windows 时启动");
         AppendMenuW(prefsMenu, MF_STRING, Top, L"窗口置顶");
@@ -448,6 +451,61 @@ struct PromptWindow::Impl {
                                                           {FormatDiagram, L"流程图"}}) {
             auto h = child(L"BUTTON", label, id, WS_TABSTOP);
             ui::style_button(h, id == CopyHide || id == Apply);
+            using ui::Icon;
+            switch (id) {
+            case FormatText:
+                ui::icon_button(h, Icon::Text, L"正文 · 将当前段落设为正文");
+                break;
+            case FormatH1:
+                ui::icon_button(h, Icon::H1, L"一级标题");
+                break;
+            case FormatH2:
+                ui::icon_button(h, Icon::H2, L"二级标题");
+                break;
+            case FormatBold:
+                ui::icon_button(h, Icon::Bold, L"加粗 · Ctrl+B");
+                break;
+            case FormatItalic:
+                ui::icon_button(h, Icon::Italic, L"斜体 · Ctrl+I");
+                break;
+            case FormatBullet:
+                ui::icon_button(h, Icon::Bullet, L"无序列表");
+                break;
+            case FormatNumber:
+                ui::icon_button(h, Icon::Numbered, L"有序列表");
+                break;
+            case FormatQuote:
+                ui::icon_button(h, Icon::Quote, L"引用");
+                break;
+            case FormatCode:
+                ui::icon_button(h, Icon::Code, L"行内代码");
+                break;
+            case FormatDiagram:
+                ui::icon_button(h, Icon::Diagram, L"插入或修改 Mermaid 流程图");
+                break;
+            case Theme:
+                ui::icon_button(h, dark ? Icon::Sun : Icon::Moon, L"切换深浅主题");
+                break;
+            case Options:
+                ui::icon_button(h, Icon::Keyboard, L"全局快捷键设置");
+                break;
+            case Clear:
+                ui::icon_button(h, Icon::Trash, L"清空提示词 · Ctrl+Z 可撤销");
+                break;
+            case CopyOnly:
+                ui::icon_button(h, Icon::Copy, L"复制完整 Markdown · Ctrl+Shift+C");
+                break;
+            case CopyHide:
+                ui::icon_button(h, Icon::CopyHide, L"复制 Markdown 并收起 · Ctrl+Enter / Esc", true);
+                SetWindowTextW(h, L"复制并收起");
+                break;
+            case Apply:
+                ui::icon_button(h, Icon::Check, L"应用全局快捷键");
+                break;
+            case DefaultKey:
+                ui::icon_button(h, Icon::Reset, L"恢复默认快捷键 Ctrl+Alt+Space");
+                break;
+            }
             buttons.emplace_back(id, h);
         }
         hotkeyLabel = child(L"STATIC", L"全局快捷键", 0);
@@ -510,14 +568,17 @@ struct PromptWindow::Impl {
                              id == Preview   ? settings.preview
                              : id == Options ? options
                                              : false);
-            if (id == Theme)
+            if (id == Theme) {
                 SetWindowTextW(h, dark ? L"浅色" : L"深色");
+                ui::set_button_icon(h, dark ? ui::Icon::Sun : ui::Icon::Moon);
+            }
         }
         InvalidateRect(hwnd, nullptr, TRUE);
         for (HWND h : {status, hotkeyEdit, hotkeyLabel})
             if (h)
                 InvalidateRect(h, nullptr, TRUE);
         ui::titlebar(hwnd, dark);
+        ui::caption_toolbar(hwnd, settings.toolbar);
         if (menu) {
             MENUINFO mi{sizeof(mi)};
             mi.fMask = MIM_BACKGROUND;
@@ -548,8 +609,8 @@ struct PromptWindow::Impl {
         auto move = [&](int id, int x, int y, int width, int height = 36) {
             MoveWindow(button(id), x, y, width, px(height), TRUE);
         };
-        move(Theme, w - margin - px(64), caption + px(25), px(64));
-        move(Options, w - margin - px(152), caption + px(25), px(80));
+        move(Theme, w - margin - px(38), caption + px(25), px(38));
+        move(Options, w - margin - px(84), caption + px(25), px(38));
         for (int id : {Apply, DoubleCtrl, DefaultKey})
             ShowWindow(button(id), options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyEdit, options ? SW_SHOW : SW_HIDE);
@@ -563,26 +624,35 @@ struct PromptWindow::Impl {
         move(DefaultKey, x + px(200), caption + px(97), px(76));
         int formatY = caption + px(options ? 151 : 92);
         int xFormat = margin, row = 0;
+        formatSeparators.clear();
         for (int id : {FormatText, FormatH1, FormatH2, FormatBold, FormatItalic, FormatBullet, FormatNumber,
                        FormatQuote, FormatCode, FormatDiagram}) {
-            int width = px(id == FormatH1 || id == FormatH2 || id == FormatDiagram ? 76 : 62);
+            ShowWindow(button(id), settings.toolbar ? SW_SHOWNA : SW_HIDE);
+            if (!settings.toolbar)
+                continue;
+            int width = px(38);
             if (xFormat + width > w - margin) {
                 xFormat = margin;
                 ++row;
             }
-            move(id, xFormat, formatY + row * px(40), width, 32);
-            xFormat += width + px(6);
+            move(id, xFormat, formatY + row * px(40), width, 36);
+            xFormat += width + px(4);
+            if (id == FormatH2 || id == FormatItalic || id == FormatQuote) {
+                formatSeparators.push_back({xFormat + px(4), formatY + row * px(40)});
+                xFormat += px(12);
+            }
         }
-        int top = formatY + (row + 1) * px(40) + px(8),
+        int top = formatY + (settings.toolbar ? (row + 1) * px(40) : 0) + px(8),
             bottom = std::max<int>(top + px(80), r.bottom - px(106));
         sourceCard = {margin, top, w - margin, bottom};
         MoveWindow(editor->hwnd(), margin + 1, top + 1, w - margin * 2 - 2, bottom - top - 2, TRUE);
         editor->inset(GetDpiForWindow(hwnd));
         MoveWindow(status, margin, r.bottom - px(92), w - margin * 2, px(25), TRUE);
-        move(Clear, margin, r.bottom - px(54), px(72));
-        move(CopyOnly, w - margin - px(324), r.bottom - px(54), px(100));
-        move(CopyHide, w - margin - px(212), r.bottom - px(54), px(212));
+        move(Clear, margin, r.bottom - px(54), px(38));
+        move(CopyOnly, w - margin - px(224), r.bottom - px(54), px(38));
+        move(CopyHide, w - margin - px(172), r.bottom - px(54), px(172));
         ui::style_button(button(Options), false, options);
+        ui::caption_toolbar(hwnd, settings.toolbar);
         InvalidateRect(hwnd, nullptr, FALSE);
     }
     void paint() {
@@ -594,6 +664,8 @@ struct PromptWindow::Impl {
         ui::fill(dc, r, colors.background);
         auto px = [&](int n) { return (int)(n * dpi); };
         int caption = ui::caption_height(hwnd);
+        for (auto point : formatSeparators)
+            ui::line(dc, point.x, point.y + px(9), point.x, point.y + px(27), colors.border);
         ui::text(dc, titleFont, L"提示词", {px(24), caption + px(15), r.right - px(310), caption + px(48)},
                  colors.text);
         ui::text(dc, smallFont, L"直接编辑内容，复制为 Markdown。",
@@ -688,6 +760,7 @@ struct PromptWindow::Impl {
         if (!prefsMenu)
             return;
         for (auto [id, checked] : {std::pair{Resident, settings.resident},
+                                   {ToggleToolbar, settings.toolbar},
                                    {Top, settings.top},
                                    {Startup, prompt_startup_enabled(startupValue, startupCommand)}})
             CheckMenuItem(prefsMenu, id, MF_BYCOMMAND | (checked ? MF_CHECKED : MF_UNCHECKED));
@@ -781,6 +854,12 @@ struct PromptWindow::Impl {
             return;
         }
         switch (id) {
+        case ToggleToolbar:
+            settings.toolbar = !settings.toolbar;
+            layout();
+            persist_settings();
+            SetFocus(editor->hwnd());
+            break;
         case CopyHide:
             hide(true);
             break;
@@ -951,6 +1030,10 @@ struct PromptWindow::Impl {
             return 0;
         }
         switch (m) {
+        case ui::WM_TOGGLE_TOOLBAR:
+            if (p->editor && !p->modal)
+                p->action(ToggleToolbar);
+            return 0;
         case WM_ERASEBKGND:
             return 1;
         case WM_PAINT:

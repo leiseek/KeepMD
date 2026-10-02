@@ -4,7 +4,47 @@
 #include <windows.h>
 
 namespace keepmd::ui {
+enum class Icon {
+    None,
+    Folder,
+    Back,
+    Forward,
+    Outline,
+    Search,
+    Minus,
+    Plus,
+    Moon,
+    Sun,
+    Width,
+    Edit,
+    Book,
+    Save,
+    Split,
+    Prompt,
+    Text,
+    H1,
+    H2,
+    Bold,
+    Italic,
+    Bullet,
+    Numbered,
+    Quote,
+    Code,
+    Diagram,
+    Keyboard,
+    Trash,
+    Copy,
+    CopyHide,
+    Check,
+    Reset
+};
+void icon(HDC dc, Icon value, RECT rect, COLORREF foreground, COLORREF background);
+void icon_face(HDC dc, RECT rect, HFONT font, Icon value, std::wstring_view label, const struct Palette &p,
+               bool primary, bool checked, bool hot, bool pressed, bool disabled, bool focused, float scale);
+void icon_button(HWND hwnd, Icon value, const wchar_t *tip, bool showLabel = false);
+void set_button_icon(HWND hwnd, Icon value);
 constexpr UINT WM_SCROLL_TO = WM_APP + 40;
+constexpr UINT WM_TOGGLE_TOOLBAR = WM_APP + 41;
 enum class ScrollKind { Reader, Editor, List };
 void attach_scrollbars(HWND target, ScrollKind kind);
 void sync_scrollbars(HWND target);
@@ -28,6 +68,7 @@ void draw_menu(const DRAWITEMSTRUCT &item, HFONT font, bool dark);
 void titlebar(HWND hwnd, bool dark);
 // Custom caption owns a detached menu and forwards its original commands.
 int caption_height(HWND hwnd);
+void caption_toolbar(HWND hwnd, bool expanded);
 void caption_menu(HWND hwnd, HMENU menu);
 HMENU window_menu(HWND hwnd);
 bool caption_translate(MSG &message);

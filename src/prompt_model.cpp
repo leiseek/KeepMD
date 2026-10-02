@@ -124,6 +124,8 @@ PromptSettings load_prompt_settings(const std::filesystem::path &path) {
             settings.top = value == "1";
         else if (key == "Preview")
             settings.preview = value == "1";
+        else if (key == "Toolbar")
+            settings.toolbar = value != "0";
         else if (key == "Opacity") {
             try {
                 settings.opacity = std::clamp(std::stoi(value), 30, 100);
@@ -140,7 +142,8 @@ bool save_prompt_settings(const std::filesystem::path &path, const PromptSetting
     return save_file(path,
                      L"[Prompt]\nHotkey=" + s.hotkey + L"\nResident=" + std::to_wstring(s.resident) +
                          L"\nTop=" + std::to_wstring(s.top) + L"\nPreview=" + std::to_wstring(s.preview) +
-                         L"\nOpacity=" + std::to_wstring(s.opacity) + L"\n",
+                         L"\nOpacity=" + std::to_wstring(s.opacity) + L"\nToolbar=" +
+                         std::to_wstring(s.toolbar) + L"\n",
                      Encoding::Utf8, error);
 }
 namespace {

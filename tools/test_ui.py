@@ -69,11 +69,11 @@ try:
         assert visible>=10
     toolbar_fits()
     u.MoveWindow(main,30,30,640,520,True);time.sleep(.25);toolbar_fits()
-    assert u.SendMessageW(toolbar,0x428,0,0)>1 # TB_GETROWS
+    assert u.SendMessageW(toolbar,0x428,0,0)==1 # compact icon toolbar fits minimum width
     screenshot(main,'ui-reader-narrow.png')
     command(main,117);time.sleep(.2);toolbar_fits();inside(u.GetDlgItem(main,202),main)
     command(main,117)
-    checks.append('reader toolbar fits 640px window and wraps; edit actions appear without clipping')
+    checks.append('reader icon toolbar fits 640px on one row; edit actions appear without clipping')
     u.MoveWindow(main,30,30,1060,820,True);command(main,105);command(main,102);command(main,106)
     time.sleep(.15);screenshot(main,'ui-reader-dark.png')
     toc=next(h for h in children(main) if name(h,True)=='SysListView32')

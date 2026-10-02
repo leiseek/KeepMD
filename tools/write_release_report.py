@@ -13,23 +13,23 @@ def read(name):return json.loads((RESULTS/name).read_text(encoding='utf-8-sig'))
 exe=ROOT/'build/release/keepmd.exe';sha=hashlib.sha256(exe.read_bytes()).hexdigest()
 startup=read('software-s100.json');scroll=read('scroll.json');idle=read('idle.json');large=read('software-l50.json')
 imports=read('dependencies.json');smoke=read('release-smoke.json');environment=read('environment.json')
-prompt=read('prompt-e2e.json');pm=prompt['measurements'];ui=read('ui-e2e.json');bars=read('scrollbar-e2e.json');visual=read('visual-editor-e2e.json');caption=read('caption-e2e.json')
-for item in (startup,idle,large,imports,smoke,prompt,ui,bars,visual,caption):
+prompt=read('prompt-e2e.json');pm=prompt['measurements'];ui=read('ui-e2e.json');bars=read('scrollbar-e2e.json');visual=read('visual-editor-e2e.json');caption=read('caption-e2e.json');icons=read('icons-e2e.json');toggle=read('toolbar-toggle-e2e.json')
+for item in (startup,idle,large,imports,smoke,prompt,ui,bars,visual,caption,icons,toggle):
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
 core=subprocess.run([str(ROOT/'build/release/core_tests.exe')],capture_output=True,text=True,check=True)
 count=int(re.search(r'(\d+) checks, 0 failures',core.stdout).group(1))
 working=statistics.median(r['working_set']for r in startup['records'])/1048576
-summary={'version':'0.4.1','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+summary={'version':'0.4.2','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
          'ui_e2e_checks':len(ui['checks']),
-         'scrollbar_e2e_checks':len(bars['checks']),'visual_editor_e2e_checks':len(visual['checks']),'caption_e2e_checks':len(caption['checks']),
+         'scrollbar_e2e_checks':len(bars['checks']),'visual_editor_e2e_checks':len(visual['checks']),'caption_e2e_checks':len(caption['checks']),'icon_e2e_checks':len(icons['checks']),'toolbar_toggle_e2e_checks':len(toggle['checks']),
          'startup_launch_p95_ms':startup['launch_to_first_paint_p95_ms'],'private_median_mib':startup['private_p50_mib'],'working_set_median_mib':working,
          'large_50mib_launch_p95_ms':large['launch_to_first_paint_p95_ms'],'large_50mib_private_median_mib':large['private_p50_mib'],
          'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips','custom window caption, native resize/drag, work-area maximize, docking and close guards'],
          'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Live double-Ctrl summon not exercised while original Prompt Flow is running','Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented','Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested']}
 (RESULTS/'release-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 rows='\n'.join(f"| {r['fixture']} | {r['draw_p95_ms']:.2f} ms | {r['dispatch_to_submit_p95_ms']:.2f} ms | {r['samples']} |" for r in scroll['records'])
-report=f'''**KeepMD 0.4.1 交付验证报告**
+report=f'''**KeepMD 0.4.2 交付验证报告**
 
 生成时间：{summary['generated_at']}。目标平台：Windows 11 x64。所有以下正式结果绑定到同一个 Release EXE；历史探索数据保留在源码仓库，不混入最终数据。
 
@@ -48,6 +48,12 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 功能证据：[编辑](../bench/results/editor-e2e.json)、[导航](../bench/results/navigation-e2e.json)、[输入法](../bench/results/ime-e2e.json)、[DPI](../bench/results/dpi-e2e.json)、[压力](../bench/results/stress.json)、[显示检查](../bench/results/release-smoke.json)。
 
+**图标工具栏与双栏滚动**
+
+阅读器及提示词格式栏统一使用原生 GDI 线性图标，常态不显示重复边框；悬停／按下／选中有状态反馈，保留按钮中文名称和键盘操作。“复制并收起”保留图标与短文字。{len(icons['checks'])} 组图标检查通过，包含真实鼠标悬停的中文说明／快捷键、格式操作和撤销、Space 复制，以及 360 次图标绘制和 60 次主题切换后 GDI 对象不累积。
+
+顶栏箭头、菜单和 Ctrl+Shift+T 可收起／展开工具栏。{len(toggle['checks'])} 组状态检查通过，覆盖阅读、源码编辑、双栏预览及提示词模式；收起后编辑区获得更多空间，复制操作仍可用，阅读器和提示词分别记住状态。双栏两个区域的自绘滚动条在控件层级变化、模式切换、主题切换、调整尺寸和原生框架重绘后保持覆盖，避免默认滚动条重新露出。见 [图标](../bench/results/icons-e2e.json)、[工具栏收起展开](../bench/results/toolbar-toggle-e2e.json)、[滚动条](../bench/results/scrollbar-e2e.json)。
+
 **自绘窗口顶栏**
 
 阅读器、提示词与流程图编辑窗口移除 Windows 默认标题栏，改用统一主题的菜单与细线窗口按钮。{len(caption['checks'])} 组端到端检查通过：真实鼠标拖动、边缘缩放、最小化、最大化／还原、双击最大化、最大化客户区与显示器工作区一致、Win+Left 贴靠、菜单点击／F10／Alt+Space、提示词关闭收起、Alt+F4 和阅读器未保存取消关闭。新按钮保留原生 Button 的名称与键盘操作；Windows 11 鼠标悬停最大化按钮的 Snap 布局弹窗未实现，Win+方向键贴靠已实测。物理跨显示器 DPI 变更仍未验证。见 [顶栏验证记录](../bench/results/caption-e2e.json)。
@@ -58,7 +64,7 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 **启动与内存**
 
-界面优化通过 {len(ui['checks'])} 组原生窗口检查：阅读器 640px 自动换行、提示词 720px 设置布局、按钮键盘操作、菜单导航、深浅主题同步、窗口尺寸保留，以及连续 30 次切换主题后 GDI 对象不累积。截图已逐张检查。测试在 96-DPI 桌面执行；弹出菜单和文件对话框仍使用 Windows 的外观。详见 [UI 验证记录](../bench/results/ui-e2e.json)。
+界面优化通过 {len(ui['checks'])} 组原生窗口检查：阅读器 640px 图标布局、提示词 720px 设置布局、按钮键盘操作、菜单导航、深浅主题同步、窗口尺寸保留，以及连续 30 次切换主题后 GDI 对象不累积。截图已逐张检查。测试在 96-DPI 桌面执行；弹出菜单和文件对话框仍使用 Windows 的外观。详见 [UI 验证记录](../bench/results/ui-e2e.json)。
 
 正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块，保留原控件滚动模型，固定预留空间以避免重排循环。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
 

@@ -167,6 +167,7 @@ int main() {
           "default graph class applies to unclassified nodes");
     ReaderSettings prefs;
     prefs.dark = true;
+    prefs.toolbar = false;
     prefs.zoom = 1.5f;
     prefs.reading_width = 700;
     for (int i = 0; i < 12; ++i)
@@ -175,6 +176,7 @@ int main() {
     auto config = temp / L"settings.ini";
     check(store_settings(config, prefs), "preferences atomically saved");
     auto restored = load_settings(config);
+    check(!restored.toolbar, "collapsed reader toolbar preference survives restart");
     check(restored.dark && restored.zoom == 1.5f && restored.reading_width == 700 &&
               restored.recent[0].path == prefs.recent[0].path && restored.recent[0].block == 11,
           "Unicode recent path and position survive restart");
@@ -232,6 +234,7 @@ int main() {
     tap.event(true, true, 1300);
     check(tap.event(true, false, 1320), "double Ctrl recovers after another held modifier is released");
     PromptSettings ps;
+    ps.toolbar = false;
     ps.hotkey = L"Ctrl+Shift+F9";
     ps.resident = true;
     ps.opacity = 70;
@@ -239,6 +242,7 @@ int main() {
     auto promptConfig = temp / L"prompts.ini";
     check(save_prompt_settings(promptConfig, ps, error), "prompt preferences saved atomically");
     auto ps2 = load_prompt_settings(promptConfig);
+    check(!ps2.toolbar, "collapsed prompt toolbar preference survives restart independently");
     check(ps2.hotkey == ps.hotkey && ps2.resident && ps2.opacity == 70 && !ps2.preview,
           "prompt preferences survive restart independently from reader");
     std::filesystem::remove(promptConfig);

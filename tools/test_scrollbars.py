@@ -10,6 +10,9 @@ u.GetScrollInfo.argtypes=[W.HWND,C.c_int,C.POINTER(SI)]
 u.GetDlgItem.argtypes=[W.HWND,C.c_int];u.GetDlgItem.restype=W.HWND
 u.GetClientRect.argtypes=[W.HWND,C.POINTER(W.RECT)]
 u.WindowFromPoint.argtypes=[W.POINT];u.WindowFromPoint.restype=W.HWND
+u.SetWindowPos.argtypes=[W.HWND,W.HWND,C.c_int,C.c_int,C.c_int,C.c_int,W.UINT]
+u.MoveWindow.argtypes=[W.HWND,C.c_int,C.c_int,C.c_int,C.c_int,W.BOOL]
+u.GetWindowLongPtrW.argtypes=[W.HWND,C.c_int];u.GetWindowLongPtrW.restype=C.c_ssize_t
 def info(h,axis=1):
     s=SI(C.sizeof(SI),0x17);assert u.GetScrollInfo(h,axis,C.byref(s));return s
 def dims(h):
@@ -72,6 +75,22 @@ try:
     r=drag(main,edit,bar);assert r.pos>65535,(r.pos,r.max)
     assert not u.SendMessageW(edit,0xB8,0,0) # EM_GETMODIFY
     checks.append('source editor drags past 65535 without modifying Markdown or caret text')
+    # Split preview must cover both native lanes after z-order/frame refreshes,
+    # mode switches and resize, even if the window rectangles have not changed.
+    for iteration in range(4):
+        u.SendMessageW(main,0x111,124,0);u.SendMessageW(main,0x111,124,0)
+        u.MoveWindow(main,40,40,900+iteration*20,700,True)
+        u.SendMessageW(main,0x111,106,0)
+        for target in (edit,reader):
+            u.SetWindowPos(target,None,0,0,0,0,0x1|0x2|0x10|0x20) # raise without move/size; frame changed
+            u.SendMessageW(target,0x85,1,0) # native nonclient repaint
+            for vertical in (True,False):
+                if not u.GetWindowLongPtrW(target,-16)&(0x00200000 if vertical else 0x00100000):continue
+                b=bar_for(main,target,vertical);bw,bh=dims(b)
+                point=W.POINT(bw//2,bh//2);u.ClientToScreen(b,C.byref(point))
+                assert u.WindowFromPoint(point)==b,'Split preview exposed native scrollbar after z-order change'
+    screenshot(main,'split-scrollbars-dark.png')
+    checks.append('both split-preview panes retain themed vertical/horizontal lanes after mode, theme, resize and native-frame refreshes')
     # Long unwrapped source creates an independently draggable horizontal lane.
     s=C.create_unicode_buffer('```\n'+('abcdefghij '*900)+'\n```\n')
     u.SendMessageW(edit,0xB1,0,-1)

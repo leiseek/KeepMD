@@ -8,6 +8,7 @@ struct RecentFile {
 };
 struct ReaderSettings {
     bool dark = false;
+    bool toolbar = true;
     float zoom = 1;
     float reading_width = 920;
     std::vector<RecentFile> recent;

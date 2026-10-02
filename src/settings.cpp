@@ -39,6 +39,8 @@ ReaderSettings load_settings(const std::filesystem::path &path) {
         try {
             if (key == "Dark")
                 settings.dark = value == "1";
+            else if (key == "Toolbar")
+                settings.toolbar = value != "0";
             else if (key == "Zoom")
                 settings.zoom = std::clamp(std::stoi(value) / 1000.f, .65f, 2.5f);
             else if (key == "Width")
@@ -63,7 +65,8 @@ ReaderSettings load_settings(const std::filesystem::path &path) {
 bool store_settings(const std::filesystem::path &path, const ReaderSettings &settings) {
     std::wstring text = L"[Reader]\nDark=" + std::to_wstring(settings.dark ? 1 : 0) + L"\nZoom=" +
                         std::to_wstring((int)(settings.zoom * 1000)) + L"\nWidth=" +
-                        std::to_wstring((int)settings.reading_width) + L"\n";
+                        std::to_wstring((int)settings.reading_width) + L"\nToolbar=" +
+                        std::to_wstring(settings.toolbar) + L"\n";
     for (size_t i = 0; i < settings.recent.size() && i < 10; ++i) {
         text += L"Recent" + std::to_wstring(i) + L"=" + settings.recent[i].path.wstring() + L"\nPosition" +
                 std::to_wstring(i) + L"=" + std::to_wstring(settings.recent[i].block) + L"\n";

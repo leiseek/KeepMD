@@ -1,4 +1,4 @@
-**KeepMD 0.4.1 — Windows 原生 Markdown 阅读器**
+**KeepMD 0.4.2 — Windows 原生 Markdown 阅读器**
 
 阅读、预览优先，附带按需开启的轻量源码编辑。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
 
@@ -6,10 +6,10 @@
 
 **使用**
 
-运行 `dist/KeepMD-0.4.1-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
+运行 `dist/KeepMD-0.4.2-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
 
 ```powershell
-.\dist\KeepMD-0.4.1-windows-x64\keepmd.exe .\README.md
+.\dist\KeepMD-0.4.2-windows-x64\keepmd.exe .\README.md
 ```
 
 `Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/源码，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
@@ -38,6 +38,10 @@ KeepMD 运行时按 `Ctrl+Alt+Space`，或点“提示词”打开独立输入�
 **窗口顶栏（0.4.1）**
 
 阅读器、提示词和流程图编辑窗口统一使用自绘顶栏，去掉系统标题栏和默认关闭图标。顶部保留菜单、文件名及细线最小化／最大化／关闭按钮；支持拖动、边缘缩放、双击最大化、Win+方向键贴靠、F10 菜单与 Alt+Space 系统菜单。
+
+**图标与可收起工具栏（0.4.2）**
+
+阅读器和提示词格式栏改为统一线性图标，悬停显示中文功能名及适用的快捷键。主操作“复制并收起”保留短文字。点击顶栏的箭头或按 `Ctrl+Shift+T`，可随时收起／展开当前窗口工具栏；阅读器和提示词分别保存状态，阅读／源码编辑／双栏预览均可使用。双栏两侧滚动条保持主题色细滑块，修复控件层级变化后默认轨道露出的情况。
 
 **构建与验证**
 

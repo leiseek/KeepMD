@@ -47,6 +47,9 @@ def keys(expected,*vks):
     time.sleep(.09)
 def text(h,value):
     s=C.create_unicode_buffer(value);u.SendMessageW(h,0xC,0,C.cast(s,C.c_void_p).value)
+def saved_text(path,value):
+    try:return path.read_text(encoding='utf-8')==value
+    except (PermissionError,FileNotFoundError):return False # atomic replacement may briefly hold an exclusive handle
 def tops(pid,cls):
     found=[]
     def collect(h,_):
@@ -95,7 +98,7 @@ try:
     measurements['first_summon_observed_ms']=(time.perf_counter()-start)*1000
     edit=wait(lambda:u.GetDlgItem(panel,500));status=u.GetDlgItem(panel,501)
     sample='# 提示词 😀\n\n请按下列步骤处理：\n\n- 保留 **Markdown**\n- 输出简明结论\n\n```mermaid\nflowchart LR\nA[输入] --> B[检查] --> C[结果]\n```\n\n    缩进代码\n\n'
-    text(edit,sample);wait(lambda:draft.exists() and draft.read_text(encoding='utf-8')==sample)
+    text(edit,sample);wait(lambda:saved_text(draft,sample))
     time.sleep(.5);screenshot(panel,'prompt-preview.png')
     assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
     activate(panel,edit);keys(panel,0x11,ord('A'));keys(panel,0x11,ord('C'))

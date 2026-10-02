@@ -18,7 +18,7 @@ struct CtrlTap {
 };
 struct PromptSettings {
     std::wstring hotkey = L"Ctrl+Alt+Space";
-    bool resident = false, top = true, preview = true;
+    bool resident = false, top = true, preview = true, toolbar = true;
     int opacity = 100;
 };
 PromptSettings load_prompt_settings(const std::filesystem::path &path);
