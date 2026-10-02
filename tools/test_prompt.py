@@ -97,17 +97,17 @@ try:
     sample='# 提示词 😀\n\n请按下列步骤处理：\n\n- 保留 **Markdown**\n- 输出简明结论\n\n```mermaid\nflowchart LR\nA[输入] --> B[检查] --> C[结果]\n```\n\n    缩进代码\n\n'
     text(edit,sample);wait(lambda:draft.exists() and draft.read_text(encoding='utf-8')==sample)
     time.sleep(.5);screenshot(panel,'prompt-preview.png')
-    preview=next(h for h in children(panel) if name(h,True)=='KeepMD.PromptPreview')
-    activate(panel,preview);keys(panel,0x11,ord('A'));keys(panel,0x11,ord('C'))
+    assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
+    activate(panel,edit);keys(panel,0x11,ord('A'));keys(panel,0x11,ord('C'))
     assert '提示词' in clipboard() and 'Markdown' in clipboard()
-    checks.append('Markdown/flowchart preview, semantic preview selection and draft autosave')
+    checks.append('single visual editor, Markdown/flowchart formatting and exact source autosave')
     activate(panel,edit);keys(panel,0x11,0x0D)
     wait(lambda:not u.IsWindowVisible(panel));wait(lambda:u.GetForegroundWindow()==target)
     assert clipboard()==sample,(repr(clipboard()),repr(sample))
-    keys(target,0x11,ord('V'));assert name(target).replace('\r\n','\n')==sample
+    keys(target,0x11,ord('V'));assert name(target).replace('\r\n','\n')==sample,repr(name(edit))
     checks.append('Ctrl+Enter copies exact Markdown and returns focus; target pastes source')
     keys(target,0x11,0x12,0x20);wait(lambda:u.GetForegroundWindow()==panel)
-    assert name(edit).replace('\r\n','\n')==sample
+    cmd(panel,511);assert clipboard()==sample
     assert u.OpenClipboard(None);held=True
     cmd(panel,510)
     assert u.IsWindowVisible(panel) and '剪贴板正忙' in name(status)
@@ -146,17 +146,20 @@ try:
     cmd(panel,517)
     # The integrated window must keep the source editor's undo chain.
     cmd(panel,512);assert not name(edit)
-    activate(panel,edit);keys(panel,0x11,ord('Z'));assert name(edit).replace('\r\n','\n')==sample
+    activate(panel,edit);keys(panel,0x11,ord('Z'));cmd(panel,511);assert clipboard()==sample
     export=folder/'导出.md'
     if export.exists():export.unlink()
     choose(process,panel,522,export)
-    wait(lambda:export.exists());assert export.read_text(encoding='utf-8')==sample
+    def exported():
+        try:return export.read_text(encoding='utf-8')==sample
+        except (PermissionError,FileNotFoundError):return False
+    wait(exported)
     legacy=folder/'legacy.json'
     legacy_text='# 从 Prompt Flow 导入\n\n  缩进 😀\n'
     legacy.write_text(json.dumps({'Prompt':legacy_text,'Hotkey':'Ctrl+Alt+Space','AlwaysOnTop':False,'Opacity':90,'Autostart':True}),encoding='utf-8')
     original=legacy.read_bytes()
     choose(process,panel,523,legacy,replace=True)
-    wait(lambda:name(edit).replace('\r\n','\n')==legacy_text)
+    wait(lambda:name(edit).replace('\r\n','\n').replace('\ufffc','')==legacy_text)
     assert legacy.read_bytes()==original
     checks.append('undoable clear, Markdown export and original Prompt Flow JSON import')
     # Second invocation forwards to existing service and exits.
@@ -170,7 +173,7 @@ try:
     cmd(panel,525);process.wait(timeout=8)
     process=launch('--resident');panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'));main=first(process.pid,'KeepMD.Window')
     activate(target);keys(target,0x11,0x12,0x20);wait(lambda:u.IsWindowVisible(panel))
-    edit=u.GetDlgItem(panel,500);assert name(edit).replace('\r\n','\n')==legacy_text
+    edit=u.GetDlgItem(panel,500);assert name(edit).replace('\r\n','\n').replace('\ufffc','')==legacy_text
     checks.append('close-to-tray, explicit exit and draft/settings restoration')
     # Real IME input: Escape cancels composition; it must not copy/hide the panel.
     activate(panel,edit);text(edit,'');toggled=False;attempts=[]

@@ -93,10 +93,9 @@ try:
     cb=CALLBACK(collect);u.EnumWindows(cb,0);prompt=panel[0]
     e=wait(lambda:u.GetDlgItem(prompt,500));s=C.create_unicode_buffer(''.join(f'提示词第 {i} 行\n' for i in range(6000)))
     u.SendMessageW(e,0xC,0,C.cast(s,C.c_void_p).value);time.sleep(1)
-    preview=next(h for h in children(prompt) if name(h,True)=='KeepMD.PromptPreview')
     bar=bar_for(prompt,e);assert drag(prompt,e,bar).pos>65535
-    bar=bar_for(prompt,preview);assert drag(prompt,preview,bar).pos>1000
-    checks.append('prompt source and live preview scroll independently using themed thumbs')
+    assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(prompt))
+    checks.append('visual prompt editor scrolls long content using the themed thumb')
     u.PostMessageW(main,0x111,101,0);proc.wait(timeout=10);assert proc.returncode==0
     result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'checks':checks,'input':'real mouse hit-testing, drag, wheel; Win32 scroll position assertions'}
     (ROOT/'bench/results/scrollbar-e2e.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')

@@ -97,12 +97,10 @@ try:
     boxes=[rect(u.GetDlgItem(panel,i),panel) for i in ids]
     assert all(boxes[i][2]<=boxes[i+1][0] for i in range(len(boxes)-1)),boxes
     screenshot(panel,'ui-prompt-narrow-settings.png')
-    command(panel,514);command(panel,513)
-    preview=next(h for h in children(panel) if name(h,True)=='KeepMD.PromptPreview')
-    assert not u.IsWindowVisible(preview)
+    command(panel,514)
+    assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
     assert rect(edit,panel)[2]-rect(edit,panel)[0]>600
-    checks.append('prompt settings fit 720px; hiding preview gives full width to editor')
-    command(panel,513)
+    checks.append('prompt settings fit 720px and visual editor uses full content width')
     before=rect(panel)
     u.PostMessageW(panel,0x10,0,0);wait(lambda:not u.IsWindowVisible(panel))
     command(main,126);wait(lambda:u.IsWindowVisible(panel));assert rect(panel)==before

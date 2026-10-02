@@ -1,4 +1,4 @@
-param([string]$Version='0.3.1')
+param([string]$Version='0.4.0')
 $ErrorActionPreference='Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9]+)*$') { throw 'Invalid package version.' }
 $root=Split-Path $PSScriptRoot -Parent
@@ -23,7 +23,7 @@ Copy-Item -LiteralPath (Join-Path $root 'third_party/manifest.json') -Destinatio
 $(Get-Content -LiteralPath (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Raw -Encoding UTF8).Replace('third_party/md4c/LICENSE.md','licenses/MD4C.txt').Replace('third_party/tinta/LICENSE','licenses/Tinta.txt').Replace('third_party/manifest.json','DEPENDENCIES.json') | Set-Content -LiteralPath (Join-Path $folder '第三方说明.md') -Encoding UTF8
 $relativeFiles=@('keepmd.exe','使用说明.md','验证报告.md','第三方说明.md','DEPENDENCIES.json','licenses/MD4C.txt','licenses/Tinta.txt','examples/欢迎.md','examples/流程图.md')
 $relativeFiles+=@('PromptFlow集成说明.md','examples/提示词.md','输入提示词.cmd')
-foreach ($result in @('software-s100.json','software-l50.json','scroll.json','stress.json','editor-e2e.json','navigation-e2e.json','dpi-e2e.json','ime-e2e.json','environment.json','dependencies.json','idle.json','release-smoke.json','release-summary.json','prompt-e2e.json','ui-e2e.json','scrollbar-e2e.json')) {
+foreach ($result in @('software-s100.json','software-l50.json','scroll.json','stress.json','editor-e2e.json','navigation-e2e.json','dpi-e2e.json','ime-e2e.json','environment.json','dependencies.json','idle.json','release-smoke.json','release-summary.json','prompt-e2e.json','ui-e2e.json','scrollbar-e2e.json','visual-editor-e2e.json')) {
     Copy-Item -LiteralPath (Join-Path $root "bench/results/$result") -Destination (Join-Path $folder "bench/results/$result")
     $relativeFiles += "bench/results/$result"
 }

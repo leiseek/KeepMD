@@ -1,4 +1,4 @@
-**KeepMD 0.3.1 — Windows 原生 Markdown 阅读器**
+**KeepMD 0.4.0 — Windows 原生 Markdown 阅读器**
 
 阅读、预览优先，附带按需开启的轻量源码编辑。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
 
@@ -6,10 +6,10 @@
 
 **使用**
 
-运行 `dist/KeepMD-0.3.1-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
+运行 `dist/KeepMD-0.4.0-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
 
 ```powershell
-.\dist\KeepMD-0.3.1-windows-x64\keepmd.exe .\README.md
+.\dist\KeepMD-0.4.0-windows-x64\keepmd.exe .\README.md
 ```
 
 `Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/源码，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
@@ -18,7 +18,9 @@
 
 **快捷输入 Markdown 提示词**
 
-KeepMD 运行时按 `Ctrl+Alt+Space`，或点“提示词”打开独立输入窗口。左侧输入 Markdown，右侧实时预览；按 `Ctrl+Enter`、`Esc` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。中文输入法正在组词时，Esc 优先取消组词。
+KeepMD 运行时按 `Ctrl+Alt+Space`，或点“提示词”打开独立输入窗口。直接在单栏可视化编辑区输入，用工具栏设置标题、加粗、斜体、列表、引用与代码；按 `Ctrl+Enter`、`Esc` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。中文输入法正在组词时，Esc 优先取消组词。
+
+格式按钮应用于选中的文字；未选中文字时，“加粗／斜体／代码”会插入选中的占位文字，直接输入即可替换。流程图显示为图形，点“流程图”或双击图形修改该图的 Mermaid 语法。复制和保存仍保留 Markdown。
 
 提示词窗口的“设置”支持自定义快捷键、双击左 Ctrl、置顶、透明度、常驻托盘与登录启动。“文件”支持载入／导出 Markdown 和导入旧 Prompt Flow JSON。草稿自动保存，不影响正在阅读或编辑的文档。
 
@@ -29,9 +31,9 @@ KeepMD 运行时按 `Ctrl+Alt+Space`，或点“提示词”打开独立输入�
 
 默认关闭阅读器即退出；只有明确开启常驻后才保留托盘服务。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
 
-**界面更新（0.3.1）**
+**可视化提示词编辑（0.4.0）**
 
-提示词窗口采用独立的 Markdown／预览面板、底部“复制并收起”主操作和可折叠快捷键设置。深浅主题同步覆盖标题栏、顶层菜单、按钮、目录和状态栏；阅读器工具栏在窄窗口自动换行。输入区增加边距，提示词窗口本次运行中保留调整后的尺寸与位置。正文、编辑器、预览与目录统一使用主题色窄滑块，支持拖动、点击轨道翻页和滚轮；系统弹出菜单和文件对话框沿用 Windows 外观。
+提示词窗口提供原生可视化编辑、底部“复制并收起”主操作和可折叠快捷键设置，不再提供源码／预览双栏。深浅主题同步覆盖标题栏、顶层菜单、按钮、目录和状态栏；阅读器工具栏在窄窗口自动换行。输入区增加边距，提示词窗口本次运行中保留调整后的尺寸与位置。正文、编辑器、预览与目录统一使用主题色窄滑块，支持拖动、点击轨道翻页和滚轮；系统弹出菜单和文件对话框沿用 Windows 外观。
 
 **构建与验证**
 
@@ -61,4 +63,4 @@ python -m pip install -r tools/requirements-dev.txt
 - [原生阅读决策](docs/decisions/0001-native-reader.md) 与 [编辑控件决策](docs/decisions/0002-source-editor.md)
 - [第三方来源与许可证](THIRD_PARTY_NOTICES.md)
 
-阅读器是本项目的重点。完整 Mermaid、所见即所得编辑、公式、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.3 的交付范围。
+阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、公式、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.4 的交付范围。

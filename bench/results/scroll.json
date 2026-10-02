@@ -4,46 +4,46 @@
     {
       "fixture": "s100",
       "samples": 240,
-      "draw_p95_ms": 2.8429,
-      "draw_p99_ms": 3.5968,
-      "dispatch_to_submit_p95_ms": 3.902,
-      "dispatch_to_submit_p99_ms": 4.6255,
+      "draw_p95_ms": 3.2191,
+      "draw_p99_ms": 4.3119,
+      "dispatch_to_submit_p95_ms": 4.3295,
+      "dispatch_to_submit_p99_ms": 5.3929,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.000173699998413,
-      "private_mib": 16.7578125
+      "idle_observation_seconds": 3.000199400004931,
+      "private_mib": 16.625
     },
     {
       "fixture": "l10",
       "samples": 240,
-      "draw_p95_ms": 3.1899,
-      "draw_p99_ms": 4.0304,
-      "dispatch_to_submit_p95_ms": 4.2274,
-      "dispatch_to_submit_p99_ms": 5.0522,
+      "draw_p95_ms": 3.2489,
+      "draw_p99_ms": 3.7596,
+      "dispatch_to_submit_p95_ms": 4.4322,
+      "dispatch_to_submit_p99_ms": 5.278,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.000308499998937,
-      "private_mib": 94.80078125
+      "idle_observation_seconds": 3.000285999994958,
+      "private_mib": 94.71875
     },
     {
       "fixture": "images100",
       "samples": 240,
-      "draw_p95_ms": 2.937,
-      "draw_p99_ms": 3.4759,
-      "dispatch_to_submit_p95_ms": 3.9309,
-      "dispatch_to_submit_p99_ms": 4.6825,
+      "draw_p95_ms": 3.2086,
+      "draw_p99_ms": 3.7111,
+      "dispatch_to_submit_p95_ms": 4.2496,
+      "dispatch_to_submit_p99_ms": 6.4182,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.000611800001934,
-      "private_mib": 35.53515625
+      "idle_observation_seconds": 3.000826200004667,
+      "private_mib": 35.65234375
     },
     {
       "fixture": "flow200",
       "samples": 240,
-      "draw_p95_ms": 7.0586,
-      "draw_p99_ms": 8.326,
-      "dispatch_to_submit_p95_ms": 7.4686,
-      "dispatch_to_submit_p99_ms": 8.7421,
+      "draw_p95_ms": 7.3594,
+      "draw_p99_ms": 8.0215,
+      "dispatch_to_submit_p95_ms": 7.7883,
+      "dispatch_to_submit_p99_ms": 8.4489,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.0005297000025166,
-      "private_mib": 20.93359375
+      "idle_observation_seconds": 3.0006861000001663,
+      "private_mib": 21.1875
     }
   ]
 }

@@ -5,7 +5,7 @@ try {
     & "$PSScriptRoot/build.ps1" -Test
     if ($LASTEXITCODE -ne 0) { throw 'Core validation failed' }
     $env:PYTHONIOENCODING='utf-8'
-    foreach ($script in @('generate_corpus.py','test_gui.py','test_navigation.py','test_editor.py','test_dpi.py','test_stress.py','test_ui.py','test_scrollbars.py')) {
+    foreach ($script in @('generate_corpus.py','test_gui.py','test_navigation.py','test_editor.py','test_dpi.py','test_stress.py','test_ui.py','test_scrollbars.py','test_visual_editor.py')) {
         Write-Output "Validating $script"
         & python (Join-Path $PSScriptRoot $script)
         if ($LASTEXITCODE -ne 0) { throw "$script failed" }

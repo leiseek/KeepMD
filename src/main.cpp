@@ -1452,7 +1452,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
 } // namespace
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    OleInitialize(nullptr);
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_BAR_CLASSES | ICC_STANDARD_CLASSES};
     InitCommonControlsEx(&controls);
     WNDCLASSEXW cls{sizeof(cls)};
@@ -1527,7 +1527,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         app.skipSettingsSave = true;
         app.forceExit = true;
         DestroyWindow(hwnd);
-        CoUninitialize();
+        OleUninitialize();
         return 0;
     }
     ShowWindow(hwnd, (residentStart || promptStart) && initial.empty() ? SW_HIDE : show);
@@ -1594,6 +1594,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         }
     }
     DestroyAcceleratorTable(accel);
-    CoUninitialize();
+    OleUninitialize();
     return (int)message.wParam;
 }

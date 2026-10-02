@@ -1,19 +1,19 @@
 {
-  "exe_sha256": "5a8c936deab83495dea336c3c8f2dda7793ef02d9c4d825e4fc955aa4a1d16dc",
-  "seconds": 30.000366499996744,
+  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
+  "seconds": 30.000504599993292,
   "cpu_seconds_delta": 0.0,
   "paint_count_delta": 0,
-  "private_bytes": 15896576,
-  "working_set": 42217472,
+  "private_bytes": 15814656,
+  "working_set": 42213376,
   "gpu_process_counter_rows": [
     {
-      "InstanceName": "pid_17616_luid_0x00000000_0x000100e8_phys_0",
-      "Path": "\\\\flp\\gpu process memory(pid_17616_luid_0x00000000_0x000100e8_phys_0)\\dedicated usage",
+      "InstanceName": "pid_22308_luid_0x00000000_0x000100e8_phys_0",
+      "Path": "\\\\flp\\gpu process memory(pid_22308_luid_0x00000000_0x000100e8_phys_0)\\dedicated usage",
       "CookedValue": 0
     },
     {
-      "InstanceName": "pid_17616_luid_0x00000000_0x000100e8_phys_0",
-      "Path": "\\\\flp\\gpu process memory(pid_17616_luid_0x00000000_0x000100e8_phys_0)\\shared usage",
+      "InstanceName": "pid_22308_luid_0x00000000_0x000100e8_phys_0",
+      "Path": "\\\\flp\\gpu process memory(pid_22308_luid_0x00000000_0x000100e8_phys_0)\\shared usage",
       "CookedValue": 2727936
     }
   ],

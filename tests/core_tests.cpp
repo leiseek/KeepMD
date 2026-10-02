@@ -4,6 +4,7 @@
 #include "prompt_model.h"
 #include "settings.h"
 #include "shell_integration.h"
+#include "visual_markdown.h"
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -269,6 +270,41 @@ int main() {
               !prompt_startup_enabled(L"test", startup, startupKey),
           "startup registration can be removed");
     RegDeleteTreeW(HKEY_CURRENT_USER, startupKey.c_str());
+    auto visual = visual_plan(L"# 标题 😀\n\n正文 **粗体** 和 *斜体* 与 `代码`。\n- 项目\n");
+    check(visual.source == L"# 标题 😀\n\n正文 **粗体** 和 *斜体* 与 `代码`。\n- 项目\n",
+          "visual mapping preserves original Markdown whitespace and emoji");
+    check(visual.paragraphs[0].heading == 1 && (visual.styles[0] & VHidden) && !(visual.styles[2] & VHidden),
+          "visual heading hides its syntax but keeps title editable");
+    auto visualBold = visual.source.find(L"粗体"), visualItalic = visual.source.find(L"斜体"),
+         visualCode = visual.source.find(L"代码");
+    check((visual.styles[visualBold] & VBold) && (visual.styles[visualBold - 1] & VHidden) &&
+              (visual.styles[visualItalic] & VItalic) && (visual.styles[visualCode] & VCode),
+          "visual inline semantic formatting comes from Markdown parser");
+    auto nested = visual_plan(L"***nested*** [link](https://example.test) \\*literal\\*\n");
+    check((nested.styles[3] & (VBold | VItalic)) == (VBold | VItalic) &&
+              (nested.styles[nested.source.find(L"link")] & VLink),
+          "nested emphasis and link display mapped without rewriting targets");
+    check(!(nested.styles[nested.source.find(L"*literal")] & VHidden),
+          "escaped visible literal punctuation remains visible");
+    auto flowVisual = visual_plan(L"前文\n\n```mermaid\nflowchart LR\nA-->B\n```\n\n后文\n");
+    check(flowVisual.diagrams.size() == 1 && flowVisual.diagrams[0].source == L"flowchart LR\nA-->B\n" &&
+              flowVisual.styles[flowVisual.source.find(L"A-->")] & VHidden,
+          "visual diagram retains exact source behind native figure");
+    auto incomplete = visual_plan(L"```mermaid\nflowchart LR\nA-->B\n");
+    check(incomplete.diagrams.empty() && !(incomplete.styles[incomplete.source.find(L"A-->")] & VHidden),
+          "incomplete diagram remains editable code until completed");
+    std::wstring many;
+    for (int i = 0; i < 20; ++i)
+        many += L"```mermaid\ngraph TD\nA-->B\n```\n";
+    check(visual_plan(many).diagrams.size() == 16, "visual inline picture count is bounded");
+    check(visual_plan(L"```mermaid  \ngraph LR\nA-->B\n```\n").diagrams.size() == 1,
+          "visual Mermaid language tolerates trailing whitespace");
+    check(visual_plan(L"```mermaid\ngraph LR\nA-->B\n```not a closing fence\n").diagrams.empty(),
+          "visual fence closing line must contain no info string");
+    check(visual_plan(L"a\r\nb\rc\n").source == L"a\nb\nc\n",
+          "visual import normalizes only paragraph line endings");
+    check(rtf_escape(L"{\\}中文😀").find("\\u") != std::string::npos && rtf_escape(L"{\\}") == "\\{\\\\\\}",
+          "RTF output escapes markup and Unicode scalars");
     std::cout << checks << " checks, " << failures << " failures\n";
     return failures ? 1 : 0;
 }

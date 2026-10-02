@@ -1,9 +1,10 @@
 #include "prompt_window.h"
-#include "editor.h"
+#include "document.h"
 #include "file_io.h"
 #include "prompt_model.h"
 #include "ui.h"
-#include "view.h"
+#include "visual_editor.h"
+
 #include <array>
 #include <commctrl.h>
 #include <commdlg.h>
@@ -16,7 +17,7 @@
 
 namespace keepmd {
 namespace {
-constexpr UINT Summon = WM_APP + 31, Tray = WM_APP + 32, PreviewReady = WM_APP + 33;
+constexpr UINT Summon = WM_APP + 31, Tray = WM_APP + 32;
 constexpr int EditId = 500, StatusId = 501, HotkeyId = 502;
 enum Action {
     CopyHide = 510,
@@ -37,6 +38,16 @@ enum Action {
     Quit,
     Reposition,
     Theme,
+    FormatText = 540,
+    FormatH1,
+    FormatH2,
+    FormatBold,
+    FormatItalic,
+    FormatBullet,
+    FormatNumber,
+    FormatQuote,
+    FormatCode,
+    FormatDiagram,
     OpacityBase = 600
 };
 std::wstring text_of(HWND hwnd) {
@@ -65,27 +76,19 @@ bool clipboard_text(HWND hwnd, const std::wstring &text) {
         GlobalFree(h);
     return ok;
 }
-bool composing(HWND edit) {
-    auto context = ImmGetContext(edit);
-    bool active = context && ImmGetCompositionStringW(context, GCS_COMPSTR, nullptr, 0) > 0;
-    if (context)
-        ImmReleaseContext(edit, context);
-    return active;
-}
 } // namespace
 struct PromptWindow::Impl {
-    HWND owner = nullptr, hwnd = nullptr, previous = nullptr, reader = nullptr, status = nullptr,
-         hotkeyEdit = nullptr, hotkeyLabel = nullptr;
+    HWND owner = nullptr, hwnd = nullptr, previous = nullptr, status = nullptr, hotkeyEdit = nullptr,
+         hotkeyLabel = nullptr;
     DWORD previousPid = 0;
     HANDLE mutex = nullptr;
     HFONT font = nullptr, titleFont = nullptr, smallFont = nullptr;
     HBRUSH backgroundBrush = nullptr, surfaceBrush = nullptr;
-    RECT sourceCard{}, previewCard{};
+    RECT sourceCard{};
     bool placed = false;
     HMENU menu = nullptr, prefsMenu = nullptr, opacityMenu = nullptr;
     std::vector<std::pair<int, HWND>> buttons;
-    std::unique_ptr<Editor> editor;
-    std::unique_ptr<View> view;
+    std::unique_ptr<VisualEditor> editor;
     std::filesystem::path readerConfig, config, draftPath;
     std::wstring className, startupValue, startupCommand, draft, hotkeyError;
     PromptSettings settings;
@@ -100,12 +103,6 @@ struct PromptWindow::Impl {
     std::filesystem::file_time_type draftStamp{};
     float dpi = 1;
     UINT taskbar = RegisterWindowMessageW(L"TaskbarCreated");
-    std::unique_ptr<Worker> worker;
-    std::shared_ptr<std::atomic_bool> cancel;
-    std::mutex resultMutex;
-    std::shared_ptr<Document> result;
-    uint64_t generation = 0, resultVersion = 0;
-    std::wstring previewSource;
     Impl(HWND host, const std::filesystem::path &path, bool theme)
         : owner(host), readerConfig(path), dark(theme) {
         config = path;
@@ -121,13 +118,9 @@ struct PromptWindow::Impl {
         settings = load_prompt_settings(config);
     }
     ~Impl() {
-        if (cancel)
-            cancel->store(true);
-        worker.reset();
         if (hwnd) {
             stop_shortcut();
             tray_icon(false);
-            view.reset();
             editor.reset();
             DestroyWindow(hwnd);
         }
@@ -166,7 +159,9 @@ struct PromptWindow::Impl {
         std::wstring error;
         auto size = std::filesystem::file_size(draftPath, ec);
         if (ec || size > 4 * PromptLimit || !load_file(draftPath, data, error) ||
-            wide(data.utf8).size() > PromptLimit || data.utf8.find('\0') != std::string::npos) {
+            wide(data.utf8).size() > PromptLimit ||
+            (data.utf8.find('\0') != std::string::npos ||
+             data.utf8.find("\xef\xbf\xbc") != std::string::npos)) {
             draftBlocked = true;
             say(L"无法读取草稿，原文件已保留。请检查 " + draftPath.wstring());
             return false;
@@ -177,6 +172,10 @@ struct PromptWindow::Impl {
         return true;
     }
     bool flush() {
+        if (editor && editor->composing()) {
+            SetTimer(hwnd, 2, 800, nullptr);
+            return false;
+        }
         if (!dirty)
             return true;
         if (draftBlocked) {
@@ -216,7 +215,7 @@ struct PromptWindow::Impl {
         return true;
     }
     bool prepare_close() {
-        if (editor && composing(editor->hwnd())) {
+        if (editor && editor->composing()) {
             show();
             say(L"请先完成或取消输入法组词，再关闭窗口。");
             return false;
@@ -368,11 +367,6 @@ struct PromptWindow::Impl {
         cls.hIcon = LoadIconW(cls.hInstance, MAKEINTRESOURCEW(101));
         cls.lpszClassName = className.c_str();
         RegisterClassExW(&cls);
-        cls.lpszClassName = L"KeepMD.PromptPreview";
-        cls.lpfnWndProc = preview_proc;
-        cls.hbrBackground = nullptr;
-        cls.style = CS_DBLCLKS;
-        RegisterClassExW(&cls);
         if (forceResident)
             settings.resident = true;
         hwnd =
@@ -436,13 +430,22 @@ struct PromptWindow::Impl {
         for (const auto &[id, label] :
              std::vector<std::pair<int, const wchar_t *>>{{CopyHide, L"复制并收起   Ctrl+Enter"},
                                                           {CopyOnly, L"复制全文"},
-                                                          {Preview, L"双栏预览"},
                                                           {Clear, L"清空"},
                                                           {Options, L"快捷键"},
                                                           {Theme, L"深色"},
                                                           {Apply, L"应用"},
                                                           {DoubleCtrl, L"双击左 Ctrl"},
-                                                          {DefaultKey, L"默认"}}) {
+                                                          {DefaultKey, L"默认"},
+                                                          {FormatText, L"正文"},
+                                                          {FormatH1, L"标题 1"},
+                                                          {FormatH2, L"标题 2"},
+                                                          {FormatBold, L"加粗"},
+                                                          {FormatItalic, L"斜体"},
+                                                          {FormatBullet, L"列表"},
+                                                          {FormatNumber, L"编号"},
+                                                          {FormatQuote, L"引用"},
+                                                          {FormatCode, L"代码"},
+                                                          {FormatDiagram, L"流程图"}}) {
             auto h = child(L"BUTTON", label, id, WS_TABSTOP);
             ui::style_button(h, id == CopyHide || id == Apply);
             buttons.emplace_back(id, h);
@@ -452,7 +455,7 @@ struct PromptWindow::Impl {
             child(L"EDIT", settings.hotkey.c_str(), HotkeyId, WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL);
         SendMessageW(hotkeyEdit, EM_SETLIMITTEXT, 100, 0);
         status = child(L"STATIC", L"", StatusId, SS_LEFTNOWORDWRAP);
-        editor = std::make_unique<Editor>(hwnd, EditId);
+        editor = std::make_unique<VisualEditor>(hwnd, EditId);
         if (!editor->valid()) {
             say(L"无法加载 Windows 文本编辑控件。");
             return;
@@ -464,11 +467,6 @@ struct PromptWindow::Impl {
         loading = true;
         editor->load(draft);
         loading = false;
-        reader = CreateWindowExW(0, L"KeepMD.PromptPreview", nullptr,
-                                 WS_CHILD | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP, 0, 0, 1, 1, hwnd, nullptr,
-                                 GetModuleHandleW(nullptr), this);
-        ImmAssociateContext(reader, nullptr);
-        ui::attach_scrollbars(reader, ui::ScrollKind::Reader);
         update_font();
         apply_appearance();
         if (draftBlocked)
@@ -533,9 +531,6 @@ struct PromptWindow::Impl {
             editor->theme(dark);
             loading = wasLoading;
         }
-        if (view)
-            view->set_dark(dark);
-        ui::scroll_theme(reader, dark);
     }
     HWND button(int id) const {
         for (const auto &[key, h] : buttons)
@@ -549,13 +544,12 @@ struct PromptWindow::Impl {
         RECT r{};
         GetClientRect(hwnd, &r);
         auto px = [&](int n) { return (int)(n * dpi); };
-        const int margin = px(24), gap = px(16), w = r.right;
+        const int margin = px(24), w = r.right;
         auto move = [&](int id, int x, int y, int width, int height = 36) {
             MoveWindow(button(id), x, y, width, px(height), TRUE);
         };
         move(Theme, w - margin - px(64), px(25), px(64));
         move(Options, w - margin - px(152), px(25), px(80));
-        move(Preview, w - margin - px(264), px(25), px(104));
         for (int id : {Apply, DoubleCtrl, DefaultKey})
             ShowWindow(button(id), options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyEdit, options ? SW_SHOW : SW_HIDE);
@@ -567,26 +561,28 @@ struct PromptWindow::Impl {
         move(Apply, x, px(97), px(64));
         move(DoubleCtrl, x + px(72), px(97), px(120));
         move(DefaultKey, x + px(200), px(97), px(76));
-        int top = px(options ? 157 : 95), bottom = std::max<int>(top + px(80), r.bottom - px(106));
-        int width = settings.preview ? (w - margin * 2 - gap) / 2 : w - margin * 2;
-        sourceCard = {margin, top, margin + width, bottom};
-        previewCard = {margin + width + gap, top, w - margin, bottom};
-        int header = px(38), inset = px(1);
-        MoveWindow(editor->hwnd(), sourceCard.left + inset, top + header, width - inset * 2,
-                   bottom - top - header - inset, TRUE);
+        int formatY = px(options ? 151 : 92);
+        int xFormat = margin, row = 0;
+        for (int id : {FormatText, FormatH1, FormatH2, FormatBold, FormatItalic, FormatBullet, FormatNumber,
+                       FormatQuote, FormatCode, FormatDiagram}) {
+            int width = px(id == FormatH1 || id == FormatH2 || id == FormatDiagram ? 76 : 62);
+            if (xFormat + width > w - margin) {
+                xFormat = margin;
+                ++row;
+            }
+            move(id, xFormat, formatY + row * px(40), width, 32);
+            xFormat += width + px(6);
+        }
+        int top = formatY + (row + 1) * px(40) + px(8),
+            bottom = std::max<int>(top + px(80), r.bottom - px(106));
+        sourceCard = {margin, top, w - margin, bottom};
+        MoveWindow(editor->hwnd(), margin + 1, top + 1, w - margin * 2 - 2, bottom - top - 2, TRUE);
         editor->inset(GetDpiForWindow(hwnd));
-        ShowWindow(reader, settings.preview ? SW_SHOW : SW_HIDE);
-        MoveWindow(reader, previewCard.left + inset, top + header,
-                   std::max(1L, previewCard.right - previewCard.left - inset * 2),
-                   bottom - top - header - inset, TRUE);
         MoveWindow(status, margin, r.bottom - px(92), w - margin * 2, px(25), TRUE);
         move(Clear, margin, r.bottom - px(54), px(72));
         move(CopyOnly, w - margin - px(324), r.bottom - px(54), px(100));
         move(CopyHide, w - margin - px(212), r.bottom - px(54), px(212));
-        ui::style_button(button(Preview), false, settings.preview);
         ui::style_button(button(Options), false, options);
-        if (view)
-            view->resize();
         InvalidateRect(hwnd, nullptr, FALSE);
     }
     void paint() {
@@ -598,18 +594,10 @@ struct PromptWindow::Impl {
         ui::fill(dc, r, colors.background);
         auto px = [&](int n) { return (int)(n * dpi); };
         ui::text(dc, titleFont, L"提示词", {px(24), px(15), r.right - px(310), px(48)}, colors.text);
-        ui::text(dc, smallFont, L"写下想法，随时调用。", {px(25), px(52), r.right - px(300), px(74)},
-                 colors.muted);
-        for (int i = 0; i < (settings.preview ? 2 : 1); ++i) {
-            auto card = i ? previewCard : sourceCard;
-            if (card.bottom <= card.top)
-                continue;
-            ui::rounded(dc, card, colors.surface, colors.border, px(12));
-            RECT label{card.left + px(18), card.top, card.right - px(16), card.top + px(38)};
-            ui::text(dc, font, i ? L"预览" : L"Markdown", label, colors.text);
-            ui::line(dc, card.left + 1, card.top + px(38) - 1, card.right - 1, card.top + px(38) - 1,
-                     colors.border);
-        }
+        ui::text(dc, smallFont, L"直接编辑内容，复制为 Markdown。",
+                 {px(25), px(52), r.right - px(300), px(74)}, colors.muted);
+        if (sourceCard.bottom > sourceCard.top)
+            ui::rounded(dc, sourceCard, colors.surface, colors.border, px(12));
         if (options)
             ui::line(dc, px(24), px(143), r.right - px(24), px(143), colors.border);
         EndPaint(hwnd, &ps);
@@ -653,7 +641,7 @@ struct PromptWindow::Impl {
     bool hide(bool copy) {
         if (modal)
             return false;
-        if (editor && composing(editor->hwnd())) {
+        if (editor && editor->composing()) {
             say(L"请先完成或取消输入法组词，再复制或收起。");
             return false;
         }
@@ -663,17 +651,6 @@ struct PromptWindow::Impl {
             return false;
         KillTimer(hwnd, 1);
         KillTimer(hwnd, 2);
-        if (cancel)
-            cancel->store(true);
-        if (worker)
-            worker->clear();
-        ++generation;
-        view.reset();
-        previewSource.clear();
-        {
-            std::lock_guard lock(resultMutex);
-            result.reset();
-        }
         bool restore = GetForegroundWindow() == hwnd;
         ShowWindow(hwnd, SW_HIDE);
         DWORD pid = 0;
@@ -699,46 +676,11 @@ struct PromptWindow::Impl {
     void refresh_preview() {
         if (!editor || !IsWindowVisible(hwnd))
             return;
+        editor->refresh();
         auto text = editor->text(false);
         auto lines = text.empty() ? 0 : 1 + std::count(text.begin(), text.end(), L'\n');
         say(std::to_wstring(text.size()) + L" 字符 · " + std::to_wstring(lines) + L" 行    ·    " +
             (dirty ? L"正在保存…" : L"草稿已保存") + L"    ·    " + settings.hotkey + L" 唤起");
-        if (!settings.preview)
-            return;
-        if (!view) {
-            view = std::make_unique<View>(reader);
-            view->set_dark(dark);
-            view->set_empty_message(L"Markdown 提示词",
-                                    L"在左侧输入提示词，这里显示预览。\n\n支持标题、列表、代码与 Mermaid "
-                                    L"流程图。\n\nCtrl+Enter：复制源码并收起。\nF6：切换预览。");
-        }
-        if (previewSource == text && view->document())
-            return;
-        previewSource = text;
-        if (cancel)
-            cancel->store(true);
-        cancel = std::make_shared<std::atomic_bool>(false);
-        auto cancellation = cancel;
-        auto version = ++generation;
-        if (!worker)
-            worker = std::make_unique<Worker>();
-        worker->clear();
-        worker->push([this, source = utf8(text), cancellation, version]() mutable {
-            std::shared_ptr<Document> doc;
-            try {
-                doc = parse_document(std::move(source), cancellation.get());
-            } catch (...) {
-                return;
-            }
-            if (cancellation->load())
-                return;
-            {
-                std::lock_guard lock(resultMutex);
-                result = std::move(doc);
-                resultVersion = version;
-            }
-            PostMessageW(hwnd, PreviewReady, 0, 0);
-        });
     }
     void update_menu() {
         if (!prefsMenu)
@@ -796,8 +738,9 @@ struct PromptWindow::Impl {
             say(error);
             return;
         }
-        if (text.size() > PromptLimit || text.find(L'\0') != std::wstring::npos) {
-            say(L"导入内容过大或包含 NUL 字符。");
+        if (text.size() > PromptLimit ||
+            (text.find(L'\0') != std::wstring::npos || text.find(L'\ufffc') != std::wstring::npos)) {
+            say(L"导入内容过大或包含保留控制字符（NUL / 对象占位符），未替换当前草稿。");
             return;
         }
         if (!editor->text(false).empty()) {
@@ -809,8 +752,7 @@ struct PromptWindow::Impl {
                 return;
         }
         // Import is one undoable edit. Original Prompt Flow file is never modified.
-        SendMessageW(editor->hwnd(), EM_SETSEL, 0, -1);
-        SendMessageW(editor->hwnd(), EM_REPLACESEL, TRUE, (LPARAM)text.c_str());
+        editor->replace_document(text);
         if (legacy) {
             bool keyOk = shortcut(next.hotkey);
             settings.top = next.top;
@@ -844,22 +786,37 @@ struct PromptWindow::Impl {
             copy_prompt();
             break;
         case Clear:
-            SendMessageW(editor->hwnd(), EM_SETSEL, 0, -1);
-            SendMessageW(editor->hwnd(), EM_REPLACESEL, TRUE, (LPARAM)L"");
-            SetFocus(editor->hwnd());
+            editor->clear();
             break;
-        case Preview:
-            settings.preview = !settings.preview;
-            if (!settings.preview) {
-                if (cancel)
-                    cancel->store(true);
-                ++generation;
-                view.reset();
-                previewSource.clear();
-            }
-            layout();
-            refresh_preview();
-            persist_settings();
+        case FormatText:
+            editor->command(VisualCommand::Paragraph);
+            break;
+        case FormatH1:
+            editor->command(VisualCommand::H1);
+            break;
+        case FormatH2:
+            editor->command(VisualCommand::H2);
+            break;
+        case FormatBold:
+            editor->command(VisualCommand::Bold);
+            break;
+        case FormatItalic:
+            editor->command(VisualCommand::Italic);
+            break;
+        case FormatBullet:
+            editor->command(VisualCommand::Bullet);
+            break;
+        case FormatNumber:
+            editor->command(VisualCommand::Numbered);
+            break;
+        case FormatQuote:
+            editor->command(VisualCommand::Quote);
+            break;
+        case FormatCode:
+            editor->command(VisualCommand::Code);
+            break;
+        case FormatDiagram:
+            editor->command(VisualCommand::Diagram);
             break;
         case Options:
             options = !options;
@@ -948,7 +905,7 @@ struct PromptWindow::Impl {
             return false;
         if (msg.message == WM_KEYDOWN) {
             bool ctrl = GetKeyState(VK_CONTROL) < 0, shift = GetKeyState(VK_SHIFT) < 0;
-            bool ime = editor && composing(editor->hwnd());
+            bool ime = editor && editor->composing();
             if (!ime && (msg.wParam == VK_ESCAPE || (ctrl && msg.wParam == VK_RETURN))) {
                 hide(true);
                 return true;
@@ -959,18 +916,6 @@ struct PromptWindow::Impl {
             }
             if (!ime && ctrl && msg.wParam == 'S') {
                 action(ExportMd);
-                return true;
-            }
-            if (!ime && msg.wParam == VK_F6) {
-                action(Preview);
-                return true;
-            }
-            if (msg.hwnd == reader && view && ctrl && msg.wParam == 'C') {
-                clipboard_text(hwnd, view->selection());
-                return true;
-            }
-            if (msg.hwnd == reader && view && ctrl && msg.wParam == 'A') {
-                view->select_all();
                 return true;
             }
             if (msg.hwnd == hotkeyEdit && msg.wParam == VK_RETURN) {
@@ -1038,8 +983,10 @@ struct PromptWindow::Impl {
             p->apply_appearance();
             return 0;
         case WM_COMMAND:
-            if (LOWORD(w) == EditId && HIWORD(w) == EN_CHANGE && !p->loading && p->editor) {
+            if (LOWORD(w) == EditId && HIWORD(w) == EN_CHANGE && !p->loading && p->editor &&
+                !p->editor->internal()) {
                 p->dirty = true;
+                p->editor->changed();
                 SetTimer(h, 1, 250, nullptr);
                 SetTimer(h, 2, 800, nullptr);
             } else if (LOWORD(w) == EditId && HIWORD(w) == EN_MAXTEXT)
@@ -1075,22 +1022,6 @@ struct PromptWindow::Impl {
             if (w == 2 && p->flush())
                 p->refresh_preview();
             return 0;
-        case PreviewReady: {
-            std::shared_ptr<Document> doc;
-            {
-                std::lock_guard lock(p->resultMutex);
-                if (p->resultVersion == p->generation)
-                    doc = std::move(p->result);
-                else
-                    p->result.reset();
-            }
-            if (doc && p->view && IsWindowVisible(h)) {
-                auto anchor = p->view->anchor_block();
-                p->view->set_document(std::move(doc), p->draftPath);
-                p->view->goto_block(anchor);
-            }
-            return 0;
-        }
         case Summon:
         case WM_HOTKEY:
             if (p->modal)
@@ -1158,125 +1089,6 @@ struct PromptWindow::Impl {
             return p->flush();
         case WM_CLOSE:
             p->hide(false);
-            return 0;
-        }
-        return DefWindowProcW(h, m, w, l);
-    }
-    static LRESULT CALLBACK preview_proc(HWND h, UINT m, WPARAM w, LPARAM l) {
-        auto p = (Impl *)GetWindowLongPtrW(h, GWLP_USERDATA);
-        if (m == WM_NCCREATE) {
-            p = (Impl *)((CREATESTRUCTW *)l)->lpCreateParams;
-            SetWindowLongPtrW(h, GWLP_USERDATA, (LONG_PTR)p);
-        }
-        if (!p || !p->view) {
-            if (m == WM_PAINT) {
-                PAINTSTRUCT ps;
-                BeginPaint(h, &ps);
-                EndPaint(h, &ps);
-                return 0;
-            }
-            return DefWindowProcW(h, m, w, l);
-        }
-        auto &v = *p->view;
-        float scale = v.dpi_scale();
-        switch (m) {
-        case ui::WM_SCROLL_TO:
-            if (w == SB_VERT)
-                v.scroll_to((float)l);
-            else
-                v.hscroll((float)l - v.scroll_x());
-            return 0;
-        case WM_PAINT:
-            v.paint();
-            return 0;
-        case WM_ERASEBKGND:
-            return 1;
-        case WM_SIZE:
-            v.resize();
-            return 0;
-        case WM_ASSET_READY:
-            v.collect_assets();
-            return 0;
-        case WM_MOUSEWHEEL:
-            v.scroll(-GET_WHEEL_DELTA_WPARAM(w) / 120.f * 90);
-            return 0;
-        case WM_MOUSEHWHEEL:
-            v.hscroll(GET_WHEEL_DELTA_WPARAM(w) / 120.f * 90);
-            return 0;
-        case WM_LBUTTONDOWN:
-            v.mouse_down(GET_X_LPARAM(l) / scale, GET_Y_LPARAM(l) / scale, GetKeyState(VK_SHIFT) < 0);
-            return 0;
-        case WM_MOUSEMOVE:
-            v.mouse_move(GET_X_LPARAM(l) / scale, GET_Y_LPARAM(l) / scale);
-            return 0;
-        case WM_LBUTTONUP:
-            v.mouse_up(GET_X_LPARAM(l) / scale, GET_Y_LPARAM(l) / scale);
-            return 0;
-        case WM_LBUTTONDBLCLK:
-            v.toggle_diagram(GET_X_LPARAM(l) / scale, GET_Y_LPARAM(l) / scale);
-            return 0;
-        case WM_CAPTURECHANGED:
-            v.cancel_drag();
-            return 0;
-        case WM_VSCROLL: {
-            SCROLLINFO info{sizeof(info), SIF_ALL};
-            GetScrollInfo(h, SB_VERT, &info);
-            switch (LOWORD(w)) {
-            case SB_THUMBTRACK:
-            case SB_THUMBPOSITION:
-                v.scroll_to((float)info.nTrackPos);
-                break;
-            case SB_LINEUP:
-                v.scroll(-40);
-                break;
-            case SB_LINEDOWN:
-                v.scroll(40);
-                break;
-            case SB_PAGEUP:
-                v.scroll(-v.page_height());
-                break;
-            case SB_PAGEDOWN:
-                v.scroll(v.page_height());
-                break;
-            case SB_TOP:
-                v.scroll_to(0);
-                break;
-            case SB_BOTTOM:
-                v.scroll_to(v.total_height());
-                break;
-            }
-            return 0;
-        }
-        case WM_HSCROLL: {
-            SCROLLINFO info{sizeof(info), SIF_ALL};
-            GetScrollInfo(h, SB_HORZ, &info);
-            if (LOWORD(w) == SB_THUMBTRACK || LOWORD(w) == SB_THUMBPOSITION)
-                v.hscroll((float)info.nTrackPos - v.scroll_x());
-            else
-                v.hscroll(LOWORD(w) == SB_LINELEFT || LOWORD(w) == SB_PAGELEFT ? -60.f : 60.f);
-            return 0;
-        }
-        case WM_KEYDOWN:
-            switch (w) {
-            case VK_UP:
-                v.scroll(-40);
-                break;
-            case VK_DOWN:
-                v.scroll(40);
-                break;
-            case VK_PRIOR:
-                v.scroll(-v.page_height());
-                break;
-            case VK_NEXT:
-                v.scroll(v.page_height());
-                break;
-            case VK_HOME:
-                v.scroll_to(0);
-                break;
-            case VK_END:
-                v.scroll_to(v.total_height());
-                break;
-            }
             return 0;
         }
         return DefWindowProcW(h, m, w, l);

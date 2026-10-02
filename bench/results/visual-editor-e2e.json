@@ -1,0 +1,16 @@
+{
+  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
+  "checks": [
+    "one visual editor: Markdown markers hidden, heading/bold/italic rendered; source preserved exactly",
+    "native diagram picture and light/dark rich text survive theme changes without source changes",
+    "heading button, Enter to body, selection bold and Ctrl+Z/Y preserve Markdown semantics",
+    "bold typing at an empty selection produces styled text with Markdown output",
+    "list button continues items with Enter; empty item exits the list",
+    "diagram dialog inserts native picture; deleting the picture removes its Markdown and undo restores it",
+    "editing after an inline diagram autosaves exact Markdown without object characters",
+    "Markdown round trips preserve lists, quotes, tables, code, links, escaped punctuation, replacement character and emoji",
+    "typing after visually formatted text leaves surrounding Markdown structure intact"
+  ],
+  "source_preservation": "exact LF Markdown including original whitespace",
+  "visible_editor": "native Windows RichEdit rich text; no source/preview mode"
+}

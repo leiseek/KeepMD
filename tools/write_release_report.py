@@ -13,23 +13,23 @@ def read(name):return json.loads((RESULTS/name).read_text(encoding='utf-8-sig'))
 exe=ROOT/'build/release/keepmd.exe';sha=hashlib.sha256(exe.read_bytes()).hexdigest()
 startup=read('software-s100.json');scroll=read('scroll.json');idle=read('idle.json');large=read('software-l50.json')
 imports=read('dependencies.json');smoke=read('release-smoke.json');environment=read('environment.json')
-prompt=read('prompt-e2e.json');pm=prompt['measurements'];ui=read('ui-e2e.json');bars=read('scrollbar-e2e.json')
-for item in (startup,idle,large,imports,smoke,prompt,ui,bars):
+prompt=read('prompt-e2e.json');pm=prompt['measurements'];ui=read('ui-e2e.json');bars=read('scrollbar-e2e.json');visual=read('visual-editor-e2e.json')
+for item in (startup,idle,large,imports,smoke,prompt,ui,bars,visual):
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
 core=subprocess.run([str(ROOT/'build/release/core_tests.exe')],capture_output=True,text=True,check=True)
 count=int(re.search(r'(\d+) checks, 0 failures',core.stdout).group(1))
 working=statistics.median(r['working_set']for r in startup['records'])/1048576
-summary={'version':'0.3.1','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+summary={'version':'0.4.0','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
          'ui_e2e_checks':len(ui['checks']),
-         'scrollbar_e2e_checks':len(bars['checks']),
+         'scrollbar_e2e_checks':len(bars['checks']),'visual_editor_e2e_checks':len(visual['checks']),
          'startup_launch_p95_ms':startup['launch_to_first_paint_p95_ms'],'private_median_mib':startup['private_p50_mib'],'working_set_median_mib':working,
          'large_50mib_launch_p95_ms':large['launch_to_first_paint_p95_ms'],'large_50mib_private_median_mib':large['private_p50_mib'],
-         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME'],
-         'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Live double-Ctrl summon not exercised while original Prompt Flow is running']}
+         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips'],
+         'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Live double-Ctrl summon not exercised while original Prompt Flow is running','Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented']}
 (RESULTS/'release-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 rows='\n'.join(f"| {r['fixture']} | {r['draw_p95_ms']:.2f} ms | {r['dispatch_to_submit_p95_ms']:.2f} ms | {r['samples']} |" for r in scroll['records'])
-report=f'''**KeepMD 0.3.1 交付验证报告**
+report=f'''**KeepMD 0.4.0 交付验证报告**
 
 生成时间：{summary['generated_at']}。目标平台：Windows 11 x64。所有以下正式结果绑定到同一个 Release EXE；历史探索数据保留在源码仓库，不混入最终数据。
 
@@ -48,11 +48,15 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 功能证据：[编辑](../bench/results/editor-e2e.json)、[导航](../bench/results/navigation-e2e.json)、[输入法](../bench/results/ime-e2e.json)、[DPI](../bench/results/dpi-e2e.json)、[压力](../bench/results/stress.json)、[显示检查](../bench/results/release-smoke.json)。
 
+**提示词可视化编辑**
+
+提示词窗口已改为单栏原生可视化编辑器，没有源码／预览切换。{len(visual['checks'])} 组专项检查通过：语法标记隐藏、标题／加粗／斜体样式、格式按钮、输入与撤销重做、列表续写、流程图图片插入／删除／撤销、中文及 emoji、Markdown 原样复制与保存。图片由本进程绘制并作为静态对象插入系统 RichEdit，不加载浏览器。完整桌面排版软件的所有格式并非本版范围；表格网格、图片编辑与复杂嵌套结构的可视化操作仍有限，原始 Markdown 保留。最多 16 张流程图以内嵌图形显示，更多图表保留为代码。原阅读器仍保留独立的源码编辑与预览。详见 [可视化编辑验证](../bench/results/visual-editor-e2e.json)。
+
 **启动与内存**
 
 界面优化通过 {len(ui['checks'])} 组原生窗口检查：阅读器 640px 自动换行、提示词 720px 设置布局、按钮键盘操作、菜单导航、深浅主题同步、窗口尺寸保留，以及连续 30 次切换主题后 GDI 对象不累积。截图已逐张检查。测试在 96-DPI 桌面执行；弹出菜单和文件对话框仍使用 Windows 的外观。详见 [UI 验证记录](../bench/results/ui-e2e.json)。
 
-正文、源码编辑、提示词双栏和目录使用与主题一致的自绘窄滑块，保留原控件滚动模型，固定预留空间以避免重排循环。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词双栏独立滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
+正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块，保留原控件滚动模型，固定预留空间以避免重排循环。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
 
 提示词集成完成 {len(prompt['checks'])} 组端到端检查：真实全局快捷键、独立进程粘贴目标、原文复制与焦点返回、快捷键冲突恢复、旧 JSON 导入、导出、单配置实例、重启草稿、中文 IME、锁定文件写入失败、外部更改保护及损坏草稿保留。详见 [提示词验证记录](../bench/results/prompt-e2e.json)。
 

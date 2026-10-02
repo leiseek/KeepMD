@@ -1,8 +1,8 @@
 {
-  "exe_sha256": "5a8c936deab83495dea336c3c8f2dda7793ef02d9c4d825e4fc955aa4a1d16dc",
+  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
   "checks": [
     "resident startup: hidden, editor and RichEdit DLL not loaded",
-    "Markdown/flowchart preview, semantic preview selection and draft autosave",
+    "single visual editor, Markdown/flowchart formatting and exact source autosave",
     "Ctrl+Enter copies exact Markdown and returns focus; target pastes source",
     "clipboard contention keeps panel and draft visible",
     "failed shortcut change preserves previous registered shortcut",
@@ -20,13 +20,13 @@
     "forwarded --resident request enables tray residency in an existing ordinary reader"
   ],
   "measurements": {
-    "cold_resident_private_mib": 4.46875,
-    "first_summon_observed_ms": 96.63100000034319,
+    "cold_resident_private_mib": 4.69921875,
+    "first_summon_observed_ms": 96.44899999693735,
     "double_ctrl_live": "not run: existing user Prompt Flow is active; state machine covered by core tests",
     "hidden_idle_seconds": 5,
-    "hidden_idle_cpu_seconds": 0.0,
+    "hidden_idle_cpu_seconds": 0.015625,
     "hidden_idle_write_bytes": 0,
-    "hidden_private_mib": 8.05859375,
+    "hidden_private_mib": 5.52734375,
     "hidden_draft_changed": false
   }
 }
