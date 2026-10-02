@@ -54,7 +54,7 @@ std::string visual_diagram_rtf(const std::wstring &source, int maxWidth, bool da
     XFORM transform{scale, 0, 0, scale, 0, 0};
     SetWorldTransform(measure, &transform);
     if (!parsed.ok) {
-        ui::text(measure, font, L"流程图 · 双击编辑", {16, 10, 480, 38}, colors.text);
+        ui::text(measure, font, L"流程图", {16, 10, 480, 38}, colors.text);
         ui::text(measure, font, parsed.error, {16, 40, 480, 100}, colors.muted,
                  DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
     } else {

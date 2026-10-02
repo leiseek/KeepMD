@@ -7,8 +7,9 @@ import zipfile
 import ctypes as C
 from ctypes import wintypes as W
 from test_gui import ROOT,OUT,windows,wait,activate,u,name,children,CALLBACK,clipboard
+u.GetWindowLongPtrW.argtypes=[W.HWND,C.c_int];u.GetWindowLongPtrW.restype=C.c_ssize_t
 
-archive=ROOT/'dist/KeepMD-0.4.2-windows-x64.zip'
+archive=ROOT/'dist/KeepMD-0.4.3-windows-x64.zip'
 destination=(ROOT/'.cache/package-smoke').resolve()
 destination.mkdir(parents=True,exist_ok=True)
 with zipfile.ZipFile(archive)as bundle:
@@ -53,6 +54,7 @@ try:
     assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
     assert any(name(h)=='标题 1' for h in children(panel))
     editor=next(h for h in children(panel) if name(h,True)=='RICHEDIT50W')
+    assert not u.GetWindowLongPtrW(editor,-16)&0x00300000,'Packaged editor still has native scrollbar styles'
     sample='# Packaged prompt\n\n**中文提示词**\n'
     value=C.create_unicode_buffer(sample);u.SendMessageW(editor,0xC,0,C.cast(value,C.c_void_p).value)
     u.SendMessageW(panel,0x111,510,0)

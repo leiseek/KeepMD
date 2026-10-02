@@ -1,12 +1,12 @@
 {
-  "exe_sha256": "2f9070ce3821cd6d61c81ee441731c146b3070e596ed3d1edeca0c4dc8314736",
+  "exe_sha256": "ae24c0cb694c836d036b557bfc0568255ba721fe664da28952d080e9099618f3",
   "checks": [
     {
-      "classDef_rendered_pixels": 5180,
+      "classDef_rendered_pixels": 5184,
       "shape_and_group_snapshot": "release-style.png"
     },
     {
-      "PNG_JPEG_BMP_rendered_pixels": 28203,
+      "PNG_JPEG_BMP_rendered_pixels": 28440,
       "asset_bytes": 115200
     },
     {

@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "2f9070ce3821cd6d61c81ee441731c146b3070e596ed3d1edeca0c4dc8314736",
+  "exe_sha256": "ae24c0cb694c836d036b557bfc0568255ba721fe664da28952d080e9099618f3",
   "checks": [
     "resident startup: hidden, editor and RichEdit DLL not loaded",
     "single visual editor, Markdown/flowchart formatting and exact source autosave",
@@ -21,12 +21,12 @@
   ],
   "measurements": {
     "cold_resident_private_mib": 4.734375,
-    "first_summon_observed_ms": 98.44729999895208,
+    "first_summon_observed_ms": 95.7330999954138,
     "double_ctrl_live": "not run: existing user Prompt Flow is active; state machine covered by core tests",
     "hidden_idle_seconds": 5,
     "hidden_idle_cpu_seconds": 0.0,
     "hidden_idle_write_bytes": 0,
-    "hidden_private_mib": 5.5390625,
+    "hidden_private_mib": 5.5078125,
     "hidden_draft_changed": false
   }
 }

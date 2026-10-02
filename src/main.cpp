@@ -479,7 +479,7 @@ void toggle_editor(App &app) {
     arrange(app);
     update_controls(app);
     SetFocus(app.editor->hwnd());
-    status(app, L"源码编辑 · Ctrl+S 保存 · F6 返回阅读 · Ctrl+H 替换");
+    status(app, L"源码编辑");
 }
 bool save_editor(App &app, bool saveAs) {
     if (!app.editor)
@@ -672,7 +672,7 @@ void find(App &app, bool next = false, bool previous = false) {
     } else if (!app.matches.empty())
         app.match = (app.match + (previous ? -1 : 1) + (int)app.matches.size()) % (int)app.matches.size();
     app.view->set_matches(app.matches, app.match);
-    status(app, query.empty() ? L"输入要查找的文字"
+    status(app, query.empty() ? L"查找"
                               : L"查找：" + std::to_wstring(app.match < 0 ? 0 : app.match + 1) + L" / " +
                                     std::to_wstring(app.matches.size()));
 }
@@ -902,10 +902,7 @@ void command(App &app, int id) {
         break;
     }
     case About:
-        MessageBoxW(app.hwnd,
-                    L"KeepMD\nWindows 原生 Markdown 阅读器\n\nDirectWrite · Direct2D · MD4C\nCtrl+O 打开 · "
-                    L"Ctrl+F 查找 · F9 目录\nCtrl+D 深浅主题 · Ctrl+滚轮缩放",
-                    L"关于 KeepMD", MB_OK);
+        MessageBoxW(app.hwnd, L"KeepMD\n原生 Markdown 阅读与提示词编辑", L"关于 KeepMD", MB_OK);
         break;
     }
 }

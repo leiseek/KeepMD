@@ -579,12 +579,10 @@ struct VisualEditor::Impl {
             }
             if (m == WM_CREATE) {
                 auto px = [&](int n) { return MulDiv(n, GetDpiForWindow(h), 96); };
-                CreateWindowExW(0, L"STATIC", L"Mermaid 流程图 · 修改语法后点“应用”", WS_CHILD | WS_VISIBLE,
-                                px(18), px(62), px(590), px(24), h, nullptr, nullptr, nullptr);
                 p->edit = CreateWindowExW(0, MSFTEDIT_CLASS, L"",
                                           WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | ES_MULTILINE |
                                               ES_WANTRETURN | ES_AUTOVSCROLL,
-                                          px(18), px(94), px(590), px(300), h, (HMENU)1001, nullptr, nullptr);
+                                          px(18), px(62), px(590), px(332), h, (HMENU)1001, nullptr, nullptr);
                 SendMessageW(p->edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
                 SendMessageW(p->edit, EM_EXLIMITTEXT, 0, 65536);
                 SetWindowTextW(p->edit, p->text.c_str());

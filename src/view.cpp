@@ -274,11 +274,11 @@ void View::update_scrollbars() {
     si.nMax = (int)std::min(heights_.total() + 40, (float)INT_MAX - 1);
     si.nPage = (UINT)std::max(1.f, height_);
     si.nPos = (int)scrollY_;
-    SetScrollInfo(hwnd_, SB_VERT, &si, TRUE);
+    SetScrollInfo(hwnd_, SB_VERT, &si, FALSE);
     si.nMax = (int)std::min(std::max(width_, widest_ + 64) - 1, (float)INT_MAX - 1);
     si.nPage = (UINT)std::max(1.f, width_);
     si.nPos = (int)scrollX_;
-    SetScrollInfo(hwnd_, SB_HORZ, &si, TRUE);
+    SetScrollInfo(hwnd_, SB_HORZ, &si, FALSE);
     ui::sync_scrollbars(hwnd_);
 }
 void View::scroll(float dy) {
@@ -591,13 +591,6 @@ void View::render(ID2D1RenderTarget *target) {
     if (!doc_ || doc_->blocks.empty()) {
         draw_text(target, emptyTitle_.empty() ? L"KeepMD" : emptyTitle_,
                   D2D1::RectF(48, 60, width_ - 48, 110), 34, foreground(), true);
-        draw_text(
-            target,
-            emptyTitle_.empty()
-                ? L"打开 Markdown，专注阅读。\n\nCtrl+O 打开文件 · Ctrl+F 查找 · F6 编辑\nCtrl+滚轮缩放 · F9 "
-                  L"目录 · Ctrl+D 切换主题"
-                : emptyHelp_,
-            D2D1::RectF(48, 125, width_ - 48, height_), 17, rgb(dark_ ? 0x9cacbf : 0x66758a));
     } else {
         size_t first = heights_.locate(std::max(0.f, scrollY_ - 20));
         float y = heights_.prefix(first) + 24 - scrollY_;

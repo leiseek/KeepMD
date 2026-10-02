@@ -2,6 +2,7 @@
 import ctypes as C
 from ctypes import wintypes as W
 import hashlib,json,subprocess,time
+from PIL import ImageGrab
 from test_gui import ROOT,OUT,u,k,windows,children,name,wait,activate,click,screenshot,CALLBACK
 
 class SI(C.Structure):
@@ -85,12 +86,19 @@ try:
             u.SetWindowPos(target,None,0,0,0,0,0x1|0x2|0x10|0x20) # raise without move/size; frame changed
             u.SendMessageW(target,0x85,1,0) # native nonclient repaint
             for vertical in (True,False):
-                if not u.GetWindowLongPtrW(target,-16)&(0x00200000 if vertical else 0x00100000):continue
+                assert not u.GetWindowLongPtrW(target,-16)&0x00300000,('Native scrollbar styles returned',name(target,True),hex(u.GetWindowLongPtrW(target,-16)))
                 b=bar_for(main,target,vertical);bw,bh=dims(b)
                 point=W.POINT(bw//2,bh//2);u.ClientToScreen(b,C.byref(point))
                 assert u.WindowFromPoint(point)==b,'Split preview exposed native scrollbar after z-order change'
+                assert (bw if vertical else bh)==12,'Custom lane must use 12 logical pixels at 96 DPI'
+                u.UpdateWindow(b)
+                lane=W.RECT();u.GetWindowRect(b,C.byref(lane))
+                pixels=ImageGrab.grab(bbox=(lane.left,lane.top,lane.right,lane.bottom)).convert('RGB')
+                palette={(23,28,36),(78,91,111),(154,169,190),(125,170,255)} if iteration%2 else {(245,247,251),(179,191,207),(100,115,137),(43,96,190)}
+                valid=sum(1 for color in pixels.get_flattened_data() if color in palette)
+                assert valid/(bw*bh)>.995,('Native scrollbar colors exposed',name(target,True),vertical,valid,bw*bh)
     screenshot(main,'split-scrollbars-dark.png')
-    checks.append('both split-preview panes retain themed vertical/horizontal lanes after mode, theme, resize and native-frame refreshes')
+    checks.append('both split-preview panes use 12px custom lanes with no native styles; actual screen pixels verified after mode/theme/resize/native-frame refreshes')
     # Long unwrapped source creates an independently draggable horizontal lane.
     s=C.create_unicode_buffer('```\n'+('abcdefghij '*900)+'\n```\n')
     u.SendMessageW(edit,0xB1,0,-1)
@@ -113,8 +121,10 @@ try:
     e=wait(lambda:u.GetDlgItem(prompt,500));s=C.create_unicode_buffer(''.join(f'提示词第 {i} 行\n' for i in range(6000)))
     u.SendMessageW(e,0xC,0,C.cast(s,C.c_void_p).value);time.sleep(1)
     bar=bar_for(prompt,e);assert drag(prompt,e,bar).pos>65535
+    assert not u.GetWindowLongPtrW(e,-16)&0x00300000
+    assert dims(bar)[0]==12
     assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(prompt))
-    checks.append('visual prompt editor scrolls long content using the themed thumb')
+    checks.append('visual prompt editor scrolls long content using a 12px custom lane with native scrollbar styles disabled')
     u.PostMessageW(main,0x111,101,0);proc.wait(timeout=10);assert proc.returncode==0
     result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'checks':checks,'input':'real mouse hit-testing, drag, wheel; Win32 scroll position assertions'}
     (ROOT/'bench/results/scrollbar-e2e.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')

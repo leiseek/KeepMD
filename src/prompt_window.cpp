@@ -609,20 +609,20 @@ struct PromptWindow::Impl {
         auto move = [&](int id, int x, int y, int width, int height = 36) {
             MoveWindow(button(id), x, y, width, px(height), TRUE);
         };
-        move(Theme, w - margin - px(38), caption + px(25), px(38));
-        move(Options, w - margin - px(84), caption + px(25), px(38));
+        move(Theme, w - margin - px(38), caption + px(18), px(38));
+        move(Options, w - margin - px(84), caption + px(18), px(38));
         for (int id : {Apply, DoubleCtrl, DefaultKey})
             ShowWindow(button(id), options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyEdit, options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyLabel, options ? SW_SHOW : SW_HIDE);
         int fieldWidth = std::max(px(110), w - margin * 2 - px(404));
-        MoveWindow(hotkeyLabel, margin, caption + px(104), px(92), px(24), TRUE);
-        MoveWindow(hotkeyEdit, margin + px(96), caption + px(98), fieldWidth, px(33), TRUE);
+        MoveWindow(hotkeyLabel, margin, caption + px(80), px(92), px(24), TRUE);
+        MoveWindow(hotkeyEdit, margin + px(96), caption + px(74), fieldWidth, px(33), TRUE);
         int x = margin + px(104) + fieldWidth;
-        move(Apply, x, caption + px(97), px(64));
-        move(DoubleCtrl, x + px(72), caption + px(97), px(120));
-        move(DefaultKey, x + px(200), caption + px(97), px(76));
-        int formatY = caption + px(options ? 151 : 92);
+        move(Apply, x, caption + px(73), px(64));
+        move(DoubleCtrl, x + px(72), caption + px(73), px(120));
+        move(DefaultKey, x + px(200), caption + px(73), px(76));
+        int formatY = caption + px(options ? 127 : 68);
         int xFormat = margin, row = 0;
         formatSeparators.clear();
         for (int id : {FormatText, FormatH1, FormatH2, FormatBold, FormatItalic, FormatBullet, FormatNumber,
@@ -668,12 +668,10 @@ struct PromptWindow::Impl {
             ui::line(dc, point.x, point.y + px(9), point.x, point.y + px(27), colors.border);
         ui::text(dc, titleFont, L"提示词", {px(24), caption + px(15), r.right - px(310), caption + px(48)},
                  colors.text);
-        ui::text(dc, smallFont, L"直接编辑内容，复制为 Markdown。",
-                 {px(25), caption + px(52), r.right - px(300), caption + px(74)}, colors.muted);
         if (sourceCard.bottom > sourceCard.top)
             ui::rounded(dc, sourceCard, colors.surface, colors.border, px(12));
         if (options)
-            ui::line(dc, px(24), caption + px(143), r.right - px(24), caption + px(143), colors.border);
+            ui::line(dc, px(24), caption + px(119), r.right - px(24), caption + px(119), colors.border);
         EndPaint(hwnd, &ps);
     }
     void place() {
@@ -754,7 +752,7 @@ struct PromptWindow::Impl {
         auto text = editor->text(false);
         auto lines = text.empty() ? 0 : 1 + std::count(text.begin(), text.end(), L'\n');
         say(std::to_wstring(text.size()) + L" 字符 · " + std::to_wstring(lines) + L" 行    ·    " +
-            (dirty ? L"正在保存…" : L"草稿已保存") + L"    ·    " + settings.hotkey + L" 唤起");
+            (dirty ? L"正在保存…" : L"草稿已保存"));
     }
     void update_menu() {
         if (!prefsMenu)
@@ -841,8 +839,7 @@ struct PromptWindow::Impl {
         if (!flush())
             return;
         refresh_preview();
-        say(legacy ? L"已导入草稿、置顶与透明度；自启动请在设置中选择。"
-                   : L"已载入 Markdown，Ctrl+Z 可撤销替换。");
+        say(legacy ? L"已导入草稿、置顶与透明度；自启动请在设置中选择。" : L"已载入 Markdown。");
         if (!hotkeyError.empty())
             say(hotkeyError);
     }

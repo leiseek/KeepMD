@@ -22,6 +22,7 @@ struct Skin {
     ScrollKind kind = ScrollKind::Reader;
     Bar vertical{this, nullptr, SB_VERT}, horizontal{this, nullptr, SB_HORZ}, corner{this, nullptr, SB_BOTH};
     bool dark = false, syncing = false;
+    bool horizontalLane = false;
 };
 int limit(const SCROLLINFO &i) {
     return std::max(i.nMin, i.nMax - (int)std::min<UINT>(i.nPage, INT_MAX) + (i.nPage ? 1 : 0));
@@ -209,14 +210,30 @@ LRESULT CALLBACK target_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DW
         delete skin;
         return DefSubclassProc(h, m, w, l);
     }
-    // Place the skin before native nonclient painting, preventing default arrow
-    // buttons from becoming visible during control theme/frame refreshes.
-    if (m == WM_NCPAINT || m == WM_NCACTIVATE || m == WM_THEMECHANGED)
+    // Keep scroll positions in the native control, but remove its scrollbar
+    // styles entirely. Our reserved lanes are not painted by USER32/RichEdit.
+    if (m == WM_STYLECHANGING && (int)w == GWL_STYLE) {
+        auto result = DefSubclassProc(h, m, w, l);
+        ((STYLESTRUCT *)l)->styleNew &= ~(WS_VSCROLL | WS_HSCROLL);
+        return result;
+    }
+    if (m == WM_NCCALCSIZE) {
+        auto rect = w ? &((NCCALCSIZE_PARAMS *)l)->rgrc[0] : (RECT *)l;
+        int lane = MulDiv(12, GetDpiForWindow(h), 96);
+        rect->right = std::max(rect->left, rect->right - lane);
+        if (skin->horizontalLane)
+            rect->bottom = std::max(rect->top, rect->bottom - lane);
+        return 0;
+    }
+    if (m == WM_NCPAINT) {
+        sync_scrollbars(h);
+        return 0;
+    }
+    if (m == WM_NCACTIVATE || m == WM_THEMECHANGED)
         sync_scrollbars(h);
     auto result = DefSubclassProc(h, m, w, l);
-    // Native controls maintain their own scroll model. Cover the reserved nonclient
-    // lanes with lightweight sibling controls; WS_CLIPSIBLINGS prevents native paint
-    // from flashing through. Client geometry and native IME/edit semantics stay intact.
+    // Native controls maintain scroll positions, while our fixed nonclient lanes
+    // own the appearance. Refresh after editing/layout without adding a timer.
     switch (m) {
     case WM_PAINT:
     case WM_SIZE:
@@ -224,7 +241,6 @@ LRESULT CALLBACK target_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DW
     case WM_SHOWWINDOW:
     case WM_STYLECHANGED:
     case WM_THEMECHANGED:
-    case WM_NCPAINT:
     case WM_VSCROLL:
     case WM_HSCROLL:
     case WM_MOUSEWHEEL:
@@ -254,6 +270,9 @@ void attach_scrollbars(HWND target, ScrollKind kind) {
     auto skin = new Skin;
     skin->target = target;
     skin->kind = kind;
+    auto style = GetWindowLongPtrW(target, GWL_STYLE);
+    skin->horizontalLane = kind == ScrollKind::Reader || (style & WS_HSCROLL) != 0 ||
+                           (kind == ScrollKind::Editor && (style & ES_AUTOHSCROLL) != 0);
     SetPropW(target, Property, (HANDLE)skin);
     SetWindowLongPtrW(target, GWL_STYLE, GetWindowLongPtrW(target, GWL_STYLE) | WS_CLIPSIBLINGS);
     for (auto b : {&skin->vertical, &skin->horizontal, &skin->corner}) {
@@ -265,6 +284,9 @@ void attach_scrollbars(HWND target, ScrollKind kind) {
                                   cls.hInstance, b);
     }
     SetWindowSubclass(target, target_proc, 2, (DWORD_PTR)skin);
+    SetWindowLongPtrW(target, GWL_STYLE, GetWindowLongPtrW(target, GWL_STYLE) & ~(WS_VSCROLL | WS_HSCROLL));
+    SetWindowPos(target, nullptr, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     sync_scrollbars(target);
 }
 void sync_scrollbars(HWND target) {
@@ -272,15 +294,20 @@ void sync_scrollbars(HWND target) {
     if (!skin || skin->syncing)
         return;
     skin->syncing = true;
+    auto currentStyle = GetWindowLongPtrW(target, GWL_STYLE);
+    if (currentStyle & (WS_VSCROLL | WS_HSCROLL)) {
+        SetWindowLongPtrW(target, GWL_STYLE, currentStyle & ~(WS_VSCROLL | WS_HSCROLL));
+        for (auto bar : {&skin->vertical, &skin->horizontal, &skin->corner})
+            InvalidateRect(bar->hwnd, nullptr, FALSE);
+    }
     RECT wr{}, cr{};
     GetWindowRect(target, &wr);
     GetClientRect(target, &cr);
     MapWindowPoints(target, nullptr, (POINT *)&cr, 2);
     MapWindowPoints(nullptr, GetParent(target), (POINT *)&wr, 2);
     MapWindowPoints(nullptr, GetParent(target), (POINT *)&cr, 2);
-    auto style = GetWindowLongPtrW(target, GWL_STYLE);
     bool show = IsWindowVisible(target) != FALSE;
-    bool v = show && (style & WS_VSCROLL), h = show && (style & WS_HSCROLL);
+    bool v = show, h = show && skin->horizontalLane;
     place(skin->vertical, {cr.right, cr.top, wr.right, cr.bottom}, v);
     place(skin->horizontal, {cr.left, cr.bottom, cr.right, wr.bottom}, h);
     place(skin->corner, {cr.right, cr.bottom, wr.right, wr.bottom}, v && h);

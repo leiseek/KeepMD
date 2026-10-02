@@ -1,13 +1,13 @@
 {
-  "exe_sha256": "2f9070ce3821cd6d61c81ee441731c146b3070e596ed3d1edeca0c4dc8314736",
+  "exe_sha256": "ae24c0cb694c836d036b557bfc0568255ba721fe664da28952d080e9099618f3",
   "checks": [
     "reader thumb drags past 65535; track click, wheel and keyboard Home work without viewport resize",
     "virtual table of contents scrollbar drags through thousands of headings",
     "source editor drags past 65535 without modifying Markdown or caret text",
-    "both split-preview panes retain themed vertical/horizontal lanes after mode, theme, resize and native-frame refreshes",
+    "both split-preview panes use 12px custom lanes with no native styles; actual screen pixels verified after mode/theme/resize/native-frame refreshes",
     "source editor horizontal scrollbar drags long lines",
     "reader horizontal scrollbar drags long rendered code lines",
-    "visual prompt editor scrolls long content using the themed thumb"
+    "visual prompt editor scrolls long content using a 12px custom lane with native scrollbar styles disabled"
   ],
   "input": "real mouse hit-testing, drag, wheel; Win32 scroll position assertions"
 }

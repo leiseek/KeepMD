@@ -21,8 +21,12 @@ for dpi in (96,120,144,192):
         def stats():u.SendMessageW(hwnd,0x8000+100,0,0);return json.loads(report.read_text())
         wait(lambda:stats()['asset_bytes']>0)
         screenshot(hwnd,f'dpi-{dpi}-light.png')
-        u.SendMessageW(hwnd,0x111,111,0);u.SendMessageW(hwnd,0x111,110,0)
-        assert '👩‍💻 🇨🇳' in clipboard() and 'é' in clipboard()
+        u.SendMessageW(hwnd,0x111,111,0)
+        def copied():
+            u.SendMessageW(hwnd,0x111,110,0)
+            value=clipboard()
+            return '👩‍💻 🇨🇳' in value and 'é' in value
+        wait(copied) # Other desktop clipboard clients may briefly own the clipboard.
         u.SendMessageW(hwnd,0x111,106,0)
         screenshot(hwnd,f'dpi-{dpi}-dark.png')
         rect=W.RECT();u.GetClientRect(reader,C.byref(rect));scale=dpi/96
