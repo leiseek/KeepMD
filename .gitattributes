@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.ico binary
+# Preserve pinned upstream bytes for manifest verification.
+third_party/** -text
+third_party/** whitespace=-trailing-space

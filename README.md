@@ -18,7 +18,7 @@
 
 **构建与验证**
 
-需要包含 MSVC、Windows SDK、CMake ≥ 3.25 和 Ninja 的 Visual Studio C++ Build Tools。依赖源码已固定并随仓库提供，普通构建无需下载它们。
+构建脚本使用 PowerShell 7；需要包含 MSVC、Windows SDK、CMake ≥ 3.25 和 Ninja 的 Visual Studio C++ Build Tools。依赖源码已固定并随仓库提供，普通构建无需下载它们。
 
 ```powershell
 .\tools\build.ps1 -Test
