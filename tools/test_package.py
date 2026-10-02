@@ -8,7 +8,7 @@ import ctypes as C
 from ctypes import wintypes as W
 from test_gui import ROOT,OUT,windows,wait,activate,u,name,children,CALLBACK,clipboard
 
-archive=ROOT/'dist/KeepMD-0.4.0-windows-x64.zip'
+archive=ROOT/'dist/KeepMD-0.4.1-windows-x64.zip'
 destination=(ROOT/'.cache/package-smoke').resolve()
 destination.mkdir(parents=True,exist_ok=True)
 with zipfile.ZipFile(archive)as bundle:
@@ -48,6 +48,8 @@ try:
     panel=wait(prompt_window);main=wait(lambda:(windows(process.pid)or[None])[0])
     assert not u.IsWindowVisible(main)
     assert any(name(h,True)=='KeepMD.Scrollbar' for h in children(panel))
+    assert any(name(h,True)=='KeepMD.Caption' for h in children(panel))
+    assert any(name(h)=='关闭窗口' for h in children(panel))
     assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
     assert any(name(h)=='标题 1' for h in children(panel))
     editor=next(h for h in children(panel) if name(h,True)=='RICHEDIT50W')

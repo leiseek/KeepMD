@@ -26,6 +26,11 @@ void menu_labels(HMENU menu, std::initializer_list<const wchar_t *> labels);
 void measure_menu(MEASUREITEMSTRUCT &item, HWND owner, HFONT font);
 void draw_menu(const DRAWITEMSTRUCT &item, HFONT font, bool dark);
 void titlebar(HWND hwnd, bool dark);
+// Custom caption owns a detached menu and forwards its original commands.
+int caption_height(HWND hwnd);
+void caption_menu(HWND hwnd, HMENU menu);
+HMENU window_menu(HWND hwnd);
+bool caption_translate(MSG &message);
 void button_face(HDC dc, RECT rect, HFONT font, std::wstring_view title, const Palette &p, bool primary,
                  bool checked, bool hot, bool pressed, bool disabled, bool focused, float scale);
 } // namespace keepmd::ui

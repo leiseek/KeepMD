@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
+  "exe_sha256": "33fa90af7a780720863c82d3a5090a88fbf6fcbc576681c1da983eb45900ef6c",
   "checks": [
     "reader toolbar fits 640px window and wraps; edit actions appear without clipping",
     "dark theme covers toolbar, native outline, search, status and title/menu chrome",
@@ -10,7 +10,7 @@
     "F10/arrow/Esc navigation remains available for native menus",
     "30 theme changes do not accumulate GDI objects"
   ],
-  "theme_gdi_before": 83,
-  "theme_gdi_after": 79,
+  "theme_gdi_before": 88,
+  "theme_gdi_after": 84,
   "scope": "Real 96-DPI desktop, 640/720px minimum windows; physical monitor DPI transitions not exercised."
 }

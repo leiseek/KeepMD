@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
+  "exe_sha256": "33fa90af7a780720863c82d3a5090a88fbf6fcbc576681c1da983eb45900ef6c",
   "static_imports": [
     "d2d1.dll",
     "DWrite.dll",

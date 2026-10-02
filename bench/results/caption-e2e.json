@@ -1,0 +1,14 @@
+{
+  "exe_sha256": "33fa90af7a780720863c82d3a5090a88fbf6fcbc576681c1da983eb45900ef6c",
+  "checks": [
+    "native caption style and menu strip removed; custom header drag moves reader",
+    "right edge retains native interactive resizing",
+    "custom maximize/restore buttons respect monitor work area and leave taskbar uncovered",
+    "double-click maximize and custom minimize work",
+    "Win+Left docking remains available with the custom frame",
+    "custom menu button, F10 and Alt+Space open native menus",
+    "prompt custom close and Alt+F4 preserve save-and-hide semantics",
+    "reader custom close keeps unsaved-change cancel protection and normal exit behavior"
+  ],
+  "scope": "real mouse/keyboard on Windows 11 at 96 DPI; physical multi-monitor changes not exercised"
+}

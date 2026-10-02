@@ -580,11 +580,11 @@ struct VisualEditor::Impl {
             if (m == WM_CREATE) {
                 auto px = [&](int n) { return MulDiv(n, GetDpiForWindow(h), 96); };
                 CreateWindowExW(0, L"STATIC", L"Mermaid 流程图 · 修改语法后点“应用”", WS_CHILD | WS_VISIBLE,
-                                px(18), px(16), px(590), px(24), h, nullptr, nullptr, nullptr);
+                                px(18), px(62), px(590), px(24), h, nullptr, nullptr, nullptr);
                 p->edit = CreateWindowExW(0, MSFTEDIT_CLASS, L"",
                                           WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | ES_MULTILINE |
                                               ES_WANTRETURN | ES_AUTOVSCROLL,
-                                          px(18), px(48), px(590), px(300), h, (HMENU)1001, nullptr, nullptr);
+                                          px(18), px(94), px(590), px(300), h, (HMENU)1001, nullptr, nullptr);
                 SendMessageW(p->edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
                 SendMessageW(p->edit, EM_EXLIMITTEXT, 0, 65536);
                 SetWindowTextW(p->edit, p->text.c_str());
@@ -600,8 +600,8 @@ struct VisualEditor::Impl {
                 ui::attach_scrollbars(p->edit, ui::ScrollKind::Editor);
                 ui::scroll_theme(p->edit, p->dark);
                 CreateWindowExW(0, L"BUTTON", L"应用", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
-                                px(420), px(364), px(88), px(32), h, (HMENU)IDOK, nullptr, nullptr);
-                CreateWindowExW(0, L"BUTTON", L"取消", WS_CHILD | WS_VISIBLE | WS_TABSTOP, px(520), px(364),
+                                px(420), px(410), px(88), px(32), h, (HMENU)IDOK, nullptr, nullptr);
+                CreateWindowExW(0, L"BUTTON", L"取消", WS_CHILD | WS_VISIBLE | WS_TABSTOP, px(520), px(410),
                                 px(88), px(32), h, (HMENU)IDCANCEL, nullptr, nullptr);
                 for (auto child = GetWindow(h, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT))
                     if (child != p->edit)
@@ -634,7 +634,7 @@ struct VisualEditor::Impl {
         GetWindowRect(parent, &rect);
         auto window = CreateWindowExW(
             WS_EX_DLGMODALFRAME, cls.lpszClassName, L"编辑流程图", WS_CAPTION | WS_SYSMENU, rect.left + 50,
-            rect.top + 50, MulDiv(640, GetDpiForWindow(parent), 96), MulDiv(448, GetDpiForWindow(parent), 96),
+            rect.top + 50, MulDiv(640, GetDpiForWindow(parent), 96), MulDiv(480, GetDpiForWindow(parent), 96),
             parent, nullptr, cls.hInstance, &dialog);
         if (!window)
             return;
@@ -645,6 +645,8 @@ struct VisualEditor::Impl {
         SetFocus(dialog.edit);
         MSG msg{};
         while (!dialog.done && GetMessageW(&msg, nullptr, 0, 0) > 0) {
+            if (ui::caption_translate(msg))
+                continue;
             if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE) {
                 dialog.done = true;
                 break;

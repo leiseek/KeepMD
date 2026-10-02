@@ -148,12 +148,4 @@ void draw_menu(const DRAWITEMSTRUCT &item, HFONT font, bool dark) {
          selected ? p.accent : p.muted, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     RestoreDC(item.hDC, saved);
 }
-void titlebar(HWND hwnd, bool dark) {
-    auto p = palette(dark);
-    BOOL enabled = dark;
-    DwmSetWindowAttribute(hwnd, 20, &enabled, sizeof(enabled));
-    // Windows 11 caption colors. Earlier systems retain their native title bar.
-    DwmSetWindowAttribute(hwnd, 35, &p.background, sizeof(COLORREF));
-    DwmSetWindowAttribute(hwnd, 36, &p.text, sizeof(COLORREF));
-}
 } // namespace keepmd::ui

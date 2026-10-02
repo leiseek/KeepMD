@@ -1,7 +1,7 @@
 {
-  "zip_sha256": "bdbcabf89d4c2a3cb20aadddcc9166b3bce259a20220fa715a93c12bf60cecbc",
-  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
-  "verified_members": 29,
+  "zip_sha256": "a73abb014a0c36f14d1109f8c918f30ce36614919b511a1618535e18afd4cba1",
+  "exe_sha256": "33fa90af7a780720863c82d3a5090a88fbf6fcbc576681c1da983eb45900ef6c",
+  "verified_members": 30,
   "extracted_package_launch": "passed",
   "extracted_prompt_copy_and_save": "passed",
   "snapshot": "tests\\output\\packaged-reader.png"

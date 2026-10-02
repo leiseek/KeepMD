@@ -1,28 +1,29 @@
 {
-  "version": "0.4.0",
-  "generated_at": "2026-10-02T19:59:34.745861+08:00",
-  "exe_sha256": "83f063eff9ba9e539eacee1523808be3b433b52e2024e194ebdc773c5c66989e",
-  "exe_bytes": 898560,
+  "version": "0.4.1",
+  "generated_at": "2026-10-02T21:24:09.049100+08:00",
+  "exe_sha256": "33fa90af7a780720863c82d3a5090a88fbf6fcbc576681c1da983eb45900ef6c",
+  "exe_bytes": 908288,
   "core_checks_passed": 144,
   "prompt_measurements": {
-    "cold_resident_private_mib": 4.69921875,
-    "first_summon_observed_ms": 96.44899999693735,
+    "cold_resident_private_mib": 4.80859375,
+    "first_summon_observed_ms": 96.40580000268528,
     "double_ctrl_live": "not run: existing user Prompt Flow is active; state machine covered by core tests",
     "hidden_idle_seconds": 5,
-    "hidden_idle_cpu_seconds": 0.015625,
+    "hidden_idle_cpu_seconds": 0.0,
     "hidden_idle_write_bytes": 0,
-    "hidden_private_mib": 5.52734375,
+    "hidden_private_mib": 5.46875,
     "hidden_draft_changed": false
   },
   "prompt_e2e_checks": 17,
   "ui_e2e_checks": 8,
   "scrollbar_e2e_checks": 6,
   "visual_editor_e2e_checks": 9,
-  "startup_launch_p95_ms": 96.8766,
-  "private_median_mib": 15.142578125,
-  "working_set_median_mib": 40.4609375,
-  "large_50mib_launch_p95_ms": 735.3858,
-  "large_50mib_private_median_mib": 409.55859375,
+  "caption_e2e_checks": 8,
+  "startup_launch_p95_ms": 101.134,
+  "private_median_mib": 15.32421875,
+  "working_set_median_mib": 40.70703125,
+  "large_50mib_launch_p95_ms": 747.7916,
+  "large_50mib_private_median_mib": 409.796875,
   "gui_suites": [
     "reader",
     "navigation and real file dialogs",
@@ -32,7 +33,8 @@
     "bounded stress and device-target recreation",
     "class style/image formats/uppercase MMD",
     "global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME",
-    "native visual editing and inline diagram object round trips"
+    "native visual editing and inline diagram object round trips",
+    "custom window caption, native resize/drag, work-area maximize, docking and close guards"
   ],
   "limitations": [
     "No verified cold-cache startup number",
@@ -42,6 +44,7 @@
     "No complete reader UI Automation text provider",
     "Unsigned portable binary",
     "Live double-Ctrl summon not exercised while original Prompt Flow is running",
-    "Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented"
+    "Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented",
+    "Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested"
   ]
 }

@@ -53,7 +53,7 @@ try:
             command(panel,511);value=clipboard()
             if value:return value
             time.sleep(.025)
-        return '' 
+        return ''
     def visible():
         get=GETTEXT(2*1024*1024,0x8,1200,None,None) # GT_NOHIDDENTEXT
         assert k.WriteProcessMemory(handle,remote,C.byref(get),C.sizeof(get),None)

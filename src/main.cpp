@@ -163,7 +163,7 @@ void chrome_theme(App &app) {
     MENUINFO mi{sizeof(mi)};
     mi.fMask = MIM_BACKGROUND;
     mi.hbrBack = app.surfaceBrush;
-    SetMenuInfo(GetMenu(app.hwnd), &mi);
+    SetMenuInfo(ui::window_menu(app.hwnd), &mi);
     DrawMenuBar(app.hwnd);
     if (app.toc) {
         ListView_SetBkColor(app.toc, p.background);
@@ -228,9 +228,10 @@ void arrange(App &app) {
     RECT r{};
     GetClientRect(app.hwnd, &r);
     app.dpi = (float)GetDpiForWindow(app.hwnd) / 96.f;
+    int caption = ui::caption_height(app.hwnd);
     int bottom = (int)(30 * app.dpi), side = app.showToc ? (int)(220 * app.dpi) : 0;
     SendMessageW(app.status, WM_SIZE, 0, 0);
-    MoveWindow(app.toolbar, (int)(12 * app.dpi), (int)(9 * app.dpi),
+    MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(9 * app.dpi),
                std::max(1L, r.right - (int)(24 * app.dpi)), (int)(72 * app.dpi), TRUE);
     SendMessageW(app.toolbar, TB_AUTOSIZE, 0, 0);
     int toolbarHeight = (int)(34 * app.dpi);
@@ -243,8 +244,8 @@ void arrange(App &app) {
         SendMessageW(app.toolbar, TB_GETITEMRECT, i, (LPARAM)&br);
         toolbarHeight = std::max(toolbarHeight, (int)br.bottom);
     }
-    int top = (int)(18 * app.dpi) + toolbarHeight;
-    MoveWindow(app.toolbar, (int)(12 * app.dpi), (int)(9 * app.dpi),
+    int top = caption + (int)(18 * app.dpi) + toolbarHeight;
+    MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(9 * app.dpi),
                std::max(1L, r.right - (int)(24 * app.dpi)), toolbarHeight, TRUE);
     int searchHeight = app.showSearch ? (int)((app.showReplace ? 88 : 44) * app.dpi) : 0;
     ShowWindow(app.searchBox, app.showSearch ? SW_SHOW : SW_HIDE);
@@ -1562,6 +1563,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     auto accel = CreateAcceleratorTableW(keys, (int)std::size(keys));
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+        if (ui::caption_translate(message))
+            continue;
         if (app.prompt && app.prompt->translate(message))
             continue;
         bool inSearch = (app.searchBox && GetFocus() == app.searchBox) ||

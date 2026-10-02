@@ -426,7 +426,7 @@ struct PromptWindow::Impl {
         AppendMenuW(prefsMenu, MF_STRING, Theme, L"切换深浅主题");
         AppendMenuW(menu, MF_POPUP, (UINT_PTR)prefsMenu, L"设置");
         ui::menu_labels(menu, {L"文件", L"设置"});
-        SetMenu(hwnd, menu);
+        ui::caption_menu(hwnd, menu);
         for (const auto &[id, label] :
              std::vector<std::pair<int, const wchar_t *>>{{CopyHide, L"复制并收起   Ctrl+Enter"},
                                                           {CopyOnly, L"复制全文"},
@@ -544,24 +544,24 @@ struct PromptWindow::Impl {
         RECT r{};
         GetClientRect(hwnd, &r);
         auto px = [&](int n) { return (int)(n * dpi); };
-        const int margin = px(24), w = r.right;
+        const int margin = px(24), w = r.right, caption = ui::caption_height(hwnd);
         auto move = [&](int id, int x, int y, int width, int height = 36) {
             MoveWindow(button(id), x, y, width, px(height), TRUE);
         };
-        move(Theme, w - margin - px(64), px(25), px(64));
-        move(Options, w - margin - px(152), px(25), px(80));
+        move(Theme, w - margin - px(64), caption + px(25), px(64));
+        move(Options, w - margin - px(152), caption + px(25), px(80));
         for (int id : {Apply, DoubleCtrl, DefaultKey})
             ShowWindow(button(id), options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyEdit, options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyLabel, options ? SW_SHOW : SW_HIDE);
         int fieldWidth = std::max(px(110), w - margin * 2 - px(404));
-        MoveWindow(hotkeyLabel, margin, px(104), px(92), px(24), TRUE);
-        MoveWindow(hotkeyEdit, margin + px(96), px(98), fieldWidth, px(33), TRUE);
+        MoveWindow(hotkeyLabel, margin, caption + px(104), px(92), px(24), TRUE);
+        MoveWindow(hotkeyEdit, margin + px(96), caption + px(98), fieldWidth, px(33), TRUE);
         int x = margin + px(104) + fieldWidth;
-        move(Apply, x, px(97), px(64));
-        move(DoubleCtrl, x + px(72), px(97), px(120));
-        move(DefaultKey, x + px(200), px(97), px(76));
-        int formatY = px(options ? 151 : 92);
+        move(Apply, x, caption + px(97), px(64));
+        move(DoubleCtrl, x + px(72), caption + px(97), px(120));
+        move(DefaultKey, x + px(200), caption + px(97), px(76));
+        int formatY = caption + px(options ? 151 : 92);
         int xFormat = margin, row = 0;
         for (int id : {FormatText, FormatH1, FormatH2, FormatBold, FormatItalic, FormatBullet, FormatNumber,
                        FormatQuote, FormatCode, FormatDiagram}) {
@@ -593,13 +593,15 @@ struct PromptWindow::Impl {
         GetClientRect(hwnd, &r);
         ui::fill(dc, r, colors.background);
         auto px = [&](int n) { return (int)(n * dpi); };
-        ui::text(dc, titleFont, L"提示词", {px(24), px(15), r.right - px(310), px(48)}, colors.text);
+        int caption = ui::caption_height(hwnd);
+        ui::text(dc, titleFont, L"提示词", {px(24), caption + px(15), r.right - px(310), caption + px(48)},
+                 colors.text);
         ui::text(dc, smallFont, L"直接编辑内容，复制为 Markdown。",
-                 {px(25), px(52), r.right - px(300), px(74)}, colors.muted);
+                 {px(25), caption + px(52), r.right - px(300), caption + px(74)}, colors.muted);
         if (sourceCard.bottom > sourceCard.top)
             ui::rounded(dc, sourceCard, colors.surface, colors.border, px(12));
         if (options)
-            ui::line(dc, px(24), px(143), r.right - px(24), px(143), colors.border);
+            ui::line(dc, px(24), caption + px(143), r.right - px(24), caption + px(143), colors.border);
         EndPaint(hwnd, &ps);
     }
     void place() {
