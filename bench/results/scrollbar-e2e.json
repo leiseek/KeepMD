@@ -1,0 +1,12 @@
+{
+  "exe_sha256": "5a8c936deab83495dea336c3c8f2dda7793ef02d9c4d825e4fc955aa4a1d16dc",
+  "checks": [
+    "reader thumb drags past 65535; track click, wheel and keyboard Home work without viewport resize",
+    "virtual table of contents scrollbar drags through thousands of headings",
+    "source editor drags past 65535 without modifying Markdown or caret text",
+    "source editor horizontal scrollbar drags long lines",
+    "reader horizontal scrollbar drags long rendered code lines",
+    "prompt source and live preview scroll independently using themed thumbs"
+  ],
+  "input": "real mouse hit-testing, drag, wheel; Win32 scroll position assertions"
+}

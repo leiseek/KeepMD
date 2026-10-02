@@ -1,4 +1,5 @@
 #include "view.h"
+#include "ui.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -254,6 +255,7 @@ void View::set_zoom(float factor) {
 }
 void View::set_dark(bool value) {
     dark_ = value;
+    ui::scroll_theme(hwnd_, value);
     invalidate();
 }
 void View::set_reading_width(float value) {
@@ -277,6 +279,7 @@ void View::update_scrollbars() {
     si.nPage = (UINT)std::max(1.f, width_);
     si.nPos = (int)scrollX_;
     SetScrollInfo(hwnd_, SB_HORZ, &si, TRUE);
+    ui::sync_scrollbars(hwnd_);
 }
 void View::scroll(float dy) {
     scroll_to(scrollY_ + dy);

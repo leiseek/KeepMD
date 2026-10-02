@@ -1,4 +1,4 @@
-**KeepMD 0.3 — Windows 原生 Markdown 阅读器**
+**KeepMD 0.3.1 — Windows 原生 Markdown 阅读器**
 
 阅读、预览优先，附带按需开启的轻量源码编辑。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
 
@@ -6,10 +6,10 @@
 
 **使用**
 
-运行 `dist/KeepMD-0.3.0-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
+运行 `dist/KeepMD-0.3.1-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
 
 ```powershell
-.\dist\KeepMD-0.3.0-windows-x64\keepmd.exe .\README.md
+.\dist\KeepMD-0.3.1-windows-x64\keepmd.exe .\README.md
 ```
 
 `Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/源码，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
@@ -28,6 +28,10 @@ KeepMD 运行时按 `Ctrl+Alt+Space`，或点“提示词”打开独立输入�
 ```
 
 默认关闭阅读器即退出；只有明确开启常驻后才保留托盘服务。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
+
+**界面更新（0.3.1）**
+
+提示词窗口采用独立的 Markdown／预览面板、底部“复制并收起”主操作和可折叠快捷键设置。深浅主题同步覆盖标题栏、顶层菜单、按钮、目录和状态栏；阅读器工具栏在窄窗口自动换行。输入区增加边距，提示词窗口本次运行中保留调整后的尺寸与位置。正文、编辑器、预览与目录统一使用主题色窄滑块，支持拖动、点击轨道翻页和滚轮；系统弹出菜单和文件对话框沿用 Windows 外观。
 
 **构建与验证**
 

@@ -78,6 +78,13 @@ def screenshot(hwnd, name_):
     time.sleep(.15)
     rect = W.RECT()
     u.GetWindowRect(hwnd, C.byref(rect))
+    # Capture the visible window frame, excluding invisible resize margins and
+    # unrelated desktop pixels around it. This does not alter the screenshot.
+    dwm=C.WinDLL('dwmapi')
+    dwm.DwmGetWindowAttribute.argtypes=[W.HWND,W.DWORD,C.c_void_p,W.DWORD]
+    frame=W.RECT()
+    if dwm.DwmGetWindowAttribute(hwnd,9,C.byref(frame),C.sizeof(frame))==0:
+        rect=frame
     ImageGrab.grab(bbox=(rect.left,rect.top,rect.right,rect.bottom)).save(OUT / name_)
 
 def activate(hwnd,focus=None):
@@ -149,7 +156,11 @@ def run():
         u.SendMessageW(edit,0x000C,0,C.cast(query,C.c_void_p).value)
         print('Search text:',name(edit),'Status:',name(status),flush=True)
         screenshot(hwnd,'gui-search.png')
-        wait(lambda: '1 / 1' in name(status))
+        try:
+            wait(lambda: '1 / 1' in name(status))
+        except AssertionError:
+            print('Search failure state:',repr(name(edit)),repr(name(status)),flush=True)
+            raise
         checks.append('find Chinese text')
         u.SendMessageW(hwnd,0x111,102,0)
         u.SendMessageW(hwnd,0x111,111,0)  # select all

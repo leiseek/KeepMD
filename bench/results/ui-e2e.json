@@ -1,0 +1,16 @@
+{
+  "exe_sha256": "5a8c936deab83495dea336c3c8f2dda7793ef02d9c4d825e4fc955aa4a1d16dc",
+  "checks": [
+    "reader toolbar fits 640px window and wraps; edit actions appear without clipping",
+    "dark theme covers toolbar, native outline, search, status and title/menu chrome",
+    "prompt theme button activates by keyboard and synchronizes with reader",
+    "prompt settings fit 720px; hiding preview gives full width to editor",
+    "prompt retains resized window dimensions across hide/show",
+    "owner-drawn copy button preserves native Space activation and exact Markdown copy",
+    "F10/arrow/Esc navigation remains available for native menus",
+    "30 theme changes do not accumulate GDI objects"
+  ],
+  "theme_gdi_before": 79,
+  "theme_gdi_after": 75,
+  "scope": "Real 96-DPI desktop, 640/720px minimum windows; physical monitor DPI transitions not exercised."
+}

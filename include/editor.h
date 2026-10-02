@@ -26,6 +26,7 @@ class Editor {
         saved();
     }
     void theme(bool dark);
+    void inset(unsigned dpi);
     bool find(const std::wstring &query, bool previous = false, bool reset = false);
     size_t replace(const std::wstring &query, const std::wstring &replacement, bool all);
 

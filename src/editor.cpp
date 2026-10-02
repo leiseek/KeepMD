@@ -1,4 +1,5 @@
 #include "editor.h"
+#include "ui.h"
 #include <algorithm>
 #include <commdlg.h>
 #include <cwctype>
@@ -10,7 +11,7 @@ Editor::Editor(HWND parent, int id) {
     library_ = LoadLibraryExW(L"Msftedit.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!library_)
         return;
-    hwnd_ = CreateWindowExW(WS_EX_CLIENTEDGE, MSFTEDIT_CLASS, L"",
+    hwnd_ = CreateWindowExW(0, MSFTEDIT_CLASS, L"",
                             WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE |
                                 ES_WANTRETURN | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL,
                             0, 0, 100, 100, parent, reinterpret_cast<HMENU>((INT_PTR)id), nullptr, nullptr);
@@ -26,6 +27,17 @@ Editor::Editor(HWND parent, int id) {
     wcscpy_s(style.szFaceName, L"Consolas");
     style.yHeight = 220;
     SendMessageW(hwnd_, EM_SETCHARFORMAT, SCF_ALL, reinterpret_cast<LPARAM>(&style));
+    ui::attach_scrollbars(hwnd_, ui::ScrollKind::Editor);
+}
+void Editor::inset(unsigned dpi) {
+    RECT rect{};
+    GetClientRect(hwnd_, &rect);
+    int padding = MulDiv(18, dpi, 96);
+    rect.left += padding;
+    rect.right = std::max(rect.left + 1, rect.right - padding);
+    rect.top += padding;
+    rect.bottom = std::max(rect.top + 1, rect.bottom - padding);
+    SendMessageW(hwnd_, EM_SETRECT, 0, reinterpret_cast<LPARAM>(&rect));
 }
 Editor::~Editor() {
     if (hwnd_)
@@ -105,6 +117,7 @@ void Editor::theme(bool dark) {
     style.crTextColor = dark ? RGB(225, 230, 239) : RGB(35, 46, 62);
     SendMessageW(hwnd_, EM_SETCHARFORMAT, SCF_ALL, reinterpret_cast<LPARAM>(&style));
     SendMessageW(hwnd_, EM_SETMODIFY, dirty, 0);
+    ui::scroll_theme(hwnd_, dark);
 }
 bool Editor::find(const std::wstring &query, bool previous, bool reset) {
     if (query.empty() || !hwnd_)

@@ -3,11 +3,13 @@
 #include "prompt_window.h"
 #include "settings.h"
 #include "shell_integration.h"
+#include "ui.h"
 #include "view.h"
 #include <algorithm>
 #include <chrono>
 #include <commctrl.h>
 #include <commdlg.h>
+#include <dwmapi.h>
 #include <fstream>
 #include <imm.h>
 #include <psapi.h>
@@ -63,6 +65,7 @@ struct App {
          searchNext = nullptr, searchPrev = nullptr, toc = nullptr, replaceBox = nullptr,
          replaceOne = nullptr, replaceAll = nullptr;
     HFONT font = nullptr;
+    HBRUSH surfaceBrush = nullptr;
     View *view = nullptr;
     float dpi = 1;
     bool showToc = false, showSearch = false, loading = false;
@@ -104,6 +107,8 @@ struct App {
         loader.reset();
         if (font)
             DeleteObject(font);
+        if (surfaceBrush)
+            DeleteObject(surfaceBrush);
     }
 };
 App *app_of(HWND hwnd) {
@@ -117,17 +122,83 @@ void status(App &app, const std::wstring &text) {
 }
 void update_ui_font(App &app, unsigned dpi) {
     HFONT old = app.font;
-    app.font =
-        CreateFontW(-MulDiv(16, dpi, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-                    OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    app.font = ui::font(dpi);
     for (HWND child : {app.toolbar, app.status, app.searchBox, app.searchNext, app.searchPrev, app.replaceBox,
                        app.replaceOne, app.replaceAll, app.toc})
         if (child)
             SendMessageW(child, WM_SETFONT, (WPARAM)app.font, TRUE);
     if (app.status)
-        SendMessageW(app.status, SB_SETMINHEIGHT, MulDiv(20, dpi, 96), 0);
+        SendMessageW(app.status, SB_SETMINHEIGHT, MulDiv(26, dpi, 96), 0);
+    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(62, dpi, 96), MulDiv(34, dpi, 96)));
+    HDC dc = GetDC(app.toolbar);
+    auto previous = SelectObject(dc, app.font);
+    for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
+        TBBUTTON b{};
+        SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
+        if (b.fsStyle & BTNS_SEP)
+            continue;
+        wchar_t title[128]{};
+        TBBUTTONINFOW info{sizeof(info), TBIF_TEXT};
+        info.pszText = title;
+        info.cchText = 128;
+        SendMessageW(app.toolbar, TB_GETBUTTONINFOW, b.idCommand, (LPARAM)&info);
+        SIZE extent{};
+        GetTextExtentPoint32W(dc, title, (int)wcslen(title), &extent);
+        info.dwMask = TBIF_SIZE;
+        info.cx = (WORD)(extent.cx + MulDiv(b.idCommand == Prompt ? 32 : 26, dpi, 96));
+        SendMessageW(app.toolbar, TB_SETBUTTONINFOW, b.idCommand, (LPARAM)&info);
+    }
+    SelectObject(dc, previous);
+    ReleaseDC(app.toolbar, dc);
     if (old)
         DeleteObject(old);
+}
+void chrome_theme(App &app) {
+    bool dark = app.view && app.view->dark();
+    auto p = ui::palette(dark);
+    if (app.surfaceBrush)
+        DeleteObject(app.surfaceBrush);
+    app.surfaceBrush = CreateSolidBrush(p.surface);
+    ui::titlebar(app.hwnd, dark);
+    MENUINFO mi{sizeof(mi)};
+    mi.fMask = MIM_BACKGROUND;
+    mi.hbrBack = app.surfaceBrush;
+    SetMenuInfo(GetMenu(app.hwnd), &mi);
+    DrawMenuBar(app.hwnd);
+    if (app.toc) {
+        ListView_SetBkColor(app.toc, p.background);
+        ListView_SetTextBkColor(app.toc, p.background);
+        ListView_SetTextColor(app.toc, p.text);
+        ui::scroll_theme(app.toc, dark);
+    }
+    RedrawWindow(app.hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+}
+LRESULT CALLBACK status_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DWORD_PTR data) {
+    auto &app = *(App *)data;
+    if (m == WM_ERASEBKGND)
+        return 1;
+    if (m == WM_PAINT) {
+        PAINTSTRUCT ps{};
+        auto dc = BeginPaint(h, &ps);
+        auto colors = ui::palette(app.view && app.view->dark());
+        RECT r{};
+        GetClientRect(h, &r);
+        ui::fill(dc, r, colors.background);
+        ui::line(dc, 0, 0, r.right, 0, colors.border);
+        int size = std::min(4096, (int)LOWORD(SendMessageW(h, SB_GETTEXTLENGTHW, 0, 0)));
+        // Status text is controlled by this process; allocate the actual reported length.
+        std::wstring label((size_t)LOWORD(SendMessageW(h, SB_GETTEXTLENGTHW, 0, 0)) + 1, 0);
+        SendMessageW(h, SB_GETTEXTW, 0, (LPARAM)label.data());
+        label.resize(size);
+        r.left += (int)(16 * app.dpi);
+        r.right -= (int)(16 * app.dpi);
+        ui::text(dc, app.font, label, r, colors.muted);
+        EndPaint(h, &ps);
+        return 0;
+    }
+    if (m == WM_NCDESTROY)
+        RemoveWindowSubclass(h, status_proc, id);
+    return DefSubclassProc(h, m, w, l);
 }
 void copy_text(HWND owner, const std::wstring &text) {
     if (text.empty() || !OpenClipboard(owner))
@@ -157,43 +228,61 @@ void arrange(App &app) {
     RECT r{};
     GetClientRect(app.hwnd, &r);
     app.dpi = (float)GetDpiForWindow(app.hwnd) / 96.f;
-    int top = (int)(42 * app.dpi), bottom = (int)(24 * app.dpi),
-        side = app.showToc ? (int)(220 * app.dpi) : 0;
+    int bottom = (int)(30 * app.dpi), side = app.showToc ? (int)(220 * app.dpi) : 0;
     SendMessageW(app.status, WM_SIZE, 0, 0);
-    MoveWindow(app.toolbar, 0, 0, r.right, top, TRUE);
-    int searchHeight = app.showSearch ? (int)((app.showReplace ? 76 : 38) * app.dpi) : 0;
+    MoveWindow(app.toolbar, (int)(12 * app.dpi), (int)(9 * app.dpi),
+               std::max(1L, r.right - (int)(24 * app.dpi)), (int)(72 * app.dpi), TRUE);
+    SendMessageW(app.toolbar, TB_AUTOSIZE, 0, 0);
+    int toolbarHeight = (int)(34 * app.dpi);
+    for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
+        TBBUTTON b{};
+        SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
+        if ((b.fsStyle & BTNS_SEP) || (b.fsState & TBSTATE_HIDDEN))
+            continue;
+        RECT br{};
+        SendMessageW(app.toolbar, TB_GETITEMRECT, i, (LPARAM)&br);
+        toolbarHeight = std::max(toolbarHeight, (int)br.bottom);
+    }
+    int top = (int)(18 * app.dpi) + toolbarHeight;
+    MoveWindow(app.toolbar, (int)(12 * app.dpi), (int)(9 * app.dpi),
+               std::max(1L, r.right - (int)(24 * app.dpi)), toolbarHeight, TRUE);
+    int searchHeight = app.showSearch ? (int)((app.showReplace ? 88 : 44) * app.dpi) : 0;
     ShowWindow(app.searchBox, app.showSearch ? SW_SHOW : SW_HIDE);
     ShowWindow(app.searchNext, app.showSearch ? SW_SHOW : SW_HIDE);
     ShowWindow(app.searchPrev, app.showSearch ? SW_SHOW : SW_HIDE);
     MoveWindow(app.searchBox, (int)(12 * app.dpi), top + (int)(5 * app.dpi),
-               std::max<int>(150, r.right - (int)(240 * app.dpi)), (int)(27 * app.dpi), TRUE);
+               std::max<int>(150, r.right - (int)(240 * app.dpi)), (int)(32 * app.dpi), TRUE);
     MoveWindow(app.searchPrev, r.right - (int)(215 * app.dpi), top + (int)(4 * app.dpi), (int)(98 * app.dpi),
-               (int)(29 * app.dpi), TRUE);
+               (int)(34 * app.dpi), TRUE);
     MoveWindow(app.searchNext, r.right - (int)(112 * app.dpi), top + (int)(4 * app.dpi), (int)(98 * app.dpi),
-               (int)(29 * app.dpi), TRUE);
+               (int)(34 * app.dpi), TRUE);
     for (HWND child : {app.replaceBox, app.replaceOne, app.replaceAll})
         ShowWindow(child, app.showSearch && app.showReplace ? SW_SHOW : SW_HIDE);
-    MoveWindow(app.replaceBox, (int)(12 * app.dpi), top + (int)(43 * app.dpi),
-               std::max<int>(150, r.right - (int)(240 * app.dpi)), (int)(27 * app.dpi), TRUE);
-    MoveWindow(app.replaceOne, r.right - (int)(215 * app.dpi), top + (int)(42 * app.dpi), (int)(98 * app.dpi),
-               (int)(29 * app.dpi), TRUE);
-    MoveWindow(app.replaceAll, r.right - (int)(112 * app.dpi), top + (int)(42 * app.dpi), (int)(98 * app.dpi),
-               (int)(29 * app.dpi), TRUE);
+    MoveWindow(app.replaceBox, (int)(12 * app.dpi), top + (int)(49 * app.dpi),
+               std::max<int>(150, r.right - (int)(240 * app.dpi)), (int)(32 * app.dpi), TRUE);
+    MoveWindow(app.replaceOne, r.right - (int)(215 * app.dpi), top + (int)(48 * app.dpi), (int)(98 * app.dpi),
+               (int)(34 * app.dpi), TRUE);
+    MoveWindow(app.replaceAll, r.right - (int)(112 * app.dpi), top + (int)(48 * app.dpi), (int)(98 * app.dpi),
+               (int)(34 * app.dpi), TRUE);
     if (app.toc) {
         ShowWindow(app.toc, app.showToc ? SW_SHOW : SW_HIDE);
-        MoveWindow(app.toc, 0, top + searchHeight, side,
-                   std::max<int>(1, r.bottom - top - searchHeight - bottom), TRUE);
-        ListView_SetColumnWidth(app.toc, 0, std::max(1, side - (int)(20 * app.dpi)));
+        MoveWindow(app.toc, (int)(12 * app.dpi), top + searchHeight + (int)(38 * app.dpi),
+                   std::max(1, side - (int)(24 * app.dpi)),
+                   std::max<int>(1, r.bottom - top - searchHeight - bottom - (int)(46 * app.dpi)), TRUE);
+        ListView_SetColumnWidth(app.toc, 0, std::max(1, side - (int)(44 * app.dpi)));
     }
     int editorWidth =
         app.editor ? (app.split ? std::max<int>(280, (r.right - side) / 2) : r.right - side) : 0;
     if (app.editor)
         MoveWindow(app.editor->hwnd(), side, top + searchHeight, editorWidth,
                    std::max<int>(1, r.bottom - top - searchHeight - bottom), TRUE);
+    if (app.editor)
+        app.editor->inset(GetDpiForWindow(app.hwnd));
     ShowWindow(app.reader, !app.editor || app.split ? SW_SHOW : SW_HIDE);
     MoveWindow(app.reader, side + editorWidth, top + searchHeight,
                std::max<int>(1, r.right - side - editorWidth),
                std::max<int>(1, r.bottom - top - searchHeight - bottom), TRUE);
+    InvalidateRect(app.hwnd, nullptr, FALSE);
 }
 bool save_editor(App &app, bool saveAs = false);
 void update_recent(App &app) {
@@ -212,6 +301,9 @@ void update_controls(App &app) {
     TBBUTTONINFOW info{sizeof(info), TBIF_TEXT};
     info.pszText = const_cast<wchar_t *>(app.editor ? L"阅读" : L"编辑");
     SendMessageW(app.toolbar, TB_SETBUTTONINFOW, Edit, reinterpret_cast<LPARAM>(&info));
+    SendMessageW(app.toolbar, TB_HIDEBUTTON, Save, MAKELONG(!app.editor, 0));
+    SendMessageW(app.toolbar, TB_HIDEBUTTON, Split, MAKELONG(!app.editor, 0));
+    arrange(app);
 }
 bool allow_navigation(App &app) {
     bool discarded = false;
@@ -397,7 +489,7 @@ void ensure_toc(App &app) {
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_LISTVIEW_CLASSES};
     InitCommonControlsEx(&controls);
     app.toc =
-        CreateWindowExW(WS_EX_CLIENTEDGE, WC_LISTVIEWW, nullptr,
+        CreateWindowExW(0, WC_LISTVIEWW, nullptr,
                         WS_CHILD | WS_TABSTOP | LVS_REPORT | LVS_OWNERDATA | LVS_SINGLESEL |
                             LVS_NOCOLUMNHEADER | LVS_SHOWSELALWAYS,
                         0, 0, 0, 0, app.hwnd, reinterpret_cast<HMENU>((INT_PTR)TocId), nullptr, nullptr);
@@ -408,6 +500,8 @@ void ensure_toc(App &app) {
     ListView_SetExtendedListViewStyle(app.toc, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
     SendMessageW(app.toc, WM_SETFONT, (WPARAM)app.font, TRUE);
     update_toc(app);
+    ui::attach_scrollbars(app.toc, ui::ScrollKind::List);
+    chrome_theme(app);
 }
 void ensure_search(App &app) {
     if (app.searchBox)
@@ -428,6 +522,10 @@ void ensure_search(App &app) {
     for (HWND child :
          {app.searchBox, app.searchPrev, app.searchNext, app.replaceBox, app.replaceOne, app.replaceAll})
         SendMessageW(child, WM_SETFONT, (WPARAM)app.font, TRUE);
+    for (HWND h : {app.searchPrev, app.searchNext, app.replaceOne, app.replaceAll})
+        ui::style_button(h);
+    SendMessageW(app.searchBox, EM_SETCUEBANNER, FALSE, (LPARAM)L"查找文档中的文字…");
+    SendMessageW(app.replaceBox, EM_SETCUEBANNER, FALSE, (LPARAM)L"替换为…");
 }
 void begin_load(App &app, const std::filesystem::path &path, bool refresh = false) {
     // Preserve the current editor until the new document has loaded successfully.
@@ -633,6 +731,7 @@ void command(App &app, int id) {
             app.editor->theme(app.view->dark());
             app.suppressEdit = false;
         }
+        chrome_theme(app);
         break;
     case ZoomIn:
         app.view->set_zoom(app.view->zoom() * 1.1f);
@@ -783,6 +882,12 @@ LRESULT CALLBACK reader_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
     auto &view = *app->view;
     float dpi = view.dpi_scale();
     switch (message) {
+    case ui::WM_SCROLL_TO:
+        if (w == SB_VERT)
+            view.scroll_to((float)l);
+        else
+            view.hscroll((float)l - view.scroll_x());
+        return 0;
     case WM_PAINT:
         view.paint();
         if (!app->firstPaint && !app->loading && view.document()) {
@@ -943,10 +1048,11 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         app->font =
             CreateFontW(-16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
                         CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-        app->toolbar = CreateWindowExW(0, TOOLBARCLASSNAMEW, nullptr,
-                                       WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_LIST | CCS_NORESIZE |
-                                           CCS_NOPARENTALIGN,
-                                       0, 0, 0, 0, hwnd, nullptr, nullptr, nullptr);
+        app->toolbar =
+            CreateWindowExW(0, TOOLBARCLASSNAMEW, nullptr,
+                            WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE |
+                                CCS_NORESIZE | CCS_NODIVIDER | CCS_NOPARENTALIGN,
+                            0, 0, 0, 0, hwnd, nullptr, nullptr, nullptr);
         SendMessageW(app->toolbar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         SendMessageW(app->toolbar, WM_SETFONT, (WPARAM)app->font, TRUE);
         const struct {
@@ -961,17 +1067,25 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
             b.iBitmap = I_IMAGENONE;
             b.idCommand = button.id;
             b.fsState = TBSTATE_ENABLED;
-            b.fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE | BTNS_SHOWTEXT;
+            b.fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
             b.iString = reinterpret_cast<INT_PTR>(button.label);
             SendMessageW(app->toolbar, TB_ADDBUTTONSW, 1, reinterpret_cast<LPARAM>(&b));
+            if (button.id == Forward || button.id == Find || button.id == ZoomIn || button.id == Width) {
+                TBBUTTON sep{};
+                sep.fsStyle = BTNS_SEP;
+                sep.iBitmap = 12;
+                SendMessageW(app->toolbar, TB_ADDBUTTONSW, 1, (LPARAM)&sep);
+            }
         }
         app->status = CreateWindowExW(0, STATUSCLASSNAMEW, L"就绪", WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0,
                                       0, 0, 0, hwnd, nullptr, nullptr, nullptr);
         SendMessageW(app->status, WM_SETFONT, (WPARAM)app->font, TRUE);
+        SetWindowSubclass(app->status, status_proc, 1, (DWORD_PTR)app);
         app->reader = CreateWindowExW(0, L"KeepMD.Reader", nullptr,
                                       WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP, 0, 0, 0,
                                       0, hwnd, nullptr, nullptr, app);
         app->view = new View(app->reader);
+        ui::attach_scrollbars(app->reader, ui::ScrollKind::Reader);
         // The reader is not a text input field; editing/search controls keep
         // their own native IME contexts when they are created on demand.
         ImmAssociateContext(app->reader, nullptr);
@@ -988,6 +1102,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         app->view->set_dark(app->preferences.dark);
         app->view->set_zoom(app->preferences.zoom);
         app->view->set_reading_width(app->preferences.reading_width);
+        chrome_theme(*app);
         update_recent(*app);
         DragAcceptFiles(hwnd, TRUE);
         update_ui_font(*app, GetDpiForWindow(hwnd));
@@ -1000,6 +1115,53 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
     case WM_SIZE:
         arrange(*app);
         return 0;
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_PAINT: {
+        PAINTSTRUCT ps{};
+        auto dc = BeginPaint(hwnd, &ps);
+        RECT r{};
+        GetClientRect(hwnd, &r);
+        auto p = ui::palette(app->view && app->view->dark());
+        ui::fill(dc, r, p.background);
+        if (app->showToc && app->toc) {
+            RECT tr{};
+            GetWindowRect(app->toc, &tr);
+            MapWindowPoints(nullptr, hwnd, (POINT *)&tr, 2);
+            RECT label{(LONG)(18 * app->dpi), tr.top - (LONG)(36 * app->dpi), tr.right,
+                       tr.top - (LONG)(4 * app->dpi)};
+            ui::text(dc, app->font, L"目录", label, p.muted);
+            int x = (int)(220 * app->dpi) - 1;
+            ui::line(dc, x, label.top, x, r.bottom - (int)(30 * app->dpi), p.border);
+        }
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+    case WM_DRAWITEM:
+        if (((DRAWITEMSTRUCT *)l)->CtlType == ODT_BUTTON) {
+            ui::draw_button(*(DRAWITEMSTRUCT *)l, app->view && app->view->dark());
+            return TRUE;
+        }
+        if (((DRAWITEMSTRUCT *)l)->CtlType == ODT_MENU) {
+            ui::draw_menu(*(DRAWITEMSTRUCT *)l, app->font, app->view && app->view->dark());
+            return TRUE;
+        }
+        break;
+    case WM_MEASUREITEM:
+        if (((MEASUREITEMSTRUCT *)l)->CtlType == ODT_MENU) {
+            ui::measure_menu(*(MEASUREITEMSTRUCT *)l, hwnd, app->font);
+            return TRUE;
+        }
+        break;
+    case WM_CTLCOLOREDIT: {
+        auto p = ui::palette(app->view && app->view->dark());
+        SetTextColor((HDC)w, p.text);
+        SetBkColor((HDC)w, p.surface);
+        return (LRESULT)app->surfaceBrush;
+    }
+    case WM_SETTINGCHANGE:
+        chrome_theme(*app);
+        return 0;
     case WM_DPICHANGED: {
         update_ui_font(*app, LOWORD(w));
         const auto *r = reinterpret_cast<RECT *>(l);
@@ -1010,7 +1172,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
     }
     case WM_GETMINMAXINFO: {
         auto *info = reinterpret_cast<MINMAXINFO *>(l);
-        info->ptMinTrackSize = {640, 420};
+        info->ptMinTrackSize = {(LONG)(640 * app->dpi), (LONG)(420 * app->dpi)};
         return 0;
     }
     case WM_COMMAND:
@@ -1033,6 +1195,34 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         return 0;
     case WM_NOTIFY: {
         auto *notice = reinterpret_cast<NMHDR *>(l);
+        if (notice->hwndFrom == app->toolbar && notice->code == NM_CUSTOMDRAW) {
+            auto *draw = (NMTBCUSTOMDRAW *)l;
+            if (draw->nmcd.dwDrawStage == CDDS_PREPAINT) {
+                ui::fill(draw->nmcd.hdc, draw->nmcd.rc,
+                         ui::palette(app->view && app->view->dark()).background);
+                return CDRF_NOTIFYITEMDRAW;
+            }
+            if (draw->nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
+                int id = (int)draw->nmcd.dwItemSpec;
+                wchar_t text[128]{};
+                TBBUTTONINFOW info{sizeof(info), TBIF_TEXT};
+                info.pszText = text;
+                info.cchText = 128;
+                SendMessageW(app->toolbar, TB_GETBUTTONINFOW, id, (LPARAM)&info);
+                auto r = draw->nmcd.rc;
+                InflateRect(&r, -2, -2);
+                bool selected = (id == Toc && app->showToc) || (id == Find && app->showSearch) ||
+                                (id == Edit && app->editor);
+                auto state = draw->nmcd.uItemState;
+                auto p = ui::palette(app->view && app->view->dark());
+                int saved = SaveDC(draw->nmcd.hdc);
+                ui::button_face(draw->nmcd.hdc, r, app->font, text, p, id == Prompt, selected,
+                                (state & CDIS_HOT) != 0, (state & CDIS_SELECTED) != 0,
+                                (state & CDIS_DISABLED) != 0, (state & CDIS_FOCUS) != 0, app->dpi);
+                RestoreDC(draw->nmcd.hdc, saved);
+                return CDRF_SKIPDEFAULT;
+            }
+        }
         if (notice->idFrom != TocId || !app->view)
             break;
         auto doc = app->view->document();
@@ -1222,6 +1412,8 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         } else if (w == 2) {
             app->forceExit = true;
             SendMessageW(hwnd, WM_CLOSE, 0, 0);
+        } else if (w == 3 && app->view->dark() != (l != 0)) {
+            command(*app, Theme);
         }
         return 0;
     case WM_QUERYENDSESSION:
@@ -1325,8 +1517,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     AppendMenuW(menu, MF_POPUP, (UINT_PTR)view, L"视图");
     AppendMenuW(menu, MF_STRING, Prompt, L"提示词");
     AppendMenuW(menu, MF_STRING, About, L"关于");
-    auto hwnd = CreateWindowExW(0, L"KeepMD.Window", L"KeepMD", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
-                                CW_USEDEFAULT, 1060, 820, nullptr, menu, instance, &app);
+    ui::menu_labels(menu, {L"文件", L"视图", L"提示词", L"关于"});
+    auto hwnd = CreateWindowExW(0, L"KeepMD.Window", L"KeepMD", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+                                CW_USEDEFAULT, CW_USEDEFAULT, 1060, 820, nullptr, menu, instance, &app);
     if (!hwnd)
         return 1;
     bool promptOwner = app.prompt->start(residentStart || promptStart, promptStart);

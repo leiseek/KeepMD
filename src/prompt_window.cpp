@@ -2,6 +2,7 @@
 #include "editor.h"
 #include "file_io.h"
 #include "prompt_model.h"
+#include "ui.h"
 #include "view.h"
 #include <array>
 #include <commctrl.h>
@@ -35,6 +36,7 @@ enum Action {
     Reader,
     Quit,
     Reposition,
+    Theme,
     OpacityBase = 600
 };
 std::wstring text_of(HWND hwnd) {
@@ -76,7 +78,10 @@ struct PromptWindow::Impl {
          hotkeyEdit = nullptr, hotkeyLabel = nullptr;
     DWORD previousPid = 0;
     HANDLE mutex = nullptr;
-    HFONT font = nullptr;
+    HFONT font = nullptr, titleFont = nullptr, smallFont = nullptr;
+    HBRUSH backgroundBrush = nullptr, surfaceBrush = nullptr;
+    RECT sourceCard{}, previewCard{};
+    bool placed = false;
     HMENU menu = nullptr, prefsMenu = nullptr, opacityMenu = nullptr;
     std::vector<std::pair<int, HWND>> buttons;
     std::unique_ptr<Editor> editor;
@@ -128,6 +133,14 @@ struct PromptWindow::Impl {
         }
         if (font)
             DeleteObject(font);
+        if (titleFont)
+            DeleteObject(titleFont);
+        if (smallFont)
+            DeleteObject(smallFont);
+        if (backgroundBrush)
+            DeleteObject(backgroundBrush);
+        if (surfaceBrush)
+            DeleteObject(surfaceBrush);
         if (mutex)
             CloseHandle(mutex);
     }
@@ -416,18 +429,24 @@ struct PromptWindow::Impl {
         }
         AppendMenuW(prefsMenu, MF_POPUP, (UINT_PTR)opacityMenu, L"不透明度");
         AppendMenuW(prefsMenu, MF_STRING, Reposition, L"移到当前屏幕右侧");
+        AppendMenuW(prefsMenu, MF_STRING, Theme, L"切换深浅主题");
         AppendMenuW(menu, MF_POPUP, (UINT_PTR)prefsMenu, L"设置");
+        ui::menu_labels(menu, {L"文件", L"设置"});
         SetMenu(hwnd, menu);
         for (const auto &[id, label] :
-             std::vector<std::pair<int, const wchar_t *>>{{CopyHide, L"复制并收起"},
+             std::vector<std::pair<int, const wchar_t *>>{{CopyHide, L"复制并收起   Ctrl+Enter"},
                                                           {CopyOnly, L"复制全文"},
-                                                          {Preview, L"预览"},
+                                                          {Preview, L"双栏预览"},
                                                           {Clear, L"清空"},
                                                           {Options, L"快捷键"},
+                                                          {Theme, L"深色"},
                                                           {Apply, L"应用"},
                                                           {DoubleCtrl, L"双击左 Ctrl"},
-                                                          {DefaultKey, L"默认"}})
-            buttons.emplace_back(id, child(L"BUTTON", label, id, WS_TABSTOP));
+                                                          {DefaultKey, L"默认"}}) {
+            auto h = child(L"BUTTON", label, id, WS_TABSTOP);
+            ui::style_button(h, id == CopyHide || id == Apply);
+            buttons.emplace_back(id, h);
+        }
         hotkeyLabel = child(L"STATIC", L"全局快捷键", 0);
         hotkeyEdit =
             child(L"EDIT", settings.hotkey.c_str(), HotkeyId, WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL);
@@ -449,6 +468,7 @@ struct PromptWindow::Impl {
                                  WS_CHILD | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP, 0, 0, 1, 1, hwnd, nullptr,
                                  GetModuleHandleW(nullptr), this);
         ImmAssociateContext(reader, nullptr);
+        ui::attach_scrollbars(reader, ui::ScrollKind::Reader);
         update_font();
         apply_appearance();
         if (draftBlocked)
@@ -457,14 +477,20 @@ struct PromptWindow::Impl {
     void update_font() {
         auto old = font;
         dpi = (float)GetDpiForWindow(hwnd) / 96;
-        font = CreateFontW(-(int)(15 * dpi), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-                           OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH,
-                           L"Segoe UI");
+        font = ui::font(GetDpiForWindow(hwnd));
+        if (titleFont)
+            DeleteObject(titleFont);
+        if (smallFont)
+            DeleteObject(smallFont);
+        titleFont = ui::font(GetDpiForWindow(hwnd), 25, FW_SEMIBOLD);
+        smallFont = ui::font(GetDpiForWindow(hwnd), 13);
         for (const auto &[id, h] : buttons)
             SendMessageW(h, WM_SETFONT, (WPARAM)font, TRUE);
-        for (HWND h : {status, hotkeyEdit, hotkeyLabel})
+        for (HWND h : {hotkeyEdit, hotkeyLabel})
             if (h)
                 SendMessageW(h, WM_SETFONT, (WPARAM)font, TRUE);
+        if (status)
+            SendMessageW(status, WM_SETFONT, (WPARAM)smallFont, TRUE);
         if (old)
             DeleteObject(old);
     }
@@ -474,8 +500,33 @@ struct PromptWindow::Impl {
         SetWindowPos(hwnd, settings.top ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         SetLayeredWindowAttributes(hwnd, 0, (BYTE)(settings.opacity * 255 / 100), LWA_ALPHA);
-        BOOL value = dark;
-        DwmSetWindowAttribute(hwnd, 20, &value, sizeof(value));
+        auto colors = ui::palette(dark);
+        if (backgroundBrush)
+            DeleteObject(backgroundBrush);
+        if (surfaceBrush)
+            DeleteObject(surfaceBrush);
+        backgroundBrush = CreateSolidBrush(colors.background);
+        surfaceBrush = CreateSolidBrush(colors.surface);
+        for (const auto &[id, h] : buttons) {
+            ui::style_button(h, id == CopyHide || id == Apply,
+                             id == Preview   ? settings.preview
+                             : id == Options ? options
+                                             : false);
+            if (id == Theme)
+                SetWindowTextW(h, dark ? L"浅色" : L"深色");
+        }
+        InvalidateRect(hwnd, nullptr, TRUE);
+        for (HWND h : {status, hotkeyEdit, hotkeyLabel})
+            if (h)
+                InvalidateRect(h, nullptr, TRUE);
+        ui::titlebar(hwnd, dark);
+        if (menu) {
+            MENUINFO mi{sizeof(mi)};
+            mi.fMask = MIM_BACKGROUND;
+            mi.hbrBack = backgroundBrush;
+            SetMenuInfo(menu, &mi);
+            DrawMenuBar(hwnd);
+        }
         if (editor) {
             bool wasLoading = loading;
             loading = true;
@@ -484,6 +535,13 @@ struct PromptWindow::Impl {
         }
         if (view)
             view->set_dark(dark);
+        ui::scroll_theme(reader, dark);
+    }
+    HWND button(int id) const {
+        for (const auto &[key, h] : buttons)
+            if (key == id)
+                return h;
+        return nullptr;
     }
     void layout() {
         if (!editor)
@@ -491,43 +549,78 @@ struct PromptWindow::Impl {
         RECT r{};
         GetClientRect(hwnd, &r);
         auto px = [&](int n) { return (int)(n * dpi); };
-        int x = px(10);
-        for (const auto &[id, h] : buttons) {
-            bool setting = id == Apply || id == DoubleCtrl || id == DefaultKey;
-            ShowWindow(h, setting && !options ? SW_HIDE : SW_SHOW);
-            if (!setting) {
-                int width = px(id == CopyHide ? 120 : id == CopyOnly ? 100 : 78);
-                MoveWindow(h, x, px(8), width, px(30), TRUE);
-                x += width + px(8);
-            }
-        }
+        const int margin = px(24), gap = px(16), w = r.right;
+        auto move = [&](int id, int x, int y, int width, int height = 36) {
+            MoveWindow(button(id), x, y, width, px(height), TRUE);
+        };
+        move(Theme, w - margin - px(64), px(25), px(64));
+        move(Options, w - margin - px(152), px(25), px(80));
+        move(Preview, w - margin - px(264), px(25), px(104));
+        for (int id : {Apply, DoubleCtrl, DefaultKey})
+            ShowWindow(button(id), options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyEdit, options ? SW_SHOW : SW_HIDE);
         ShowWindow(hotkeyLabel, options ? SW_SHOW : SW_HIDE);
-        MoveWindow(hotkeyLabel, px(10), px(54), px(95), px(24), TRUE);
-        MoveWindow(hotkeyEdit, px(108), px(49), px(230), px(29), TRUE);
-        x = px(347);
-        for (const auto &[id, h] : buttons)
-            if (id == Apply || id == DoubleCtrl || id == DefaultKey) {
-                int width = px(id == DoubleCtrl ? 110 : 70);
-                MoveWindow(h, x, px(48), width, px(30), TRUE);
-                x += width + px(8);
-            }
-        int top = px(options ? 86 : 46), height = std::max<int>(px(40), r.bottom - top - px(35));
-        int width = settings.preview ? (r.right - px(24)) / 2 : r.right - px(20);
-        MoveWindow(editor->hwnd(), px(10), top, width, height, TRUE);
+        int fieldWidth = std::max(px(110), w - margin * 2 - px(404));
+        MoveWindow(hotkeyLabel, margin, px(104), px(92), px(24), TRUE);
+        MoveWindow(hotkeyEdit, margin + px(96), px(98), fieldWidth, px(33), TRUE);
+        int x = margin + px(104) + fieldWidth;
+        move(Apply, x, px(97), px(64));
+        move(DoubleCtrl, x + px(72), px(97), px(120));
+        move(DefaultKey, x + px(200), px(97), px(76));
+        int top = px(options ? 157 : 95), bottom = std::max<int>(top + px(80), r.bottom - px(106));
+        int width = settings.preview ? (w - margin * 2 - gap) / 2 : w - margin * 2;
+        sourceCard = {margin, top, margin + width, bottom};
+        previewCard = {margin + width + gap, top, w - margin, bottom};
+        int header = px(38), inset = px(1);
+        MoveWindow(editor->hwnd(), sourceCard.left + inset, top + header, width - inset * 2,
+                   bottom - top - header - inset, TRUE);
+        editor->inset(GetDpiForWindow(hwnd));
         ShowWindow(reader, settings.preview ? SW_SHOW : SW_HIDE);
-        MoveWindow(reader, px(14) + width, top, std::max<int>(1, r.right - width - px(24)), height, TRUE);
-        MoveWindow(status, px(10), r.bottom - px(27), r.right - px(20), px(23), TRUE);
+        MoveWindow(reader, previewCard.left + inset, top + header,
+                   std::max(1L, previewCard.right - previewCard.left - inset * 2),
+                   bottom - top - header - inset, TRUE);
+        MoveWindow(status, margin, r.bottom - px(92), w - margin * 2, px(25), TRUE);
+        move(Clear, margin, r.bottom - px(54), px(72));
+        move(CopyOnly, w - margin - px(324), r.bottom - px(54), px(100));
+        move(CopyHide, w - margin - px(212), r.bottom - px(54), px(212));
+        ui::style_button(button(Preview), false, settings.preview);
+        ui::style_button(button(Options), false, options);
         if (view)
             view->resize();
+        InvalidateRect(hwnd, nullptr, FALSE);
+    }
+    void paint() {
+        PAINTSTRUCT ps{};
+        auto dc = BeginPaint(hwnd, &ps);
+        auto colors = ui::palette(dark);
+        RECT r{};
+        GetClientRect(hwnd, &r);
+        ui::fill(dc, r, colors.background);
+        auto px = [&](int n) { return (int)(n * dpi); };
+        ui::text(dc, titleFont, L"提示词", {px(24), px(15), r.right - px(310), px(48)}, colors.text);
+        ui::text(dc, smallFont, L"写下想法，随时调用。", {px(25), px(52), r.right - px(300), px(74)},
+                 colors.muted);
+        for (int i = 0; i < (settings.preview ? 2 : 1); ++i) {
+            auto card = i ? previewCard : sourceCard;
+            if (card.bottom <= card.top)
+                continue;
+            ui::rounded(dc, card, colors.surface, colors.border, px(12));
+            RECT label{card.left + px(18), card.top, card.right - px(16), card.top + px(38)};
+            ui::text(dc, font, i ? L"预览" : L"Markdown", label, colors.text);
+            ui::line(dc, card.left + 1, card.top + px(38) - 1, card.right - 1, card.top + px(38) - 1,
+                     colors.border);
+        }
+        if (options)
+            ui::line(dc, px(24), px(143), r.right - px(24), px(143), colors.border);
+        EndPaint(hwnd, &ps);
     }
     void place() {
         auto monitor = MonitorFromWindow(previous ? previous : owner, MONITOR_DEFAULTTONEAREST);
         MONITORINFO info{sizeof(info)};
         GetMonitorInfoW(monitor, &info);
         auto r = info.rcWork;
-        int w = std::min<int>((int)(980 * dpi), r.right - r.left),
-            h = std::min<int>((int)(600 * dpi), r.bottom - r.top);
+        int w = std::min<int>((int)(1040 * dpi), r.right - r.left),
+            h = std::min<int>((int)(700 * dpi), r.bottom - r.top);
         SetWindowPos(hwnd, nullptr, r.right - w - std::min<int>(20, (r.right - r.left - w) / 2),
                      r.top + (r.bottom - r.top - h) / 2, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
     }
@@ -542,7 +635,10 @@ struct PromptWindow::Impl {
             GetWindowThreadProcessId(previous, &previousPid);
         }
         ensure_ui();
-        place();
+        if (!placed) {
+            place();
+            placed = true;
+        }
         ShowWindow(hwnd, SW_SHOWNORMAL);
         SetForegroundWindow(hwnd);
         if (editor)
@@ -597,7 +693,7 @@ struct PromptWindow::Impl {
             say(L"剪贴板正忙，内容尚未复制。请重试。");
             return false;
         }
-        say(L"已复制 Markdown 源码 · " + std::to_wstring(text.size()) + L" UTF-16 字符");
+        say(L"已复制 Markdown · " + std::to_wstring(text.size()) + L" 字符");
         return true;
     }
     void refresh_preview() {
@@ -605,8 +701,8 @@ struct PromptWindow::Impl {
             return;
         auto text = editor->text(false);
         auto lines = text.empty() ? 0 : 1 + std::count(text.begin(), text.end(), L'\n');
-        say(std::to_wstring(text.size()) + L" UTF-16 字符 · " + std::to_wstring(lines) +
-            L" 行 · Esc / Ctrl+Enter：复制并收起" + (dirty ? L" · 草稿待保存" : L""));
+        say(std::to_wstring(text.size()) + L" 字符 · " + std::to_wstring(lines) + L" 行    ·    " +
+            (dirty ? L"正在保存…" : L"草稿已保存") + L"    ·    " + settings.hotkey + L" 唤起");
         if (!settings.preview)
             return;
         if (!view) {
@@ -842,6 +938,9 @@ struct PromptWindow::Impl {
         case Reposition:
             place();
             break;
+        case Theme:
+            PostMessageW(owner, WM_PROMPT_OWNER, 3, !dark);
+            break;
         }
     }
     bool translate(MSG &msg) {
@@ -905,6 +1004,39 @@ struct PromptWindow::Impl {
             return 0;
         }
         switch (m) {
+        case WM_ERASEBKGND:
+            return 1;
+        case WM_PAINT:
+            p->paint();
+            return 0;
+        case WM_DRAWITEM:
+            if (((DRAWITEMSTRUCT *)l)->CtlType == ODT_BUTTON) {
+                ui::draw_button(*(DRAWITEMSTRUCT *)l, p->dark);
+                return TRUE;
+            }
+            if (((DRAWITEMSTRUCT *)l)->CtlType == ODT_MENU) {
+                ui::draw_menu(*(DRAWITEMSTRUCT *)l, p->font, p->dark);
+                return TRUE;
+            }
+            break;
+        case WM_MEASUREITEM:
+            if (((MEASUREITEMSTRUCT *)l)->CtlType == ODT_MENU) {
+                ui::measure_menu(*(MEASUREITEMSTRUCT *)l, h, p->font);
+                return TRUE;
+            }
+            break;
+        case WM_CTLCOLORSTATIC:
+        case WM_CTLCOLOREDIT: {
+            auto colors = ui::palette(p->dark);
+            auto dc = (HDC)w;
+            bool input = (HWND)l == p->hotkeyEdit;
+            SetTextColor(dc, input ? colors.text : colors.muted);
+            SetBkColor(dc, input ? colors.surface : colors.background);
+            return (LRESULT)(input ? p->surfaceBrush : p->backgroundBrush);
+        }
+        case WM_SETTINGCHANGE:
+            p->apply_appearance();
+            return 0;
         case WM_COMMAND:
             if (LOWORD(w) == EditId && HIWORD(w) == EN_CHANGE && !p->loading && p->editor) {
                 p->dirty = true;
@@ -930,7 +1062,7 @@ struct PromptWindow::Impl {
             return 0;
         }
         case WM_GETMINMAXINFO:
-            ((MINMAXINFO *)l)->ptMinTrackSize = {(LONG)(680 * p->dpi), (LONG)(360 * p->dpi)};
+            ((MINMAXINFO *)l)->ptMinTrackSize = {(LONG)(720 * p->dpi), (LONG)(480 * p->dpi)};
             return 0;
         case WM_SETFOCUS:
             if (p->editor)
@@ -1048,6 +1180,12 @@ struct PromptWindow::Impl {
         auto &v = *p->view;
         float scale = v.dpi_scale();
         switch (m) {
+        case ui::WM_SCROLL_TO:
+            if (w == SB_VERT)
+                v.scroll_to((float)l);
+            else
+                v.hscroll((float)l - v.scroll_x());
+            return 0;
         case WM_PAINT:
             v.paint();
             return 0;
