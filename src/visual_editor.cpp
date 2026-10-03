@@ -200,6 +200,7 @@ struct VisualEditor::Impl {
     int id = 0;
     HMODULE library = nullptr;
     bool loading = false, dark = false, formatDirty = true, ime = false, dialogOpen = false;
+    uint64_t imeUntil = 0;
     std::wstring lastSource;
     struct State {
         std::wstring source;
@@ -229,7 +230,10 @@ struct VisualEditor::Impl {
         SendMessageW(h, EM_EXLIMITTEXT, 0, PromptLimit);
         SendMessageW(h, EM_SETEVENTMASK, 0, ENM_CHANGE | ENM_SELCHANGE);
         SendMessageW(h, EM_SETTARGETDEVICE, 0, 0);
+        auto languageOptions=SendMessageW(h,EM_GETLANGOPTIONS,0,0);
+        SendMessageW(h,EM_SETLANGOPTIONS,0,languageOptions|IMF_AUTOKEYBOARD|IMF_AUTOFONT|IMF_AUTOFONTSIZEADJUST|IMF_DUALFONT);
         ui::attach_scrollbars(h, ui::ScrollKind::Editor);
+        ImmAssociateContextEx(h,nullptr,IACE_DEFAULT);
         SetWindowSubclass(h, proc, 8, (DWORD_PTR)this);
     }
     ~Impl() {
@@ -274,8 +278,8 @@ struct VisualEditor::Impl {
     }
     bool composing() const {
         auto context = ImmGetContext(h);
-        bool active =
-            ime || dialogOpen || (context && ImmGetCompositionStringW(context, GCS_COMPSTR, nullptr, 0) > 0);
+        bool active = ime || dialogOpen || GetTickCount64() < imeUntil ||
+                      (context && ImmGetCompositionStringW(context, GCS_COMPSTR, nullptr, 0) > 0);
         if (context)
             ImmReleaseContext(h, context);
         return active;
@@ -428,6 +432,9 @@ struct VisualEditor::Impl {
         InputStream in{rtf};
         EDITSTREAM stream{(DWORD_PTR)&in, 0, stream_in};
         SendMessageW(h, EM_STREAMIN, SF_RTF, (LPARAM)&stream);
+        auto languageOptions=SendMessageW(h,EM_GETLANGOPTIONS,0,0);
+        SendMessageW(h,EM_SETLANGOPTIONS,0,languageOptions|IMF_AUTOKEYBOARD|IMF_AUTOFONT|IMF_AUTOFONTSIZEADJUST|IMF_DUALFONT);
+        ImmAssociateContextEx(h,nullptr,IACE_DEFAULT);
         auto raw = buffer_text(h);
         auto actual = markdown(raw);
         // Never allow a RichEdit RTF conversion to silently alter a stored prompt.
@@ -701,11 +708,14 @@ struct VisualEditor::Impl {
         }
         if (p->loading)
             return DefSubclassProc(h, m, w, l);
-        if (m == WM_IME_STARTCOMPOSITION)
+        if (m == WM_IME_STARTCOMPOSITION) {
             p->ime = true;
+            p->imeUntil = GetTickCount64() + 300;
+        }
         if (m == WM_IME_ENDCOMPOSITION) {
             auto r = DefSubclassProc(h, m, w, l);
             p->ime = false;
+            p->imeUntil = GetTickCount64() + 300;
             p->changed();
             p->formatDirty = true;
             SetTimer(h, 11, 180, nullptr);

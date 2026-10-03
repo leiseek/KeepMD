@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "ae24c0cb694c836d036b557bfc0568255ba721fe664da28952d080e9099618f3",
+  "exe_sha256": "00ba600296e6fbb1aae61a571c285b1976c2aff79d57a76c70bd8e6532eeac2a",
   "checks": [
     "reader icon toolbar fits 640px on one row; edit actions appear without clipping",
     "dark theme covers toolbar, native outline, search, status and title/menu chrome",

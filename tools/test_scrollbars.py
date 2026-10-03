@@ -111,7 +111,7 @@ try:
     wait(lambda:info(reader,0).max-info(reader,0).page>1000);bar=bar_for(main,reader,False)
     r=drag(main,reader,bar,False);assert r.pos>1000,(r.pos,r.max)
     checks.append('reader horizontal scrollbar drags long rendered code lines')
-    u.SendMessageW(main,0x111,126,0)
+    u.SendMessageW(main,0x111,127,0)
     panel=[]
     def collect(h,_):
         pid=W.DWORD();u.GetWindowThreadProcessId(h,C.byref(pid))

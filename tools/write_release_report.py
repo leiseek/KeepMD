@@ -19,7 +19,7 @@ for item in (startup,idle,large,imports,smoke,prompt,ui,bars,visual,caption,icon
 core=subprocess.run([str(ROOT/'build/release/core_tests.exe')],capture_output=True,text=True,check=True)
 count=int(re.search(r'(\d+) checks, 0 failures',core.stdout).group(1))
 working=statistics.median(r['working_set']for r in startup['records'])/1048576
-summary={'version':'0.4.3','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+summary={'version':'0.4.4','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
          'ui_e2e_checks':len(ui['checks']),
          'scrollbar_e2e_checks':len(bars['checks']),'visual_editor_e2e_checks':len(visual['checks']),'caption_e2e_checks':len(caption['checks']),'icon_e2e_checks':len(icons['checks']),'toolbar_toggle_e2e_checks':len(toggle['checks']),
@@ -29,7 +29,7 @@ summary={'version':'0.4.3','generated_at':datetime.now().astimezone().isoformat(
          'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Live double-Ctrl summon not exercised while original Prompt Flow is running','Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented','Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested']}
 (RESULTS/'release-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 rows='\n'.join(f"| {r['fixture']} | {r['draw_p95_ms']:.2f} ms | {r['dispatch_to_submit_p95_ms']:.2f} ms | {r['samples']} |" for r in scroll['records'])
-report=f'''**KeepMD 0.4.3 交付验证报告**
+report=f'''**KeepMD 0.4.4 交付验证报告**
 
 生成时间：{summary['generated_at']}。目标平台：Windows 11 x64。所有以下正式结果绑定到同一个 Release EXE；历史探索数据保留在源码仓库，不混入最终数据。
 
@@ -37,7 +37,7 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 **功能与构建验证**
 
-0.4.3 清理常驻说明性文案并收紧留白：提示词副标题／快捷键教学、阅读器空白页说明、源码状态栏操作教学和流程图编辑说明均已移除；实际截图已检查，保存失败、未保存保护与图标功能名称保留。
+0.4.4 清理常驻说明性文案并收紧留白：提示词副标题／快捷键教学、阅读器空白页说明、源码状态栏操作教学和流程图编辑说明均已移除；实际截图已检查，保存失败、未保存保护与图标功能名称保留。
 
 - {count} 项核心检查通过，覆盖 Markdown 结构/样式/实体/表格/引用、编码、锁定文件保存失败、文本分片、组合字符与 emoji、流程图结构/样式/回退、阅读配置和隔离的注册表注册测试。
 - 实际窗口验证通过：目录显示与跳转、中文查找、正文复制、主题、缩放、前后导航、本地链接、真实 Open/Save As 对话框、中文路径、重启位置恢复、失败重载保留编辑。
@@ -68,7 +68,7 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 界面优化通过 {len(ui['checks'])} 组原生窗口检查：阅读器 640px 图标布局、提示词 720px 设置布局、按钮键盘操作、菜单导航、深浅主题同步、窗口尺寸保留，以及连续 30 次切换主题后 GDI 对象不累积。截图已逐张检查。测试在 96-DPI 桌面执行；弹出菜单和文件对话框仍使用 Windows 的外观。详见 [UI 验证记录](../bench/results/ui-e2e.json)。
 
-正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块。0.4.3 禁止系统滚动条样式，使用 WM_NCCALCSIZE 预留 12 DIP 自管轨道并拦截系统轨道绘制；保留原控件滚动模型。双栏横纵轨道经真实屏幕像素检查，在模式／主题／尺寸／原生重绘后仅呈现 KeepMD 配色，且没有系统滚动条样式位。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
+正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块。0.4.4 禁止系统滚动条样式，使用 WM_NCCALCSIZE 预留 12 DIP 自管轨道并拦截系统轨道绘制；保留原控件滚动模型。双栏横纵轨道经真实屏幕像素检查，在模式／主题／尺寸／原生重绘后仅呈现 KeepMD 配色，且没有系统滚动条样式位。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
 
 提示词集成完成 {len(prompt['checks'])} 组端到端检查：真实全局快捷键、独立进程粘贴目标、原文复制与焦点返回、快捷键冲突恢复、旧 JSON 导入、导出、单配置实例、重启草稿、中文 IME、锁定文件写入失败、外部更改保护及损坏草稿保留。详见 [提示词验证记录](../bench/results/prompt-e2e.json)。
 

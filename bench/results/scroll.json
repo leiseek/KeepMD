@@ -4,46 +4,46 @@
     {
       "fixture": "s100",
       "samples": 240,
-      "draw_p95_ms": 2.9325,
-      "draw_p99_ms": 3.4106,
-      "dispatch_to_submit_p95_ms": 4.1369,
-      "dispatch_to_submit_p99_ms": 5.511,
+      "draw_p95_ms": 2.9105,
+      "draw_p99_ms": 3.5171,
+      "dispatch_to_submit_p95_ms": 4.6889,
+      "dispatch_to_submit_p99_ms": 5.3528,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.00018230000569,
-      "private_mib": 17.24609375
+      "idle_observation_seconds": 3.0000968999956967,
+      "private_mib": 17.18359375
     },
     {
       "fixture": "l10",
       "samples": 240,
-      "draw_p95_ms": 2.7466,
-      "draw_p99_ms": 3.4967,
-      "dispatch_to_submit_p95_ms": 4.204,
-      "dispatch_to_submit_p99_ms": 4.9042,
+      "draw_p95_ms": 2.8204,
+      "draw_p99_ms": 3.8486,
+      "dispatch_to_submit_p95_ms": 4.7487,
+      "dispatch_to_submit_p99_ms": 6.1604,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.0006105000065872,
-      "private_mib": 94.9375
+      "idle_observation_seconds": 3.00045880000107,
+      "private_mib": 95.22265625
     },
     {
       "fixture": "images100",
       "samples": 240,
-      "draw_p95_ms": 2.1753,
-      "draw_p99_ms": 2.9108,
-      "dispatch_to_submit_p95_ms": 3.3063,
-      "dispatch_to_submit_p99_ms": 4.1565,
+      "draw_p95_ms": 2.7427,
+      "draw_p99_ms": 3.4463,
+      "dispatch_to_submit_p95_ms": 4.4901,
+      "dispatch_to_submit_p99_ms": 6.3412,
       "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.0003270999877714,
-      "private_mib": 36.15234375
+      "idle_observation_seconds": 3.000187099998584,
+      "private_mib": 35.51953125
     },
     {
       "fixture": "flow200",
       "samples": 240,
-      "draw_p95_ms": 6.4531,
-      "draw_p99_ms": 7.2985,
-      "dispatch_to_submit_p95_ms": 6.9167,
-      "dispatch_to_submit_p99_ms": 7.9619,
-      "idle_cpu_seconds": 0.0,
-      "idle_observation_seconds": 3.0005504000000656,
-      "private_mib": 20.65625
+      "draw_p95_ms": 7.6768,
+      "draw_p99_ms": 8.6207,
+      "dispatch_to_submit_p95_ms": 8.3674,
+      "dispatch_to_submit_p99_ms": 9.1144,
+      "idle_cpu_seconds": 0.015625,
+      "idle_observation_seconds": 3.000542299996596,
+      "private_mib": 20.59765625
     }
   ]
 }

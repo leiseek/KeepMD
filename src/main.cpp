@@ -47,6 +47,7 @@ enum Command {
     ReplaceAll,
     Split,
     RegisterOpenWith,
+    SetDefault,
     Prompt,
     ToggleToolbar
 };
@@ -901,6 +902,24 @@ void command(App &app, int id) {
             MessageBoxW(app.hwnd, error.c_str(), L"KeepMD", MB_OK | MB_ICONERROR);
         break;
     }
+    case SetDefault: {
+        wchar_t executable[32768]{};
+        GetModuleFileNameW(nullptr, executable, 32768);
+        std::wstring error;
+        if (!apply_registration(registration_plan(executable), error)) {
+            MessageBoxW(app.hwnd, error.c_str(), L"KeepMD", MB_OK | MB_ICONERROR);
+            break;
+        }
+        if (!open_default_apps_settings(error)) {
+            MessageBoxW(app.hwnd, error.c_str(), L"KeepMD", MB_OK | MB_ICONERROR);
+            break;
+        }
+        MessageBoxW(app.hwnd,
+                    L"KeepMD 已加入当前用户的 Markdown 应用列表。\n\n请在 Windows 默认应用设置中搜索并选择 "
+                    L"KeepMD，然后为 .md、.markdown 和 .mmd 确认关联。",
+                    L"设置默认打开程序", MB_OK | MB_ICONINFORMATION);
+        break;
+    }
     case About:
         MessageBoxW(app.hwnd, L"KeepMD\n原生 Markdown 阅读与提示词编辑", L"关于 KeepMD", MB_OK);
         break;
@@ -1585,6 +1604,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     AppendMenuW(file, MF_STRING, SaveAs, L"另存为…\tCtrl+Shift+S");
     AppendMenuW(file, MF_STRING, Reload, L"重新加载\tF5");
     AppendMenuW(file, MF_STRING, RegisterOpenWith, L"添加到打开方式");
+    AppendMenuW(file, MF_STRING, SetDefault, L"设为默认打开程序…");
     AppendMenuW(file, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(file, MF_STRING, Exit, L"退出");
     AppendMenuW(menu, MF_POPUP, (UINT_PTR)file, L"文件");

@@ -1,6 +1,6 @@
 {
-  "zip_sha256": "3f558326a928c39c54e4fc5c734bea5346ddd5121faa8c6716e75717e34900ce",
-  "exe_sha256": "ae24c0cb694c836d036b557bfc0568255ba721fe664da28952d080e9099618f3",
+  "zip_sha256": "90a5ee11dda14e644b3608e01bbb0ed96ba51e0a7279022e638456350bf89292",
+  "exe_sha256": "00ba600296e6fbb1aae61a571c285b1976c2aff79d57a76c70bd8e6532eeac2a",
   "verified_members": 32,
   "extracted_package_launch": "passed",
   "extracted_prompt_copy_and_save": "passed",

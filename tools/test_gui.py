@@ -93,7 +93,12 @@ def activate(hwnd,focus=None):
         if target and target!=current and u.AttachThreadInput(current,target,True):attached.append(target)
     try:
         u.BringWindowToTop(hwnd);u.SetForegroundWindow(hwnd)
-        if focus:u.SetFocus(focus)
+        if focus:
+            u.SetFocus(focus)
+            time.sleep(.02)
+            # Borderless top-level windows may process WM_SETFOCUS after the
+            # foreground transition; repeat once so the requested child owns IME focus.
+            u.SetFocus(focus)
     finally:
         for target in attached:u.AttachThreadInput(current,target,False)
 

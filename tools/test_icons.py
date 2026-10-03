@@ -43,7 +43,7 @@ try:
     assert 'Ctrl+O' in name(tooltip)
     screenshot(main,'icons-reader-tooltip.png')
     checks.append('reader folder icon exposes native hover explanation and Ctrl+O shortcut')
-    command(main,126);panel=wait(lambda:first(p.pid,'KeepMD.Prompt.'));edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.4)
+    command(main,127);panel=wait(lambda:first(p.pid,'KeepMD.Prompt.'));edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.4)
     # Every icon keeps a meaningful native control name despite hiding its label visually.
     for id,label in [(540,'正文'),(541,'标题 1'),(542,'标题 2'),(543,'加粗'),(544,'斜体'),(545,'列表'),
                      (546,'编号'),(547,'引用'),(548,'代码'),(549,'流程图'),(514,'快捷键'),(512,'清空'),(511,'复制全文')]:

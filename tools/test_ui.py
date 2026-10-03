@@ -79,7 +79,7 @@ try:
     toc=next(h for h in children(main) if name(h,True)=='SysListView32')
     assert u.SendMessageW(toc,0x1000,0,0)==0x241C17 # COLORREF(23,28,36)
     checks.append('dark theme covers toolbar, native outline, search, status and title/menu chrome')
-    command(main,126);panel=wait(lambda:first(p.pid,'KeepMD.Prompt.'))
+    command(main,127);panel=wait(lambda:first(p.pid,'KeepMD.Prompt.'))
     wait(lambda:u.IsWindowVisible(panel));activate(panel)
     edit=u.GetDlgItem(panel,500);wait(lambda:bool(edit));time.sleep(.7)
     screenshot(panel,'ui-prompt-dark.png')
@@ -103,7 +103,7 @@ try:
     checks.append('prompt settings fit 720px and visual editor uses full content width')
     before=rect(panel)
     u.PostMessageW(panel,0x10,0,0);wait(lambda:not u.IsWindowVisible(panel))
-    command(main,126);wait(lambda:u.IsWindowVisible(panel));assert rect(panel)==before
+    command(main,127);wait(lambda:u.IsWindowVisible(panel));assert rect(panel)==before
     checks.append('prompt retains resized window dimensions across hide/show')
     activate(panel,u.GetDlgItem(panel,511));keys(panel,0x20)
     assert clipboard().startswith('# 实现方案')
@@ -112,7 +112,7 @@ try:
     activate(panel);keys(panel,0x79) # F10
     keys(panel,0x28);time.sleep(.1);keys(panel,0x1B);keys(panel,0x1B)
     # Some menu sequences leave Esc to prompt, so restore through the reader command.
-    if not u.IsWindowVisible(panel):command(main,126);wait(lambda:u.IsWindowVisible(panel))
+    if not u.IsWindowVisible(panel):command(main,127);wait(lambda:u.IsWindowVisible(panel))
     checks.append('F10/arrow/Esc navigation remains available for native menus')
     before=u.GetGuiResources(handle,0)
     for _ in range(30):command(main,106)

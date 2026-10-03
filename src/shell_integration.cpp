@@ -1,4 +1,5 @@
 #include "shell_integration.h"
+#include <shellapi.h>
 namespace keepmd {
 std::vector<RegistryValue> registration_plan(const std::filesystem::path &executable,
                                              const std::wstring &prefix) {
@@ -38,6 +39,16 @@ bool apply_registration(const std::vector<RegistryValue> &plan, std::wstring &er
             error = L"无法添加打开方式，Windows 错误码：" + std::to_wstring(result);
             return false;
         }
+    }
+    return true;
+}
+bool open_default_apps_settings(std::wstring &error) {
+    auto result =
+        ShellExecuteW(nullptr, L"open", L"ms-settings:defaultapps", nullptr, nullptr, SW_SHOWNORMAL);
+    if (reinterpret_cast<INT_PTR>(result) <= 32) {
+        error =
+            L"无法打开 Windows 默认应用设置，错误码：" + std::to_wstring(reinterpret_cast<INT_PTR>(result));
+        return false;
     }
     return true;
 }
