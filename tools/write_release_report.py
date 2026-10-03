@@ -18,8 +18,12 @@ for item in (startup,idle,large,imports,smoke,prompt,ui,bars,visual,caption,icon
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
 core=subprocess.run([str(ROOT/'build/release/core_tests.exe')],capture_output=True,text=True,check=True)
 count=int(re.search(r'(\d+) checks, 0 failures',core.stdout).group(1))
+prompt_ime_verified = 'installed Chinese IME commits text; Esc cancels composition without dismissing prompt' in prompt['checks']
+prompt_ime_note = ('提示词可视化编辑的中文提交及 Esc 组词保护已通过本轮检查。' if prompt_ime_verified else
+                   '提示词可视化编辑的中文 IME 提交及 Esc 组词路径在本轮未通过验证。原始记录显示该次运行保持英文转换状态；普通源码编辑的输入法成功不能替代这个分支的验证。')
 working=statistics.median(r['working_set']for r in startup['records'])/1048576
 summary={'version':'0.4.4','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+         'prompt_ime_verified':prompt_ime_verified,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
          'ui_e2e_checks':len(ui['checks']),
          'scrollbar_e2e_checks':len(bars['checks']),'visual_editor_e2e_checks':len(visual['checks']),'caption_e2e_checks':len(caption['checks']),'icon_e2e_checks':len(icons['checks']),'toolbar_toggle_e2e_checks':len(toggle['checks']),
@@ -27,6 +31,8 @@ summary={'version':'0.4.4','generated_at':datetime.now().astimezone().isoformat(
          'large_50mib_launch_p95_ms':large['launch_to_first_paint_p95_ms'],'large_50mib_private_median_mib':large['private_p50_mib'],
          'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips','custom window caption, native resize/drag, work-area maximize, docking and close guards'],
          'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Live double-Ctrl summon not exercised while original Prompt Flow is running','Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented','Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested']}
+if not prompt_ime_verified:
+    summary['limitations'].append('Visual prompt editor Chinese IME commit and Escape composition path did not pass verification in this run; source-editor IME success does not cover it.')
 (RESULTS/'release-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 rows='\n'.join(f"| {r['fixture']} | {r['draw_p95_ms']:.2f} ms | {r['dispatch_to_submit_p95_ms']:.2f} ms | {r['samples']} |" for r in scroll['records'])
 report=f'''**KeepMD 0.4.4 交付验证报告**
@@ -42,7 +48,7 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 - {count} 项核心检查通过，覆盖 Markdown 结构/样式/实体/表格/引用、编码、锁定文件保存失败、文本分片、组合字符与 emoji、流程图结构/样式/回退、阅读配置和隔离的注册表注册测试。
 - 实际窗口验证通过：目录显示与跳转、中文查找、正文复制、主题、缩放、前后导航、本地链接、真实 Open/Save As 对话框、中文路径、重启位置恢复、失败重载保留编辑。
 - 编辑验证通过：UTF-8、UTF-8 BOM、UTF-16 LE/BE；LF/CRLF 与无改动混合换行；撤销/重做、替换、原字节保存、冲突拒绝、取消关闭、未变图表/文字布局复用。
-- 本机已安装中文输入法通过真实 `nihao` 键盘输入、候选窗口、空格提交“你好”和保存验证。
+- 普通源码编辑器的中文输入法通过真实 `nihao` 键盘输入、候选窗口、空格提交“你好”和保存验证。{prompt_ime_note}
 - 96/120/144/192 DPI 阅读渲染目标下，文字、组合字符/emoji 复制、图表和链接命中通过；这是单一 96-DPI 桌面上的渲染目标测试，未冒充物理跨显示器测试。
 - 长段落、百万字符代码行、超长图表源码、5000 行表格、100 张图片、200 节点图和超限回退压力检查通过；模拟渲染目标重建后资源重新加载通过，静止重绘回归通过。
 - 实际截图验证了 classDef 颜色、分组、六边形与回边；像素检查确认 PNG/JPEG/BMP 都已绘制，独立大写 `.MMD` 文件原生呈现。
@@ -70,11 +76,11 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块。0.4.4 禁止系统滚动条样式，使用 WM_NCCALCSIZE 预留 12 DIP 自管轨道并拦截系统轨道绘制；保留原控件滚动模型。双栏横纵轨道经真实屏幕像素检查，在模式／主题／尺寸／原生重绘后仅呈现 KeepMD 配色，且没有系统滚动条样式位。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
 
-提示词集成完成 {len(prompt['checks'])} 组端到端检查：真实全局快捷键、独立进程粘贴目标、原文复制与焦点返回、快捷键冲突恢复、旧 JSON 导入、导出、单配置实例、重启草稿、中文 IME、锁定文件写入失败、外部更改保护及损坏草稿保留。详见 [提示词验证记录](../bench/results/prompt-e2e.json)。
+提示词集成记录 {len(prompt['checks'])} 项端到端检查结果，包括真实全局快捷键、独立进程粘贴目标、原文复制与焦点返回、快捷键冲突恢复、旧 JSON 导入、导出、单配置实例、重启草稿、锁定文件写入失败、外部更改保护及损坏草稿保留。{prompt_ime_note} 详见 [提示词验证记录](../bench/results/prompt-e2e.json)。
 
 新进程静默常驻、尚未打开编辑器时 Private Bytes 为 {pm['cold_resident_private_mib']:.2f} MiB；编辑后收起为 {pm['hidden_private_mib']:.2f} MiB。收起并待焦点/IME 消息稳定后观察 {pm['hidden_idle_seconds']} 秒，CPU 增量 {pm['hidden_idle_cpu_seconds']:.5f} 秒，草稿文件没有重写。此处是小草稿单次观察，不代表所有输入规模的保证。首次唤起测试用例的观察值包含测试程序约 90 ms 的主动等待，因此没有当作精确响应延迟发布。
 
-本机原 Prompt Flow 仍运行，未执行会同时唤起旧程序的双 Ctrl 桌面输入序列；已通过其状态机检查和旧工具共存冲突处理。真实组合键、中文输入、Esc 取消组词后继续编辑已验证。
+记录测试时，原 Prompt Flow 仍运行，未执行会同时唤起旧程序的双 Ctrl 桌面输入序列；已通过其状态机检查和旧工具共存冲突处理。真实组合键已验证；提示词输入法状态以上述单独说明为准。
 
 S100 为约 100 KiB 的中英混排 Markdown。每次新建进程、文件缓存温热，重复 {startup['runs']} 次。正式口径从启动器的 QPC 采样到正文首屏绘制提交，包含进程创建，不包括物理显示器扫描呈现。
 
@@ -103,6 +109,8 @@ S100 为约 100 KiB 的中英混排 Markdown。每次新建进程、文件缓存
 独立 {idle['seconds']:.1f} 秒静止阅读观察：CPU 时间增加 {idle['cpu_seconds_delta']:.5f} 秒，阅读区域额外绘制 {idle['paint_count_delta']} 次。GPU 进程专用/共享计数器另列原始记录，不与 Private Bytes、Working Set 简单相加，也不把系统 DWM 合成开销算成不存在。[滚动数据](../bench/results/scroll.json)、[空闲与 GPU 观察](../bench/results/idle.json)
 
 **依赖与交付边界**
+
+**默认打开方式**：文件菜单的“设为默认打开程序…”注册当前用户的 KeepMD 后打开 Windows 官方默认应用设置页，由用户确认 `.md`、`.markdown` 和 `.mmd`。程序不直接改写受 UserChoice 保护的默认值。
 
 PE 导入表只包含 Windows 系统 DLL，没有 Electron、WebView、Chromium、Qt、Node 或额外 MSVC 运行时 DLL。源码编辑器通过系统 `Msftedit.dll` 按需创建。图表失败时显示原始代码，不启动隐藏浏览器。[导入表检查](../bench/results/dependencies.json)
 

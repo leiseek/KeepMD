@@ -6,15 +6,21 @@
 
 **使用**
 
-运行 `dist/KeepMD-0.4.4-windows-x64/keepmd.exe`，打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
+从 [GitHub Releases](https://github.com/leiseek/KeepMD/releases/latest) 下载 Windows x64 便携包，解压到可写目录后运行 `keepmd.exe`。Release 同时提供完整源码与 SHA-256 校验文件。
+
+打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
 
 ```powershell
-.\dist\KeepMD-0.4.4-windows-x64\keepmd.exe .\README.md
+.\keepmd.exe .\example.md
 ```
 
 `Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/源码，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
 
 支持正文、标题、列表、引用、代码、链接、常见表格和任务列表、本地图片，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
+
+文件菜单的“设为默认打开程序…”会注册 KeepMD 并打开 Windows 默认应用设置，由用户确认扩展名关联。
+
+0.4.4 已验证 Windows 11 x64。提示词可视化编辑的中文 IME 提交及 Esc 组词路径在本轮未通过验证；普通源码编辑的中文输入法检查通过。其他已知限制见 [版本说明](docs/releases/v0.4.4.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 **快捷输入 Markdown 提示词**
 

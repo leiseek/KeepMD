@@ -1,9 +1,10 @@
 {
   "version": "0.4.4",
-  "generated_at": "2026-10-03T11:14:41.843948+08:00",
+  "generated_at": "2026-10-03T16:17:37.411719+08:00",
   "exe_sha256": "00ba600296e6fbb1aae61a571c285b1976c2aff79d57a76c70bd8e6532eeac2a",
   "exe_bytes": 929792,
   "core_checks_passed": 146,
+  "prompt_ime_verified": false,
   "prompt_measurements": {
     "cold_resident_private_mib": 4.7421875,
     "first_summon_observed_ms": 96.19840000232216,
@@ -47,6 +48,7 @@
     "Unsigned portable binary",
     "Live double-Ctrl summon not exercised while original Prompt Flow is running",
     "Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented",
-    "Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested"
+    "Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested",
+    "Visual prompt editor Chinese IME commit and Escape composition path did not pass verification in this run; source-editor IME success does not cover it."
   ]
 }
