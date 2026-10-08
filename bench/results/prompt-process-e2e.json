@@ -1,0 +1,10 @@
+{
+  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
+  "prompt_exe_sha256": "cf08bfc2497b318de4c76e1f6cf74fb54cf88649290b1826bad1f19fcaffaef7",
+  "checks": [
+    "KeepPrompt resident starts as a separate hidden process without a reader window",
+    "KeepMD broker summons KeepPrompt; visual editor autosaves and copies Markdown",
+    "closing KeepMD leaves the KeepPrompt process and prompt window alive",
+    "KeepPrompt explicit Quit exits its own process"
+  ]
+}

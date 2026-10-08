@@ -35,13 +35,15 @@ def drag(root,x,y,dx,dy):
 def press(root,caption,id):
     h=u.GetDlgItem(caption,id);assert h
     r=W.RECT();u.GetClientRect(h,C.byref(r));click(h,r.right//2,r.bottom//2);time.sleep(.1)
-exe=ROOT/'build/release/keepmd.exe';config=OUT/'caption.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
+exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';config=OUT/'caption.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
 config.with_suffix('.prompt.ini').write_text('[Prompt]\nResident=0\nHotkey=Ctrl+Alt+Space\n',encoding='utf-8')
-p=subprocess.Popen([str(exe),str(ROOT/'tests/fixtures/welcome.md'),'--config',str(config)],cwd=ROOT)
+p=subprocess.Popen([str(exe),str(ROOT/'tests/fixtures/welcome.md'),'--config',str(config)],cwd=ROOT);prompt=None
 checks=[]
 try:
     main=wait(lambda:(windows(p.pid)or[None])[0]);wait(lambda:'welcome.md' in name(main))
     caption=next(h for h in children(main) if name(h,True)=='KeepMD.Caption')
+    caption_rect=rect(caption)
+    assert caption_rect[3]-caption_rect[1] <= 40, caption_rect
     assert u.GetWindowLongPtrW(main,-16)&0x00C00000==0 and not u.GetMenu(main)
     activate(main);screenshot(main,'caption-reader-light.png')
     before=rect(main);r=rect(caption)
@@ -77,20 +79,21 @@ try:
     activate(main);keys(main,0x79);keys(main,0x28);wait(lambda:first(p.pid,'#32768'));keys(main,0x1B);keys(main,0x1B)
     activate(main);keys(main,0x12,0x20);wait(lambda:first(p.pid,'#32768'));keys(main,0x1B)
     checks.append('custom menu button, F10 and Alt+Space open native menus')
-    # Click actual prompt menu command in new header.
-    press(main,caption,9202)
-    def prompt():
+    # The prompt command is now brokered to the independent KeepPrompt process.
+    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(config)],cwd=ROOT)
+    def prompt_window():
         values=[]
         def f(h,_):
             pid=W.DWORD();u.GetWindowThreadProcessId(h,C.byref(pid))
-            if pid.value==p.pid and name(h,True).startswith('KeepMD.Prompt.') and u.IsWindowVisible(h):values.append(h)
+            if pid.value==prompt.pid and name(h,True).startswith('KeepMD.Prompt.') and u.IsWindowVisible(h):values.append(h)
             return True
         cb=CALLBACK(f);u.EnumWindows(cb,0);return (values or [None])[0]
-    panel=wait(prompt);bar=next(h for h in children(panel) if name(h,True)=='KeepMD.Caption')
+    panel=wait(prompt_window);bar=next(h for h in children(panel) if name(h,True)=='KeepMD.Caption')
     assert u.GetWindowLongPtrW(panel,-16)&0x00C00000==0 and not u.GetMenu(panel)
     u.SendMessageW(panel,0x111,527,0);time.sleep(.15);screenshot(panel,'caption-prompt-dark.png')
     press(panel,bar,9103);wait(lambda:not u.IsWindowVisible(panel));assert p.poll() is None
-    press(main,caption,9202);wait(prompt);activate(panel);keys(panel,0x12,0x73);wait(lambda:not u.IsWindowVisible(panel))
+    broker=subprocess.Popen([str(exe),'--prompt','--config',str(config)],cwd=ROOT);broker.wait(timeout=8)
+    wait(prompt_window);activate(panel);keys(panel,0x12,0x73);wait(lambda:not u.IsWindowVisible(panel))
     checks.append('prompt custom close and Alt+F4 preserve save-and-hide semantics')
     # Unsaved editing must still protect data through the replacement close button.
     activate(main);u.SendMessageW(main,0x111,117,0);edit=wait(lambda:u.GetDlgItem(main,202))
@@ -105,3 +108,4 @@ try:
     (ROOT/'bench/results/caption-e2e.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8');print(json.dumps(result,indent=2))
 finally:
     if p.poll() is None:p.terminate();p.wait(timeout=5)
+    if prompt and prompt.poll() is None:prompt.terminate();prompt.wait(timeout=5)

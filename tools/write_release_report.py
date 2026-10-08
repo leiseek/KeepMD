@@ -15,8 +15,10 @@ startup=read('software-s100.json');scroll=read('scroll.json');idle=read('idle.js
 imports=read('dependencies.json');smoke=read('release-smoke.json');environment=read('environment.json')
 prompt=read('prompt-e2e.json');pm=prompt['measurements'];ui=read('ui-e2e.json');bars=read('scrollbar-e2e.json');visual=read('visual-editor-e2e.json');caption=read('caption-e2e.json');icons=read('icons-e2e.json');toggle=read('toolbar-toggle-e2e.json')
 html=read('html-images-e2e.json')
-for item in (startup,idle,large,imports,smoke,prompt,ui,bars,visual,caption,icons,toggle,html):
+prompt_process=read('prompt-process-e2e.json')
+for item in (startup,idle,large,imports,smoke,ui,bars,visual,caption,icons,toggle,html,prompt_process):
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
+prompt_is_current = prompt.get('exe_sha256') == sha
 core=subprocess.run([str(ROOT/'build/release/core_tests.exe')],capture_output=True,text=True,check=True)
 count=int(re.search(r'(\d+) checks, 0 failures',core.stdout).group(1))
 prompt_ime_verified = 'installed Chinese IME commits text; Esc cancels composition without dismissing prompt' in prompt['checks']
@@ -25,13 +27,16 @@ prompt_ime_note = ('提示词可视化编辑的中文提交及 Esc 组词保护�
                    '提示词可视化编辑的中文 IME 提交及 Esc 组词路径尚未通过完整验证；普通源码编辑的输入法成功不能替代这个分支的验证。')
 prompt_scope = ('提示词集成脚本完成，逐项结果见原始记录。' if prompt_complete else
                 '提示词完整集成脚本本轮未完成；只将原始记录 checks 中已经完成的步骤列为通过。真实桌面输入多次遇到焦点切换／撤销等待超时；一轮旧配置导入自动化中进程以 0xC000041D 退出，尚未定位原因。不得据此宣称旧配置导入、所有快捷键及所有异常保存分支在本版本完整通过。独立可视化编辑、UI、图标、收起展开测试已另行通过。')
+if not prompt_is_current:
+    prompt_scope += '该旧脚本记录绑定的是此前的 EXE，仅作历史诊断，不计入当前 EXE 的功能哈希验证。'
 if prompt_complete:
     prompt_memory = f"小草稿收起后观察 {pm['hidden_idle_seconds']} 秒，CPU 增量 {pm['hidden_idle_cpu_seconds']:.5f} 秒，Private Bytes 为 {pm['hidden_private_mib']:.2f} MiB。首次唤起观察包含测试脚本主动等待，不作为精确响应延迟。"
 else:
     prompt_memory = '本轮未获得完整的提示词收起后空闲测量；不使用旧 EXE 的数值代替。本报告的阅读启动、内存与空闲数据来自当前 EXE。'
 working=statistics.median(r['working_set']for r in startup['records'])/1048576
-summary={'version':'0.4.5','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'core_checks_passed':count,
+summary={'version':'0.4.6','generated_at':datetime.now().astimezone().isoformat(),'exe_sha256':sha,'exe_bytes':exe.stat().st_size,'prompt_exe_sha256':prompt_process['prompt_exe_sha256'],'core_checks_passed':count,
          'html_image_e2e_checks':len(html['checks']),
+         'prompt_process_e2e_checks':len(prompt_process['checks']),
          'prompt_ime_verified':prompt_ime_verified,
          'prompt_integration_completed':prompt_complete,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
@@ -49,7 +54,7 @@ if not prompt_complete:
 summary['limitations'].append('HTML img subset only; no container HTML layout, table-cell images, remote/data image downloads or SVG rendering.')
 (RESULTS/'release-summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 rows='\n'.join(f"| {r['fixture']} | {r['draw_p95_ms']:.2f} ms | {r['dispatch_to_submit_p95_ms']:.2f} ms | {r['samples']} |" for r in scroll['records'])
-report=f'''**KeepMD 0.4.5 交付验证报告**
+report=f'''**KeepMD 0.4.6 交付验证报告**
 
 生成时间：{summary['generated_at']}。目标平台：Windows 11 x64。所有以下正式结果绑定到同一个 Release EXE；历史探索数据保留在源码仓库，不混入最终数据。
 
@@ -57,7 +62,11 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 **功能与构建验证**
 
-0.4.5 增加原生 HTML `<img>` 支持。{len(html['checks'])} 组专项检查覆盖宽度／高度／双尺寸、缩放、多行属性、中文与空格相对路径、行内前后文字、现有 Markdown 图片、双栏预览和源码无改动保存；以截图像素尺寸验证实际绘制。代码／容器 HTML／缺失文件／远程图片按约定回退。Ghidra README 的本地 Logo 实测宽 400 像素，读取前后 README 和 PNG 哈希一致。截图仅作本地验证，不将外部项目素材打入制品。见 [HTML 图片验证](../bench/results/html-images-e2e.json)。
+0.4.6 延续原生 HTML `<img>` 支持，并将提示词窗口拆为独立的 `KeepPrompt.exe`。{len(prompt_process['checks'])} 组独立进程检查通过：KeepPrompt 隐藏常驻、KeepMD broker 唤起、可视化编辑自动保存／复制、关闭 KeepMD 后提示词进程继续工作，以及 KeepPrompt 独立退出。KeepMD 不再把提示词窗口绑定到阅读器进程。见 [独立提示词验证](../bench/results/prompt-process-e2e.json)。
+
+本轮 UI 收紧了共享原生顶栏和工具栏：标题栏 38 DIP、菜单字体 12/13 DIP、阅读工具按钮 32×30 DIP、提示词格式按钮 34×32 DIP、线性图标 17 DIP；自绘命中、键盘名称和 DPI 缩放保持不变。8 组 UI、8 组顶栏、5 组图标和 4 组工具栏收起展开检查通过。
+
+0.4.6 的 HTML `<img>` 专项仍绑定到当前阅读器 EXE：{len(html['checks'])} 组检查覆盖宽度／高度／双尺寸、缩放、多行属性、中文与空格相对路径、行内前后文字、现有 Markdown 图片、双栏预览和源码无改动保存；Ghidra README 的本地 Logo 实测宽 400 像素，读取前后 README 和 PNG 哈希一致。截图仅作本地验证，不将外部项目素材打入制品。见 [HTML 图片验证](../bench/results/html-images-e2e.json)。
 
 0.4.4 清理常驻说明性文案并收紧留白：提示词副标题／快捷键教学、阅读器空白页说明、源码状态栏操作教学和流程图编辑说明均已移除；实际截图已检查，保存失败、未保存保护与图标功能名称保留。
 
@@ -94,7 +103,7 @@ EXE 大小：{exe.stat().st_size:,} 字节（{exe.stat().st_size/1024:.1f} KiB�
 
 正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块。0.4.4 禁止系统滚动条样式，使用 WM_NCCALCSIZE 预留 12 DIP 自管轨道并拦截系统轨道绘制；保留原控件滚动模型。双栏横纵轨道经真实屏幕像素检查，在模式／主题／尺寸／原生重绘后仅呈现 KeepMD 配色，且没有系统滚动条样式位。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
 
-提示词集成记录 {len(prompt['checks'])} 项已完成步骤。{prompt_scope} {prompt_ime_note} 详见 [提示词验证记录](../bench/results/prompt-e2e.json)。
+提示词独立进程记录 {len(prompt_process['checks'])} 项通过。旧的同进程全量集成记录仅保留 {len(prompt['checks'])} 项已完成步骤；{prompt_scope} {prompt_ime_note} 详见 [提示词验证记录](../bench/results/prompt-e2e.json) 与 [独立进程记录](../bench/results/prompt-process-e2e.json)。
 
 {prompt_memory}
 

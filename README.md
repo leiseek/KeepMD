@@ -1,4 +1,4 @@
-**KeepMD 0.4.5 — Windows 原生 Markdown 阅读器**
+**KeepMD 0.4.6 — Windows 原生 Markdown 阅读器与独立提示词工具**
 
 阅读、预览优先，附带按需开启的轻量源码编辑。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
 
@@ -20,9 +20,11 @@
 
 文件菜单的“设为默认打开程序…”会注册 KeepMD 并打开 Windows 默认应用设置，由用户确认扩展名关联。
 
-0.4.5 增加原生 HTML `<img>` 图片显示：支持本地相对路径、中文／空格路径和 `width`／`height` 尺寸。已用 Ghidra README 的 400 宽 Logo 验证；不自动下载远程图片，不提供任意 HTML/CSS 排版。
+0.4.6 将提示词功能拆为同目录的 `KeepPrompt.exe`。关闭 `KeepMD.exe` 后，KeepPrompt 仍可通过全局快捷键、托盘或再次启动独立使用；KeepMD 的“提示词”入口只负责启动／唤起它。版本同时包含原生 HTML `<img>` 图片显示：支持本地相对路径、中文／空格路径和 `width`／`height` 尺寸。已用 Ghidra README 的 400 宽 Logo 验证；不自动下载远程图片，不提供任意 HTML/CSS 排版。
 
-已验证 Windows 11 x64 的阅读与图片专项。提示词完整集成回归本轮未完成，焦点／撤销及自动化导入存在待定位结果；提示词中文 IME 提交及 Esc 组词路径也尚未通过完整验证。独立可视化编辑及普通源码编辑输入法检查通过。详见 [版本说明](docs/releases/v0.4.5.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
+本轮同时收紧标题栏、菜单和工具栏尺寸，减少阅读区上方占用；两种工具栏状态、双栏预览和提示词窗口均保持可操作。
+
+已验证 Windows 11 x64 的阅读、图片和 KeepPrompt 独立进程流程。旧版同进程全量提示词回归仍有焦点／撤销及自动化导入待定位项；提示词中文 IME 提交及 Esc 组词路径尚未通过完整验证。独立可视化编辑及普通源码编辑输入法检查通过。详见 [版本说明](docs/releases/v0.4.6.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 **快捷输入 Markdown 提示词**
 

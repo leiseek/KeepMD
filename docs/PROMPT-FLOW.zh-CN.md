@@ -6,7 +6,7 @@
 
 | 同级 Prompt Flow 的能力 | KeepMD 0.4 的实现 |
 | --- | --- |
-| 托盘静默启动，单实例 | `--resident`；每份配置只有一个提示词服务，`--prompt` 转发到现有实例 |
+| 托盘静默启动，单实例 | 独立 `KeepPrompt.exe --resident`；每份配置只有一个提示词服务，KeepMD 的 `--prompt` 只启动／转发 |
 | 全局组合键 / 双击左 Ctrl | 默认 Ctrl+Alt+Space；可自定义，保留 LCtrl x2 选项 |
 | 多行文本输入 | 按需加载 Windows RichEdit；支持中文输入法、撤销、软换行、可视化文字编辑，复制保存 Markdown |
 | 再按快捷键或 Esc 自动复制并隐藏 | 保留此流程，增加 Ctrl+Enter；返回唤起前的窗口，由用户 Ctrl+V 粘贴 |
@@ -22,13 +22,13 @@
 
 ## 架构与资源
 
-`prompt_model` 负责快捷键语法、双 Ctrl 状态机、偏好、旧 JSON 导入和自启动命令；`prompt_window` 管理独立窗口、托盘、焦点与剪贴板。读取器文档、编辑撤销栈与提示词草稿分开。
+`prompt_model` 负责快捷键语法、双 Ctrl 状态机、偏好、旧 JSON 导入和自启动命令；`prompt_window` 管理提示词窗口、托盘、焦点与剪贴板；`prompt_main` 提供隐藏宿主消息窗口和独立进程生命周期。KeepMD 只通过 `KeepPrompt.exe` 的进程启动／单实例转发唤起提示词，读取器关闭不会销毁提示词窗口或快捷键注册。
 
 普通组合键使用 Windows [`RegisterHotKey`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey) 和 `MOD_NOREPEAT`。先注册新键，成功后才撤销旧键；失败时保留旧配置。程序运行时可全局唤起，退出后不占用快捷键。关闭阅读器常驻默认关闭，登录启动默认关闭。
 
 双 Ctrl 通过可选 Raw Input 输入接收实现，没有默认全局键盘钩子。两次完整的左 Ctrl 按下/松开需在 350 ms 内完成，按住、自动重复或夹杂其他按键不会按双击处理。发现旧 Prompt Flow 的窗口类仍存在时，拒绝启用该模式并说明原因，避免两个工具同时唤起；组合键可以与旧工具共存。
 
-提示词窗口及热键服务按需创建。0.4 改为单个原生富文本编辑区，撤销状态保存有界 Markdown 快照。180 ms 防抖将 Markdown 结构映射为 RichEdit 样式并隐藏标记，800 ms 防抖保存草稿；中文组词期间暂停排版和保存。流程图由本进程解析、GDI 绘制并以静态 DIB 图片插入 RichEdit；没有动态 OLE 外部文档、WebView 或远程渲染。图片与隐藏的原始 Mermaid 源码关联，复制保存时仅移除生成的图片对象，保留 Markdown。
+提示词窗口及热键服务按需创建在 KeepPrompt 进程内。KeepMD 启动提示词时仅创建 broker 进程并立即退出（无阅读文件时），或继续显示当前阅读器；KeepPrompt 的“打开阅读器”操作在需要时启动同目录 KeepMD。关闭 KeepMD 不影响 KeepPrompt。0.4 改为单个原生富文本编辑区，撤销状态保存有界 Markdown 快照。180 ms 防抖将 Markdown 结构映射为 RichEdit 样式并隐藏标记，800 ms 防抖保存草稿；中文组词期间暂停排版和保存。流程图由本进程解析、GDI 绘制并以静态 DIB 图片插入 RichEdit；没有动态 OLE 外部文档、WebView 或远程渲染。图片与隐藏的原始 Mermaid 源码关联，复制保存时仅移除生成的图片对象，保留 Markdown。
 
 可视化编辑器不承诺完整 Typora 语法和排版一致性：常用标题、强调、列表、引用、代码与最多 16 张图表直接显示，表格网格与内嵌图片编辑后续扩展。其他 Markdown 仍保留。原阅读器的源码编辑及完整阅读范围不变。稳定空闲不运行周期排版计时器，隐藏阅读器的文件刷新计时器停用。
 

@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "701b1d6295f6c0d717ab5a333b3899fa1d4007154b508f4f8e690344548aa8f3",
+  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
   "checks": [
     "reader folder icon exposes native hover explanation and Ctrl+O shortcut",
     "format and utility icons retain descriptive native names; primary copy action retains visible text",
@@ -7,7 +7,7 @@
     "icon click executes formatting and undo; icon-only copy still activates with Space",
     "360 icon repaints and 60 theme changes do not accumulate GDI objects"
   ],
-  "gdi_before": 75,
-  "gdi_after": 75,
+  "gdi_before": 50,
+  "gdi_after": 50,
   "implementation": "native GDI vector paths, temporary supersampling bitmap; no icon font or third-party UI runtime"
 }

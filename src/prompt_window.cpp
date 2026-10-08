@@ -630,19 +630,19 @@ struct PromptWindow::Impl {
             ShowWindow(button(id), settings.toolbar ? SW_SHOWNA : SW_HIDE);
             if (!settings.toolbar)
                 continue;
-            int width = px(38);
+            int width = px(34);
             if (xFormat + width > w - margin) {
                 xFormat = margin;
                 ++row;
             }
-            move(id, xFormat, formatY + row * px(40), width, 36);
-            xFormat += width + px(4);
+            move(id, xFormat, formatY + row * px(36), width, 32);
+            xFormat += width + px(3);
             if (id == FormatH2 || id == FormatItalic || id == FormatQuote) {
-                formatSeparators.push_back({xFormat + px(4), formatY + row * px(40)});
-                xFormat += px(12);
+                formatSeparators.push_back({xFormat + px(3), formatY + row * px(36)});
+                xFormat += px(9);
             }
         }
-        int top = formatY + (settings.toolbar ? (row + 1) * px(40) : 0) + px(8),
+        int top = formatY + (settings.toolbar ? (row + 1) * px(36) : 0) + px(6),
             bottom = std::max<int>(top + px(80), r.bottom - px(106));
         sourceCard = {margin, top, w - margin, bottom};
         MoveWindow(editor->hwnd(), margin + 1, top + 1, w - margin * 2 - 2, bottom - top - 2, TRUE);

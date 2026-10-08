@@ -12,7 +12,7 @@ BEGIN
     BEGIN
       VALUE "FileDescription", "KeepMD native Markdown reader"
       VALUE "ProductName", "KeepMD"
-      VALUE "FileVersion", "0.4.5"
+      VALUE "FileVersion", "0.4.6"
     END
   END
   BLOCK "VarFileInfo"

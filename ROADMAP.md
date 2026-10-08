@@ -1,6 +1,6 @@
 **KeepMD Roadmap — Windows 原生 Markdown 阅读器**
 
-更新：2026-10-08。0.4.5 补充原生 HTML 图片支持，保留既有自绘顶栏、图标工具栏、细滚动条和可视化提示词编辑；实测范围与限制见 [验证报告](docs/VALIDATION.zh-CN.md)。
+更新：2026-10-08。0.4.6 将提示词拆为独立 KeepPrompt 进程，并保留 0.4.5 原生 HTML 图片支持；实测范围与限制见 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 目标：快速打开、可靠阅读 Markdown 与常见 Mermaid 流程图，保持低空闲 CPU 和可控内存；轻量源码编辑后置。仅 Windows，禁止 Electron、Tauri、WebView2、CEF、Qt WebEngine 及隐藏浏览器运行时。
 
@@ -204,3 +204,11 @@ P0 的出口是可运行的验证结果和决策记录。若图表候选在规�
 - [x] 代码／未知 HTML 保留原文，源文件与原始字节保存不受影响。
 - [x] Ghidra README 原文件阅读和 Logo 400 像素宽度通过截图验证，文件哈希保持一致。
 - [x] 支持范围、失败回退与未验证项随发布报告记录。
+
+**P14 — 独立提示词进程（0.4.6）**
+
+- [x] `KeepPrompt.exe` 独立承载窗口、托盘、全局快捷键、草稿和可视化编辑。
+- [x] KeepMD 的提示词入口改为启动／转发 broker；KeepMD 关闭后 KeepPrompt 不退出。
+- [x] KeepPrompt 可在没有 KeepMD 阅读器窗口时独立启动，打开阅读器时按需启动 KeepMD。
+- [x] 便携包、源码包和解压运行检查同时覆盖两个 EXE。
+- [x] 独立进程专项验证和已知旧集成回归限制写入发布报告。

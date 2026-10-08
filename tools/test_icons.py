@@ -34,8 +34,8 @@ config=OUT/'icons.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
 config.with_suffix('.prompt.ini').write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
 sample='# 图标工具栏\n\n在这里直接编辑 **提示词**。\n'
 config.with_suffix('.prompt.md').write_text(sample,encoding='utf-8')
-exe=ROOT/'build/release/keepmd.exe';p=subprocess.Popen([str(exe),str(ROOT/'tests/fixtures/welcome.md'),'--config',str(config)],cwd=ROOT)
-handle=k.OpenProcess(0x0400,False,p.pid);checks=[]
+exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';p=subprocess.Popen([str(exe),str(ROOT/'tests/fixtures/welcome.md'),'--config',str(config)],cwd=ROOT)
+handle=k.OpenProcess(0x0400,False,p.pid);prompt=None;prompt_handle=None;checks=[]
 try:
     main=wait(lambda:(windows(p.pid)or[None])[0]);wait(lambda:'welcome.md' in name(main))
     toolbar=next(h for h in children(main) if name(h,True)=='ToolbarWindow32')
@@ -43,14 +43,15 @@ try:
     assert 'Ctrl+O' in name(tooltip)
     screenshot(main,'icons-reader-tooltip.png')
     checks.append('reader folder icon exposes native hover explanation and Ctrl+O shortcut')
-    command(main,127);panel=wait(lambda:first(p.pid,'KeepMD.Prompt.'));edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.4)
+    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(config)],cwd=ROOT);prompt_handle=k.OpenProcess(0x0400,False,prompt.pid)
+    panel=wait(lambda:first(prompt.pid,'KeepMD.Prompt.'));edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.4)
     # Every icon keeps a meaningful native control name despite hiding its label visually.
     for id,label in [(540,'正文'),(541,'标题 1'),(542,'标题 2'),(543,'加粗'),(544,'斜体'),(545,'列表'),
                      (546,'编号'),(547,'引用'),(548,'代码'),(549,'流程图'),(514,'快捷键'),(512,'清空'),(511,'复制全文')]:
         assert name(u.GetDlgItem(panel,id))==label
     assert '复制并收起' in name(u.GetDlgItem(panel,510))
     checks.append('format and utility icons retain descriptive native names; primary copy action retains visible text')
-    bold=u.GetDlgItem(panel,543);hover(panel,bold);tooltip=wait(lambda:tip(p.pid,'加粗'),timeout=5)
+    bold=u.GetDlgItem(panel,543);hover(panel,bold);tooltip=wait(lambda:tip(prompt.pid,'加粗'),timeout=5)
     assert 'Ctrl+B' in name(tooltip)
     screenshot(panel,'icons-prompt-tooltip.png')
     checks.append('prompt bold icon exposes Chinese tooltip and Ctrl+B on actual mouse hover')
@@ -69,6 +70,7 @@ try:
     checks.append('icon click executes formatting and undo; icon-only copy still activates with Space')
     # Check hot/pressed and themes without leaking per-paint supersampling bitmaps.
     command(panel,527);time.sleep(.1);command(panel,527);time.sleep(.1)
+    handle=prompt_handle
     before=u.GetGuiResources(handle,0)
     for _ in range(60):
         for id in (540,543,545,549,512,511):
@@ -77,11 +79,14 @@ try:
     time.sleep(.15);after=u.GetGuiResources(handle,0)
     assert after-before<=3,(before,after)
     checks.append('360 icon repaints and 60 theme changes do not accumulate GDI objects')
-    command(panel,525);p.wait(timeout=8);assert p.returncode==0
+    command(panel,525);prompt.wait(timeout=8);assert prompt.returncode==0
+    u.PostMessageW(main,0x10,0,0);p.wait(timeout=8);assert p.returncode==0
     result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'checks':checks,'gdi_before':before,'gdi_after':after,
             'implementation':'native GDI vector paths, temporary supersampling bitmap; no icon font or third-party UI runtime'}
     (ROOT/'bench/results/icons-e2e.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False,indent=2))
 finally:
+    if prompt_handle:k.CloseHandle(prompt_handle)
     if handle:k.CloseHandle(handle)
+    if prompt and prompt.poll() is None:prompt.terminate();prompt.wait(timeout=5)
     if p.poll() is None:p.terminate();p.wait(timeout=5)

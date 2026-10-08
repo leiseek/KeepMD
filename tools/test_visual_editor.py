@@ -40,7 +40,7 @@ cfg=root/'profile.ini';cfg.write_text('[Reader]\nDark=0\n',encoding='utf-8')
 cfg.with_suffix('.prompt.ini').write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\n',encoding='utf-8')
 sample='# 实现方案\n\n请围绕 **性能** 和 *可维护性* 给出建议。\n\n- 保留现有约束\n- 标明需要验证的假设\n\n```mermaid\nflowchart LR\nA[阅读] --> B[分析] --> C[建议]\n```\n\n最后列出下一步。\n'
 cfg.with_suffix('.prompt.md').write_text(sample,encoding='utf-8')
-exe=ROOT/'build/release/keepmd.exe';p=subprocess.Popen([str(exe),'--prompt','--config',str(cfg)],cwd=ROOT)
+exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';p=subprocess.Popen([str(prompt_exe),'--show','--config',str(cfg)],cwd=ROOT)
 handle=k.OpenProcess(0x0400|0x0010|0x0020|0x0008,False,p.pid);remote=k.VirtualAllocEx(handle,None,4*1024*1024,0x3000,4)
 checks=[]
 try:
@@ -129,7 +129,12 @@ try:
     activate(panel,edit);u.SendMessageW(edit,0xB1,-1,-1);replace(edit,'图后文字');time.sleep(.4)
     expected='```mermaid\nflowchart LR\nA[开始] --> B[完成]\n```\n图后文字'
     assert source()==expected,repr(source())
-    wait(lambda:cfg.with_suffix('.prompt.md').read_text(encoding='utf-8')==expected)
+    def saved_expected():
+        try:
+            return cfg.with_suffix('.prompt.md').read_text(encoding='utf-8')==expected
+        except (PermissionError,FileNotFoundError):
+            return False
+    wait(saved_expected)
     checks.append('editing after an inline diagram autosaves exact Markdown without object characters')
     # Pasted Markdown remains intact across render/theme/undo, including replacement characters and Unicode emoji.
     cases=['', 'plain text', '空白\n\n  保留空格  \n', '1. first\n2. second\n',

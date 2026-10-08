@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "701b1d6295f6c0d717ab5a333b3899fa1d4007154b508f4f8e690344548aa8f3",
+  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
   "checks": [
     {
       "case": "width",
@@ -114,19 +114,6 @@
     {
       "case": "code/wrapper/missing/remote fallbacks",
       "asset_bytes": 0
-    },
-    {
-      "case": "external Ghidra README",
-      "document_sha256": "b7c44cfb362d503622e82460995902e9c1754d1166a22267dae8b22e603c22be",
-      "logo_sha256": "aec0eda604fabe87af692340f5e2b95c8d1b72eddd2277a89e65a800e14daeb8",
-      "source_unchanged": true,
-      "logo_pixel_bounds": [
-        60,
-        24,
-        460,
-        116
-      ],
-      "snapshot": "tests\\output\\html-ghidra-readme.png"
     }
   ]
 }

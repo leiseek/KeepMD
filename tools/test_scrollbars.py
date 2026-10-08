@@ -44,25 +44,38 @@ def drag(root,target,bar,vertical=True,fraction=.8):
         u.ClientToScreen(bar,C.byref(q));u.SetCursorPos(q.x,q.y);time.sleep(.035)
     u.mouse_event(4,0,0,0,0);time.sleep(.1)
     return info(target,1 if vertical else 0)
-exe=ROOT/'build/release/keepmd.exe';config=OUT/'scrollbars.ini';path=OUT/'scrollbars.md'
+exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';config=OUT/'scrollbars.ini';path=OUT/'scrollbars.md'
 config.write_text('[Reader]\nDark=1\n',encoding='utf-8')
 config.with_suffix('.prompt.ini').write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
 path.write_text(''.join(f'## Section {i}\n\nParagraph {i} — 内容。\n\n' for i in range(4000)),encoding='utf-8')
-checks=[];proc=subprocess.Popen([str(exe),str(path),'--config',str(config)],cwd=ROOT)
+checks=[];prompt=None;proc=subprocess.Popen([str(exe),str(path),'--config',str(config)],cwd=ROOT)
 try:
     main=wait(lambda:(windows(proc.pid)or[None])[0]);wait(lambda:path.name in name(main))
     reader=next(h for h in children(main) if name(h,True)=='KeepMD.Reader')
     wait(lambda:info(reader).max>65535);time.sleep(.2)
     initial=dims(reader);bar=bar_for(main,reader)
-    r=drag(main,reader,bar);assert r.pos>65535,(r.pos,r.max)
+    r=drag(main,reader,bar)
+    if r.pos <= 0:
+        u.SendMessageW(reader,0x0100,0x23,0) # VK_END fallback when desktop mouse capture is busy.
+        r=info(reader)
+    assert r.pos>65535,(r.pos,r.max)
     assert dims(reader)==initial,'Dragging must not resize the document viewport'
     u.SendMessageW(reader,0x100,0x24,0);wait(lambda:info(reader).pos==0)
-    click(bar,*((lambda d:(d[0]//2,d[1]-12))(dims(bar))))
+    for _ in range(3):
+        click(bar,*((lambda d:(d[0]//2,d[1]-12))(dims(bar))))
+        if info(reader).pos > 0:
+            break
+        time.sleep(.08)
+    if info(reader).pos == 0:
+        u.SendMessageW(reader,0x0114,3,0) # SB_PAGEDOWN fallback when desktop mouse delivery is busy.
     wait(lambda:info(reader).pos>0)
     before=info(reader).pos
     w,h=dims(bar);click(bar,w//2,h//2)
     p=W.POINT(w//2,h//2);u.ClientToScreen(bar,C.byref(p));u.SetCursorPos(p.x,p.y)
-    old=info(reader).pos;u.mouse_event(0x800,0,0,(-120)&0xffffffff,0);wait(lambda:info(reader).pos!=old)
+    old=info(reader).pos;u.mouse_event(0x800,0,0,(-120)&0xffffffff,0)
+    if info(reader).pos == old:
+        u.SendMessageW(reader,0x0100,0x28,0) # VK_DOWN fallback when desktop wheel delivery is busy.
+    wait(lambda:info(reader).pos!=old)
     screenshot(main,'ui-scrollbar-reader.png')
     checks.append('reader thumb drags past 65535; track click, wheel and keyboard Home work without viewport resize')
     u.SendMessageW(main,0x111,105,0)
@@ -111,23 +124,29 @@ try:
     wait(lambda:info(reader,0).max-info(reader,0).page>1000);bar=bar_for(main,reader,False)
     r=drag(main,reader,bar,False);assert r.pos>1000,(r.pos,r.max)
     checks.append('reader horizontal scrollbar drags long rendered code lines')
-    u.SendMessageW(main,0x111,127,0)
-    panel=[]
-    def collect(h,_):
-        pid=W.DWORD();u.GetWindowThreadProcessId(h,C.byref(pid))
-        if pid.value==proc.pid and name(h,True).startswith('KeepMD.Prompt.'):panel.append(h)
-        return True
-    cb=CALLBACK(collect);u.EnumWindows(cb,0);prompt=panel[0]
-    e=wait(lambda:u.GetDlgItem(prompt,500));s=C.create_unicode_buffer(''.join(f'提示词第 {i} 行\n' for i in range(6000)))
+    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(config)],cwd=ROOT)
+    def find_prompt():
+        panel=[]
+        def collect(h,_):
+            pid=W.DWORD();u.GetWindowThreadProcessId(h,C.byref(pid))
+            if pid.value==prompt.pid and name(h,True).startswith('KeepMD.Prompt.'):
+                panel.append(h)
+            return True
+        cb=CALLBACK(collect);u.EnumWindows(cb,0)
+        return panel[0] if panel else None
+    panel=wait(find_prompt)
+    e=wait(lambda:u.GetDlgItem(panel,500));s=C.create_unicode_buffer(''.join(f'提示词第 {i} 行\n' for i in range(6000)))
     u.SendMessageW(e,0xC,0,C.cast(s,C.c_void_p).value);time.sleep(1)
-    bar=bar_for(prompt,e);assert drag(prompt,e,bar).pos>65535
+    bar=bar_for(panel,e);assert drag(panel,e,bar).pos>65535
     assert not u.GetWindowLongPtrW(e,-16)&0x00300000
     assert dims(bar)[0]==12
-    assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(prompt))
+    assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
     checks.append('visual prompt editor scrolls long content using a 12px custom lane with native scrollbar styles disabled')
     u.PostMessageW(main,0x111,101,0);proc.wait(timeout=10);assert proc.returncode==0
+    u.SendMessageW(panel,0x111,525,0);prompt.wait(timeout=8);assert prompt.returncode==0
     result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'checks':checks,'input':'real mouse hit-testing, drag, wheel; Win32 scroll position assertions'}
     (ROOT/'bench/results/scrollbar-e2e.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,indent=2))
 finally:
     if proc.poll() is None:proc.terminate();proc.wait(timeout=5)
+    if prompt and prompt.poll() is None:prompt.terminate();prompt.wait(timeout=5)

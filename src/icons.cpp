@@ -263,7 +263,7 @@ void icon_face(HDC dc, RECT rect, HFONT font, Icon value, std::wstring_view labe
         rounded(dc, rect, bg, bg, (int)(10 * scale));
     else
         fill(dc, rect, bg);
-    int size = (int)(20 * scale), offset = pressed ? 1 : 0;
+    int size = (int)(17 * scale), offset = pressed ? 1 : 0;
     int x = rect.left + (rect.right - rect.left - size) / 2;
     if (!label.empty() && value != Icon::None) {
         SIZE extent{};

@@ -34,25 +34,25 @@ struct Caption {
             DeleteObject(font);
         if (brand)
             DeleteObject(brand);
-        font = ui::font(GetDpiForWindow(owner), 13);
-        brand = ui::font(GetDpiForWindow(owner), 14, FW_SEMIBOLD);
+        font = ui::font(GetDpiForWindow(owner), 12);
+        brand = ui::font(GetDpiForWindow(owner), 13, FW_SEMIBOLD);
     }
     void layout() {
         if (!bar)
             return;
         RECT r{};
         GetClientRect(owner, &r);
-        MoveWindow(bar, 0, 0, r.right, px(46), TRUE);
-        int x = px(104);
+        MoveWindow(bar, 0, 0, r.right, px(38), TRUE);
+        int x = px(96);
         bool max = (GetWindowLongPtrW(owner, GWL_STYLE) & WS_MAXIMIZEBOX) != 0;
         for (auto button : buttons) {
             int id = GetDlgCtrlID(button);
             if (id >= MenuBase) {
-                MoveWindow(button, x, px(8), px(58), px(30), TRUE);
-                x += px(60);
+                MoveWindow(button, x, px(5), px(54), px(28), TRUE);
+                x += px(56);
             } else {
                 int index = id == Close ? 0 : id == Maximize ? 1 : id == Toolbar ? 3 : max ? 2 : 1;
-                MoveWindow(button, r.right - px(12 + 36 * (index + 1)), px(7), px(34), px(32), TRUE);
+                MoveWindow(button, r.right - px(12 + 32 * (index + 1)), px(5), px(30), px(28), TRUE);
                 if (id == Maximize)
                     SetWindowTextW(button, IsZoomed(owner) ? L"还原窗口" : L"最大化窗口");
             }
@@ -210,7 +210,7 @@ LRESULT CALLBACK bar_proc(HWND h, UINT m, WPARAM w, LPARAM l) {
         if (name == L"KeepMD" || name.starts_with(L"KeepMD ·"))
             name.clear();
         text(dc, p->font, name,
-             {p->px(116 + count * 60), 0, r.right - p->px(GetDlgItem(h, Toolbar) ? 176 : 140), r.bottom},
+             {p->px(108 + count * 56), 0, r.right - p->px(GetDlgItem(h, Toolbar) ? 154 : 124), r.bottom},
              c.muted);
         line(dc, 0, r.bottom - 1, r.right, r.bottom - 1, c.border);
         EndPaint(h, &ps);
@@ -346,7 +346,7 @@ void add_button(Caption &p, int id, const wchar_t *label) {
 }
 } // namespace
 int caption_height(HWND hwnd) {
-    return get(hwnd) ? MulDiv(46, GetDpiForWindow(hwnd), 96) : 0;
+    return get(hwnd) ? MulDiv(38, GetDpiForWindow(hwnd), 96) : 0;
 }
 void caption_toolbar(HWND hwnd, bool expanded) {
     auto p = get(hwnd);

@@ -1,6 +1,5 @@
 #include "editor.h"
 #include "file_io.h"
-#include "prompt_window.h"
 #include "settings.h"
 #include "shell_integration.h"
 #include "ui.h"
@@ -51,6 +50,46 @@ enum Command {
     Prompt,
     ToggleToolbar
 };
+std::filesystem::path sibling_executable(const wchar_t *name) {
+    wchar_t buffer[32768]{};
+    GetModuleFileNameW(nullptr, buffer, (DWORD)std::size(buffer));
+    return std::filesystem::path(buffer).parent_path() / name;
+}
+bool launch_prompt_process(const std::filesystem::path &config, bool show, bool resident, bool dark) {
+    auto executable = sibling_executable(L"KeepPrompt.exe");
+    std::error_code ec;
+    if (!std::filesystem::exists(executable, ec))
+        return false;
+    auto quote = [](const std::wstring &value) {
+        std::wstring result = L"\"";
+        for (wchar_t c : value) {
+            if (c == L'\"')
+                result += L'\\';
+            result += c;
+        }
+        result += L"\"";
+        return result;
+    };
+    std::wstring commandLine = quote(executable) + L" --config " + quote(config.wstring());
+    if (show)
+        commandLine += L" --show";
+    if (resident)
+        commandLine += L" --resident";
+    if (dark)
+        commandLine += L" --dark";
+    STARTUPINFOW startup{sizeof(startup)};
+    PROCESS_INFORMATION process{};
+    auto mutableCommand = std::vector<wchar_t>(commandLine.begin(), commandLine.end());
+    mutableCommand.push_back(L'\0');
+    bool ok = CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
+                             CREATE_UNICODE_ENVIRONMENT, nullptr, executable.parent_path().c_str(), &startup,
+                             &process) != FALSE;
+    if (ok) {
+        CloseHandle(process.hThread);
+        CloseHandle(process.hProcess);
+    }
+    return ok;
+}
 ui::Icon toolbar_icon(int id, bool editing, bool dark) {
     using ui::Icon;
     switch (id) {
@@ -160,8 +199,7 @@ struct App {
     uint64_t openedAt = 0;
     std::filesystem::path settingsPath;
     ReaderSettings preferences;
-    std::unique_ptr<PromptWindow> prompt;
-    bool forceExit = false, skipSettingsSave = false;
+    bool skipSettingsSave = false;
     unsigned renderDpi = 0;
     HMENU recentMenu = nullptr;
     std::unique_ptr<Editor> editor;
@@ -198,14 +236,14 @@ void update_ui_font(App &app, unsigned dpi) {
             SendMessageW(child, WM_SETFONT, (WPARAM)app.font, TRUE);
     if (app.status)
         SendMessageW(app.status, SB_SETMINHEIGHT, MulDiv(26, dpi, 96), 0);
-    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(38, dpi, 96), MulDiv(36, dpi, 96)));
+    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(32, dpi, 96), MulDiv(30, dpi, 96)));
     for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
         TBBUTTON b{};
         SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
         if (b.fsStyle & BTNS_SEP)
             continue;
         TBBUTTONINFOW info{sizeof(info), TBIF_SIZE};
-        info.cx = (WORD)MulDiv(b.idCommand == ZoomReset ? 58 : 38, dpi, 96);
+        info.cx = (WORD)MulDiv(b.idCommand == ZoomReset ? 50 : 32, dpi, 96);
         SendMessageW(app.toolbar, TB_SETBUTTONINFOW, b.idCommand, (LPARAM)&info);
     }
     if (old)
@@ -289,10 +327,10 @@ void arrange(App &app) {
     int caption = ui::caption_height(app.hwnd);
     int bottom = (int)(30 * app.dpi), side = app.showToc ? (int)(220 * app.dpi) : 0;
     SendMessageW(app.status, WM_SIZE, 0, 0);
-    MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(9 * app.dpi),
-               std::max(1L, r.right - (int)(24 * app.dpi)), (int)(72 * app.dpi), TRUE);
+    MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(6 * app.dpi),
+               std::max(1L, r.right - (int)(24 * app.dpi)), (int)(64 * app.dpi), TRUE);
     SendMessageW(app.toolbar, TB_AUTOSIZE, 0, 0);
-    int toolbarHeight = (int)(34 * app.dpi);
+    int toolbarHeight = (int)(30 * app.dpi);
     for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
         TBBUTTON b{};
         SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
@@ -302,13 +340,13 @@ void arrange(App &app) {
         SendMessageW(app.toolbar, TB_GETITEMRECT, i, (LPARAM)&br);
         toolbarHeight = std::max(toolbarHeight, (int)br.bottom);
     }
-    int top = caption + (app.preferences.toolbar ? (int)(18 * app.dpi) + toolbarHeight : (int)(6 * app.dpi));
+    int top = caption + (app.preferences.toolbar ? (int)(12 * app.dpi) + toolbarHeight : (int)(5 * app.dpi));
     ShowWindow(app.toolbar, app.preferences.toolbar ? SW_SHOWNA : SW_HIDE);
     ui::caption_toolbar(app.hwnd, app.preferences.toolbar);
     if (auto menu = ui::window_menu(app.hwnd))
         CheckMenuItem(GetSubMenu(menu, 1), ToggleToolbar,
                       MF_BYCOMMAND | (app.preferences.toolbar ? MF_CHECKED : MF_UNCHECKED));
-    MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(9 * app.dpi),
+    MoveWindow(app.toolbar, (int)(12 * app.dpi), caption + (int)(6 * app.dpi),
                std::max(1L, r.right - (int)(24 * app.dpi)), toolbarHeight, TRUE);
     int searchHeight = app.showSearch ? (int)((app.showReplace ? 88 : 44) * app.dpi) : 0;
     ShowWindow(app.searchBox, app.showSearch ? SW_SHOW : SW_HIDE);
@@ -770,11 +808,11 @@ void command(App &app, int id) {
         open_dialog(app);
         break;
     case Exit:
-        app.forceExit = true;
         SendMessageW(app.hwnd, WM_CLOSE, 0, 0);
         break;
     case Prompt:
-        app.prompt->show();
+        if (!launch_prompt_process(app.settingsPath, true, false, app.view->dark()))
+            status(app, L"找不到 KeepPrompt.exe，请将它与 KeepMD.exe 放在同一目录。");
         break;
     case Find:
         app.showSearch = !app.showSearch;
@@ -799,7 +837,6 @@ void command(App &app, int id) {
         break;
     case Theme:
         app.view->set_dark(!app.view->dark());
-        app.prompt->theme(app.view->dark());
         if (app.editor) {
             app.suppressEdit = true;
             app.editor->theme(app.view->dark());
@@ -1187,7 +1224,6 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
             app->settingsPath = std::filesystem::path(executablePath).parent_path() / L"keepmd.ini";
         }
         app->preferences = load_settings(app->settingsPath);
-        app->prompt = std::make_unique<PromptWindow>(hwnd, app->settingsPath, app->preferences.dark);
         app->view->set_dark(app->preferences.dark);
         app->view->set_zoom(app->preferences.zoom);
         app->view->set_reading_width(app->preferences.reading_width);
@@ -1503,33 +1539,13 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         if (!app->report.empty())
             app->view->reset_device();
         return 0;
-    case WM_PROMPT_OWNER:
-        if (w == 1) {
-            ShowWindow(hwnd, SW_SHOWNORMAL);
-            SetForegroundWindow(hwnd);
-            SetFocus(app->reader);
-            SetTimer(hwnd, 1, 1000, nullptr);
-        } else if (w == 2) {
-            app->forceExit = true;
-            SendMessageW(hwnd, WM_CLOSE, 0, 0);
-        } else if (w == 3 && app->view->dark() != (l != 0)) {
-            command(*app, Theme);
-        }
-        return 0;
     case WM_QUERYENDSESSION:
-        return app->prompt->flush() && allow_navigation(*app);
+        return allow_navigation(*app);
     case WM_CLOSE:
-        if (app->prompt->flush() && allow_navigation(*app)) {
-            if (!app->forceExit && app->prompt->resident()) {
-                ShowWindow(hwnd, SW_HIDE);
-                KillTimer(hwnd, 1);
-            } else
-                DestroyWindow(hwnd);
-        }
-        app->forceExit = false;
+        if (allow_navigation(*app))
+            DestroyWindow(hwnd);
         return 0;
     case WM_DESTROY:
-        app->prompt.reset();
         KillTimer(hwnd, 1);
         KillTimer(hwnd, 2);
         if (app->cancel)
@@ -1624,17 +1640,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
                                 CW_USEDEFAULT, CW_USEDEFAULT, 1060, 820, nullptr, menu, instance, &app);
     if (!hwnd)
         return 1;
-    bool promptOwner = app.prompt->start(residentStart || promptStart, promptStart);
-    if ((residentStart || promptStart) && !promptOwner && initial.empty()) {
+    bool promptProcess = true;
+    if (residentStart || promptStart)
+        promptProcess =
+            launch_prompt_process(app.settingsPath, promptStart, residentStart, app.preferences.dark);
+    if ((residentStart || promptStart) && initial.empty()) {
         app.skipSettingsSave = true;
-        app.forceExit = true;
         DestroyWindow(hwnd);
         OleUninitialize();
-        return 0;
+        return promptProcess ? 0 : 1;
     }
-    ShowWindow(hwnd, (residentStart || promptStart) && initial.empty() ? SW_HIDE : show);
-    if ((residentStart || promptStart) && initial.empty())
-        KillTimer(hwnd, 1);
+    ShowWindow(hwnd, show);
     UpdateWindow(hwnd);
     if (!initial.empty()) {
         std::error_code ec;
@@ -1665,8 +1681,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {
         if (ui::caption_translate(message))
-            continue;
-        if (app.prompt && app.prompt->translate(message))
             continue;
         bool inSearch = (app.searchBox && GetFocus() == app.searchBox) ||
                         (app.replaceBox && GetFocus() == app.replaceBox);
