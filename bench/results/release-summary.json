@@ -1,32 +1,28 @@
 {
-  "version": "0.4.4",
-  "generated_at": "2026-10-03T16:17:37.411719+08:00",
-  "exe_sha256": "00ba600296e6fbb1aae61a571c285b1976c2aff79d57a76c70bd8e6532eeac2a",
-  "exe_bytes": 929792,
-  "core_checks_passed": 146,
+  "version": "0.4.5",
+  "generated_at": "2026-10-08T09:34:38.238504+08:00",
+  "exe_sha256": "701b1d6295f6c0d717ab5a333b3899fa1d4007154b508f4f8e690344548aa8f3",
+  "exe_bytes": 935936,
+  "core_checks_passed": 171,
+  "html_image_e2e_checks": 12,
   "prompt_ime_verified": false,
+  "prompt_integration_completed": false,
   "prompt_measurements": {
-    "cold_resident_private_mib": 4.7421875,
-    "first_summon_observed_ms": 96.19840000232216,
-    "double_ctrl_live": "not run: existing user Prompt Flow is active; state machine covered by core tests",
-    "hidden_idle_seconds": 5,
-    "hidden_idle_cpu_seconds": 0.0,
-    "hidden_idle_write_bytes": 0,
-    "hidden_private_mib": 5.4140625,
-    "hidden_draft_changed": false
+    "cold_resident_private_mib": 2.8515625,
+    "first_summon_observed_ms": 797.4211999680847
   },
-  "prompt_e2e_checks": 17,
+  "prompt_e2e_checks": 2,
   "ui_e2e_checks": 8,
   "scrollbar_e2e_checks": 7,
   "visual_editor_e2e_checks": 9,
   "caption_e2e_checks": 8,
   "icon_e2e_checks": 5,
   "toolbar_toggle_e2e_checks": 4,
-  "startup_launch_p95_ms": 121.1374,
-  "private_median_mib": 15.380859375,
-  "working_set_median_mib": 40.74609375,
-  "large_50mib_launch_p95_ms": 747.1862,
-  "large_50mib_private_median_mib": 409.81640625,
+  "startup_launch_p95_ms": 150.9827,
+  "private_median_mib": 13.373046875,
+  "working_set_median_mib": 31.33203125,
+  "large_50mib_launch_p95_ms": 775.4696,
+  "large_50mib_private_median_mib": 413.13671875,
   "gui_suites": [
     "reader",
     "navigation and real file dialogs",
@@ -35,7 +31,7 @@
     "DPI target rendering/hit testing",
     "bounded stress and device-target recreation",
     "class style/image formats/uppercase MMD",
-    "global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME",
+    "global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME (incomplete)",
     "native visual editing and inline diagram object round trips",
     "custom window caption, native resize/drag, work-area maximize, docking and close guards"
   ],
@@ -49,6 +45,8 @@
     "Live double-Ctrl summon not exercised while original Prompt Flow is running",
     "Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented",
     "Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested",
-    "Visual prompt editor Chinese IME commit and Escape composition path did not pass verification in this run; source-editor IME success does not cover it."
+    "Visual prompt editor Chinese IME commit and Escape composition path did not pass verification in this run; source-editor IME success does not cover it.",
+    "Full prompt integration E2E did not complete: focus/undo waits failed on this desktop and one automated legacy import run exited with 0xC000041D; cause unresolved. Separate visual editor/UI tests passed.",
+    "HTML img subset only; no container HTML layout, table-cell images, remote/data image downloads or SVG rendering."
   ]
 }

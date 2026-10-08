@@ -1,4 +1,5 @@
 #include "document.h"
+#include "html_image.h"
 #include "md4c.h"
 extern "C" {
 #include "entity.h"
@@ -178,15 +179,30 @@ struct Builder {
     int cell = -1, imageDepth = 0;
     Block image;
     bool imageInCell = false;
+    std::wstring inlineHtml;
+    const char *inlineHtmlSource = nullptr;
+    bool oversizedHtml = false;
     bool stopped() const {
         return cancel && cancel->load(std::memory_order_relaxed);
     }
     void flush() {
+        finish_html();
         if (!current)
             return;
         auto b = std::move(*current);
         current.reset();
         cell = -1;
+        if (b.kind == Kind::Html) {
+            if (auto htmlImage = parse_html_image(b.text.value)) {
+                b.kind = Kind::Image;
+                b.target = std::move(htmlImage->source);
+                b.text = {std::move(htmlImage->alt), {}};
+                b.image_width = htmlImage->width;
+                b.image_height = htmlImage->height;
+                doc.blocks.push_back(std::move(b));
+                return;
+            }
+        }
         if (b.kind == Kind::Diagram) {
             size_t encoded = 0;
             for (size_t i = 0; i < b.text.value.size() && encoded <= 64 * 1024; ++i) {
@@ -316,6 +332,44 @@ struct Builder {
         }
         text.value += value;
     }
+    void finish_html() {
+        oversizedHtml = false;
+        if (inlineHtml.empty())
+            return;
+        auto value = std::move(inlineHtml);
+        inlineHtml.clear();
+        auto source = inlineHtmlSource;
+        if (auto htmlImage = parse_html_image(value)) {
+            begin(Kind::Image);
+            auto address = reinterpret_cast<uintptr_t>(source),
+                 base = reinterpret_cast<uintptr_t>(doc.source.data());
+            if (address >= base && address - base < doc.source.size())
+                current->source = address - base;
+            current->target = std::move(htmlImage->source);
+            current->text.value = std::move(htmlImage->alt);
+            current->image_width = htmlImage->width;
+            current->image_height = htmlImage->height;
+            flush();
+        } else
+            append(std::move(value), source);
+    }
+    void append_html(std::wstring value, const char *source) {
+        if (oversizedHtml) {
+            append(std::move(value), source);
+            return;
+        }
+        if (inlineHtml.size() + value.size() > 16 * 1024) {
+            auto prefix = std::move(inlineHtml);
+            inlineHtml.clear();
+            append(std::move(prefix), inlineHtmlSource);
+            append(std::move(value), source);
+            oversizedHtml = true;
+            return;
+        }
+        if (inlineHtml.empty())
+            inlineHtmlSource = source;
+        inlineHtml += value;
+    }
 };
 int enter_block(MD_BLOCKTYPE type, void *detail, void *data) {
     auto &b = *static_cast<Builder *>(data);
@@ -430,6 +484,7 @@ int leave_block(MD_BLOCKTYPE type, void *, void *data) {
 }
 int enter_span(MD_SPANTYPE type, void *detail, void *data) {
     auto &b = *static_cast<Builder *>(data);
+    b.finish_html();
     b.formats.push_back(b.format);
     switch (type) {
     case MD_SPAN_EM:
@@ -471,6 +526,7 @@ int enter_span(MD_SPANTYPE type, void *detail, void *data) {
 }
 int leave_span(MD_SPANTYPE type, void *, void *data) {
     auto &b = *static_cast<Builder *>(data);
+    b.finish_html();
     if (type == MD_SPAN_IMG && b.imageDepth > 0 && --b.imageDepth == 0 && !b.imageInCell)
         b.doc.blocks.push_back(std::move(b.image));
     if (!b.formats.empty()) {
@@ -483,6 +539,12 @@ int text_callback(MD_TEXTTYPE type, const MD_CHAR *text, MD_SIZE size, void *dat
     auto &b = *static_cast<Builder *>(data);
     if (b.stopped())
         return 1;
+    if (type == MD_TEXT_HTML && b.cell < 0 && !b.imageDepth &&
+        (!b.current || b.current->kind != Kind::Html)) {
+        b.append_html(wide({text, size}), text);
+        return 0;
+    }
+    b.finish_html();
     if (type == MD_TEXT_NULLCHAR)
         b.append(L"\ufffd", text);
     else if (type == MD_TEXT_BR)

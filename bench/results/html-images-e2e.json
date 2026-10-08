@@ -1,0 +1,132 @@
+{
+  "exe_sha256": "701b1d6295f6c0d717ab5a333b3899fa1d4007154b508f4f8e690344548aa8f3",
+  "checks": [
+    {
+      "case": "width",
+      "rendered_size": [
+        120,
+        60
+      ],
+      "expected": [
+        120,
+        60
+      ]
+    },
+    {
+      "case": "height",
+      "rendered_size": [
+        60,
+        30
+      ],
+      "expected": [
+        60,
+        30
+      ]
+    },
+    {
+      "case": "both",
+      "rendered_size": [
+        90,
+        30
+      ],
+      "expected": [
+        90,
+        30
+      ]
+    },
+    {
+      "case": "zoom",
+      "rendered_size": [
+        180,
+        90
+      ],
+      "expected": [
+        180,
+        90
+      ]
+    },
+    {
+      "case": "invalid-size",
+      "rendered_size": [
+        240,
+        120
+      ],
+      "expected": [
+        240,
+        120
+      ]
+    },
+    {
+      "case": "inline",
+      "rendered_size": [
+        100,
+        49
+      ],
+      "expected": [
+        100,
+        50
+      ]
+    },
+    {
+      "case": "markdown",
+      "rendered_size": [
+        240,
+        120
+      ],
+      "expected": [
+        240,
+        120
+      ]
+    },
+    {
+      "case": "split",
+      "rendered_size": [
+        120,
+        60
+      ],
+      "expected": [
+        120,
+        60
+      ]
+    },
+    {
+      "case": "live-size-edit",
+      "rendered_size": [
+        80,
+        40
+      ],
+      "expected": [
+        80,
+        40
+      ]
+    },
+    {
+      "case": "fit",
+      "rendered_size": [
+        920,
+        92
+      ],
+      "expected": [
+        920,
+        92
+      ]
+    },
+    {
+      "case": "code/wrapper/missing/remote fallbacks",
+      "asset_bytes": 0
+    },
+    {
+      "case": "external Ghidra README",
+      "document_sha256": "b7c44cfb362d503622e82460995902e9c1754d1166a22267dae8b22e603c22be",
+      "logo_sha256": "aec0eda604fabe87af692340f5e2b95c8d1b72eddd2277a89e65a800e14daeb8",
+      "source_unchanged": true,
+      "logo_pixel_bounds": [
+        60,
+        24,
+        460,
+        116
+      ],
+      "snapshot": "tests\\output\\html-ghidra-readme.png"
+    }
+  ]
+}

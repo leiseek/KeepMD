@@ -28,6 +28,7 @@ struct Block {
     std::vector<int> align;
     std::wstring target, language, marker;
     uint32_t level = 0, indent = 0, quote = 0;
+    uint32_t image_width = 0, image_height = 0;
     size_t source = 0, text_start = 0;
     bool header = false;
     bool joins_next = false; // Physical layout chunks of one logical paragraph.

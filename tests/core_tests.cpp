@@ -1,6 +1,7 @@
 #include "diagram.h"
 #include "document.h"
 #include "file_io.h"
+#include "html_image.h"
 #include "prompt_model.h"
 #include "settings.h"
 #include "shell_integration.h"
@@ -52,6 +53,68 @@ int main() {
               image->plain_text().find(L"after") != std::wstring::npos,
           "inline image no text loss");
     auto headings = parse_document("# Repeat\n\n# Repeat\n");
+    const std::string htmlSource = "<img src=\"Ghidra/Features/Base/src/main/resources/images/GHIDRA_3.png\" "
+                                   "width=\"400\">\n\n# Ghidra\n";
+    auto htmlDoc = parse_document(htmlSource);
+    check(htmlDoc->source == htmlSource && htmlDoc->blocks.size() == 2 &&
+              htmlDoc->blocks[0].kind == Kind::Image && htmlDoc->blocks[0].image_width == 400 &&
+              htmlDoc->blocks[0].target == L"Ghidra/Features/Base/src/main/resources/images/GHIDRA_3.png" &&
+              htmlDoc->headings.size() == 1,
+          "HTML image renders without altering original source or following heading");
+    auto tag = parse_html_image(L" \n<IMG loading=lazy SRC='图片 &amp; 图.png'\nWIDTH=120 height='60' "
+                                L"alt=\"a &gt; b\" onclick='ignored()' />\r\n");
+    check(tag && tag->source == L"图片 & 图.png" && tag->alt == L"a > b" && tag->width == 120 &&
+              tag->height == 60,
+          "HTML image case quotes whitespace entities and ignored attributes");
+    tag = parse_html_image(L"<img hidden src='first.png' src='second.png' width=50 width=70>");
+    check(tag && tag->source == L"first.png" && tag->width == 50, "first duplicate HTML attribute wins");
+    tag = parse_html_image(L"<img src=x.png width='99999999999999999' height='50%'>");
+    check(tag && !tag->width && !tag->height, "invalid or excessive HTML dimensions use natural size");
+    tag = parse_html_image(L"<img src=x.png width='0' height='-2'>");
+    check(tag && !tag->width && !tag->height, "nonpositive HTML dimensions use natural size");
+    tag = parse_html_image(L"<img src=x.png width='&#52;00'>");
+    check(tag && tag->width == 400, "numeric entities in HTML dimensions");
+    for (auto invalid :
+         {L"<image src=x.png>", L"<img>", L"<img src=''>", L"<img src='unterminated>",
+          L"<img src=x.png> trailing", L"<div><img src=x.png></div>", L"<!-- <img src=x.png> -->",
+          L"<img src='x.png'alt='y'>", L"<img src='x&#10;y.png'>", L"<img src=x.png><img src=y.png>"})
+        check(!parse_html_image(invalid), "unsupported or malformed HTML keeps source fallback");
+    check(!parse_html_image(L"<img src='" + std::wstring(17000, L'a') + L"'>"), "HTML tag size bound");
+    auto inlineHtml = parse_document("**before** <img src='x.png' alt='图片' width='40'> *after*\n");
+    check(inlineHtml->blocks.size() == 3 && inlineHtml->blocks[1].kind == Kind::Image &&
+              inlineHtml->blocks[1].text.value == L"图片" && inlineHtml->blocks[1].source == 11 &&
+              inlineHtml->blocks[0].text.spans[0].style == Bold &&
+              inlineHtml->blocks[2].text.spans[0].style == Italic,
+          "inline HTML image keeps surrounding text styles and source offset");
+    auto multilineHtml = parse_document("before <IMG\nSRC='x.png'\nwidth=90 height=30> after\n");
+    check(multilineHtml->blocks.size() == 3 && multilineHtml->blocks[1].kind == Kind::Image &&
+              multilineHtml->blocks[1].image_width == 90 && multilineHtml->blocks[1].image_height == 30,
+          "multiline HTML image combines MD4C text callbacks");
+    auto oversizedHtml =
+        parse_document("before <img alt='" + std::string(17000, 'a') + "' src='x.png'> after\n");
+    bool oversizedRendered = false;
+    for (const auto &block : oversizedHtml->blocks)
+        oversizedRendered |= block.kind == Kind::Image;
+    check(!oversizedRendered && oversizedHtml->plain_text().find(L"after") != std::wstring::npos,
+          "oversized inline HTML preserves source with bounded tag buffering");
+    auto rawHtml = parse_document("```html\n<img src=x.png>\n```\n\n`<img src=x.png>`\n\n"
+                                  "<script>\n<img src=x.png>\n</script>\n\n"
+                                  "<div><img src=x.png></div>\n\n"
+                                  "| image |\n| --- |\n| <img src=x.png> |\n");
+    bool unexpectedImage = false;
+    for (const auto &block : rawHtml->blocks)
+        unexpectedImage |= block.kind == Kind::Image;
+    check(!unexpectedImage && rawHtml->plain_text().find(L"<img src=x.png>") != std::wstring::npos,
+          "code scripts wrappers and table cells preserve source without image interpretation");
+    auto extent = image_extent(1164, 265, 400, 0, 800, 1);
+    check(extent.width == 400 && std::abs(extent.height - 91.0653f) < .01f,
+          "Ghidra logo requested width preserves aspect ratio");
+    extent = image_extent(240, 120, 0, 30, 800, 2);
+    check(extent.width == 120 && extent.height == 60, "height only honors zoom and aspect ratio");
+    extent = image_extent(240, 120, 400, 100, 200, 1);
+    check(extent.width == 200 && extent.height == 50, "both dimensions fit available width together");
+    extent = image_extent(240, 120, 0, 0, 120, 2);
+    check(extent.width == 120 && extent.height == 60, "existing unsized Markdown image fitting preserved");
     check(headings->headings[1].anchor == L"repeat-1", "duplicate heading anchor");
     check(search(*doc, L"BOLD").size() == 1, "case insensitive search");
     check(search(*doc, L"标题").size() == 1, "CJK search");

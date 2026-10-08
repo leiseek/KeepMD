@@ -1,5 +1,5 @@
 {
-  "measured_at": "2026-10-02T10:27:28.9460004+08:00",
+  "measured_at": "2026-10-08T09:22:40.1919892+08:00",
   "os": {
     "Caption": "Microsoft Windows 11 专业版",
     "Version": "10.0.26300",
@@ -23,6 +23,10 @@
     {
       "Name": "OrayIddDriver Device",
       "DriverVersion": "17.50.19.949"
+    },
+    {
+      "Name": "MuMu Virtual Display Adapter",
+      "DriverVersion": "20.36.41.498"
     }
   ],
   "storage": [

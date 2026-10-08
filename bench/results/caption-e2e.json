@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "00ba600296e6fbb1aae61a571c285b1976c2aff79d57a76c70bd8e6532eeac2a",
+  "exe_sha256": "701b1d6295f6c0d717ab5a333b3899fa1d4007154b508f4f8e690344548aa8f3",
   "checks": [
     "native caption style and menu strip removed; custom header drag moves reader",
     "right edge retains native interactive resizing",

@@ -10,6 +10,8 @@ try {
         & python (Join-Path $PSScriptRoot $script)
         if ($LASTEXITCODE -ne 0) { throw "$script failed" }
     }
+    & python "$PSScriptRoot/test_html_images.py"
+    if ($LASTEXITCODE -ne 0) { throw 'HTML image rendering validation failed' }
     if (-not $SkipIme) {
         & python "$PSScriptRoot/test_ime.py"
         if ($LASTEXITCODE -ne 0) { throw 'Native IME validation failed' }

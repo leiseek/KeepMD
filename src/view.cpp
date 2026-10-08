@@ -1,4 +1,5 @@
 #include "view.h"
+#include "html_image.h"
 #include "ui.h"
 #include <algorithm>
 #include <chrono>
@@ -43,7 +44,7 @@ bool equal_block(const Block &a, const Block &b) {
     if (a.kind != b.kind || a.level != b.level || a.indent != b.indent || a.quote != b.quote ||
         a.header != b.header || a.joins_next != b.joins_next || a.target != b.target ||
         a.marker != b.marker || a.align != b.align || a.cells.size() != b.cells.size() ||
-        !equal_text(a.text, b.text))
+        a.image_width != b.image_width || a.image_height != b.image_height || !equal_text(a.text, b.text))
         return false;
     for (size_t i = 0; i < a.cells.size(); ++i)
         if (!equal_text(a.cells[i], b.cells[i]))
@@ -350,6 +351,12 @@ View::Entry &View::layout(size_t index) {
         asset->second.use = ++clock_;
         float w = asset->second.scene ? asset->second.scene->width : (float)asset->second.width;
         float h = asset->second.scene ? asset->second.scene->height : (float)asset->second.height;
+        if (!asset->second.scene) {
+            auto size = image_extent(asset->second.width, asset->second.height, b.image_width, b.image_height,
+                                     usable, zoom_);
+            w = size.width;
+            h = size.height;
+        }
         if (asset->second.scene && expandedDiagrams_.contains(index))
             entry.width = std::max(usable, w);
         float scale = std::min(1.f, entry.width / std::max(1.f, w));
@@ -536,9 +543,10 @@ void View::draw_block(ID2D1RenderTarget *target, size_t index, Entry &entry, flo
             float fit = std::min(1.f, entry.width / std::max(1.f, asset->second.scene->width));
             draw_diagram(target, *asset->second.scene, x, y + 8 * zoom_, fit);
         } else if (asset->second.bitmap) {
-            float fit = std::min(1.f, entry.width / (float)asset->second.width);
-            target->DrawBitmap(asset->second.bitmap.Get(), D2D1::RectF(x, y, x + asset->second.width * fit,
-                                                                       y + asset->second.height * fit));
+            auto size = image_extent(asset->second.width, asset->second.height, b.image_width, b.image_height,
+                                     entry.width, zoom_);
+            target->DrawBitmap(asset->second.bitmap.Get(),
+                               D2D1::RectF(x, y, x + size.width, y + size.height));
         }
         return;
     }
@@ -718,12 +726,18 @@ void View::request_asset(size_t index) {
                         result.scene = std::move(scene);
                     }
                 } else {
-                    if (block.target.find(L"://") != std::wstring::npos || block.target.starts_with(L"data:"))
+                    auto decodedPath = decode_url_path(block.target);
+                    auto imagePath = std::filesystem::path(decodedPath);
+                    if (imagePath.is_relative())
+                        imagePath = base / imagePath;
+                    auto nativePath = imagePath.wstring();
+                    bool networkPath = nativePath.size() >= 2 &&
+                                       (nativePath[0] == L'/' || nativePath[0] == L'\\') &&
+                                       (nativePath[1] == L'/' || nativePath[1] == L'\\');
+                    if (decodedPath.find(L"://") != std::wstring::npos || decodedPath.starts_with(L"data:") ||
+                        networkPath)
                         result.error = L"远程或内嵌图片暂未加载";
                     else {
-                        auto imagePath = std::filesystem::path(decode_url_path(block.target));
-                        if (imagePath.is_relative())
-                            imagePath = base / imagePath;
                         ComPtr<IWICImagingFactory> factory;
                         CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
                                          IID_PPV_ARGS(factory.GetAddressOf()));

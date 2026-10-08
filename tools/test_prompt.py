@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import traceback
 import psutil
 from test_gui import ROOT, OUT, u, k, children, name, wait, activate, screenshot, clipboard, CALLBACK, click
 
@@ -61,9 +62,16 @@ def first(pid,cls):return (tops(pid,cls)or[None])[0]
 def cmd(h,id):u.SendMessageW(h,0x111,id,0)
 def choose(process,h,command,path,replace=False):
     u.PostMessageW(h,0x111,command,0)
-    d=wait(lambda:first(process.pid,'#32770'))
-    f=wait(lambda:next((c for c in children(d) if name(c,True)=='Edit' and u.GetDlgCtrlID(c) in (1148,1001)),None))
-    text(f,str(path));u.PostMessageW(d,0x111,1,0)
+    d=wait(lambda:next((box for box in tops(process.pid,'#32770') if u.IsWindowVisible(box)),None))
+    f=wait(lambda:next((c for c in children(d) if name(c,True)=='Edit' and u.GetDlgCtrlID(c) in (1148,1001)
+                       and u.IsWindowVisible(c) and u.IsWindowEnabled(c)),None))
+    # Shell dialog children can exist before initial-folder setup completes.
+    # Confirm the requested filename survived setup before accepting the dialog.
+    def filename_ready():
+        text(f,str(path))
+        return name(f)==str(path)
+    wait(filename_ready)
+    u.PostMessageW(d,0x111,1,0)
     if replace:
         def confirmation():
             return next((box for box in tops(process.pid,'#32770')
@@ -149,7 +157,12 @@ try:
     cmd(panel,517)
     # The integrated window must keep the source editor's undo chain.
     cmd(panel,512);assert not name(edit)
-    activate(panel,edit);keys(panel,0x11,ord('Z'));cmd(panel,511);assert clipboard()==sample
+    click(edit,40,40);keys(panel,0x11,ord('Z'))
+    wait(lambda:'请按下列步骤处理' in name(edit))
+    def cleared_undo_copied():
+        cmd(panel,511)
+        return clipboard()==sample
+    wait(cleared_undo_copied)
     export=folder/'导出.md'
     if export.exists():export.unlink()
     choose(process,panel,522,export)
@@ -282,9 +295,17 @@ try:
     u.PostMessageW(main,0x10,0,0);wait(lambda:not u.IsWindowVisible(main));assert process.poll() is None
     u.PostMessageW(main,0x111,101,0);process.wait(timeout=8)
     checks.append('forwarded --resident request enables tray residency in an existing ordinary reader')
-    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'checks':checks,'measurements':measurements}
+    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'completed','checks':checks,'measurements':measurements}
     (ROOT/'bench/results/prompt-e2e.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False,indent=2))
+except Exception as error:
+    frames=traceback.extract_tb(error.__traceback__)
+    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'incomplete',
+            'checks':checks,'measurements':measurements,'error':str(error),
+            'failure_line':frames[-2 if len(frames)>1 else -1].lineno,
+            'process_exit_before_cleanup':process.poll() if process else None}
+    (ROOT/'bench/results/prompt-e2e.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    raise
 finally:
     if held:u.CloseClipboard()
     for p in (process,target_process):
