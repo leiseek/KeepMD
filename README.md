@@ -1,8 +1,8 @@
-**KeepMD 0.4.6 — Windows 原生 Markdown 阅读器与独立提示词工具**
+**KeepMD 0.5.0 — Windows 原生 Markdown 阅读器与独立提示词工具**
 
-阅读、预览优先，附带按需开启的轻量源码编辑。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
+阅读、预览优先，附带按需开启的轻量编辑（可视化与源码）。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
 
-交付目标为 Windows 11 x64 便携版。应用运行只使用系统动态库，第三方 Markdown/流程图代码静态编入 EXE。编辑使用按需创建的系统 RichEdit 纯文本控件。
+交付目标为 Windows 11 x64 便携版。应用运行只使用系统动态库，第三方 Markdown/流程图代码静态编入 EXE。可视化与源码编辑均使用按需创建的系统 RichEdit 控件。
 
 **使用**
 
@@ -14,32 +14,39 @@
 .\keepmd.exe .\example.md
 ```
 
-`Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/源码，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
+`Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/编辑，`Ctrl+E` 切换可视化/源码，`F11` 全屏，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
 
 支持正文、标题、列表、引用、代码、链接、常见表格和任务列表、本地图片，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
 
 文件菜单的“设为默认打开程序…”会注册 KeepMD 并打开 Windows 默认应用设置，由用户确认扩展名关联。
 
-0.4.6 将提示词功能拆为同目录的 `KeepPrompt.exe`。关闭 `KeepMD.exe` 后，KeepPrompt 仍可通过全局快捷键、托盘或再次启动独立使用；KeepMD 的“提示词”入口只负责启动／唤起它。版本同时包含原生 HTML `<img>` 图片显示：支持本地相对路径、中文／空格路径和 `width`／`height` 尺寸。已用 Ghidra README 的 400 宽 Logo 验证；不自动下载远程图片，不提供任意 HTML/CSS 排版。
+**0.5.0**
 
-本轮同时收紧标题栏、菜单和工具栏尺寸，减少阅读区上方占用；两种工具栏状态、双栏预览和提示词窗口均保持可操作。
+- KeepMD 与 KeepPrompt 是两个完全独立的程序：互不链接、互不启动、不收发消息，各自保存设置、使用各自的图标。KeepMD 不再有“提示词”菜单、按钮和全局快捷键，需要时直接运行 `KeepPrompt.exe`。0.4.x 的提示词草稿、设置和登录启动项升级后原位沿用；0.4.5 的 `keepmd.exe --resident` 启动项现在静默退出。
+- 统一的黑白灰浅色／深色视觉系统和 32 DIP 紧凑标题栏。KeepMD 新建／打开／保存进入文件菜单，阅读／可视化／源码由标题栏图标切换；KeepPrompt 的模板、快捷键、主题统一进入菜单。
+- KeepMD 可视化文档编辑：新建文档直接进入可视化编辑，`Ctrl+E` 在可视化与源码之间切换并记住选择，保存的始终是原样的 Markdown；超过约 26 万字符的文档使用源码编辑。
+- 常见 README HTML 子集原生显示：标题、段落、链接、强调、列表、引用、分隔线、`details`／`summary`、`picture`、`align`／`<center>`；以 `/` 开头的路径按仓库根目录解析。`<img>` 支持本地相对路径、中文／空格路径和 `width`／`height`。不提供任意 HTML/CSS 排版。
+- 工具栏最右侧的“网络图片”开关一次加载当前文档的全部 HTTP(S) 图片，按 URL 持久缓存到本地，跨文档和重启复用。默认关闭，未开启时不联网。
+- SVG 由 Windows Direct2D 绘制，限纯图形 SVG；含文字、样式表或遮罩等内容的 SVG 显示占位和原因。图片占位卡片说明失败原因：找不到文件、无法读取、无法解码或超出上限。
+- `F11` 全屏阅读：Space／方向键／PageDown 翻页，指针静止后隐藏；Esc 或 F11 退出。
+- 查找可高亮横跨超长段落内部分片处的命中。
 
-已验证 Windows 11 x64 的阅读、图片和 KeepPrompt 独立进程流程。旧版同进程全量提示词回归仍有焦点／撤销及自动化导入待定位项；提示词中文 IME 提交及 Esc 组词路径尚未通过完整验证。独立可视化编辑及普通源码编辑输入法检查通过。详见 [版本说明](docs/releases/v0.4.6.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
+已在 Windows 11 x64 验证：233 项核心检查和全部 GUI 测试套件通过，提示词全量集成套件完成（本机默认 `Ctrl+Alt+Space` 被其他程序占用，真实全局唤起改用 `Ctrl+Alt+Shift+F9`）。提示词可视化编辑的中文输入法提交已通过真实输入验证；Esc 取消组词的按键路径已执行但没有单独断言，不宣称完整通过。S100 温热首屏 p95 约 110–119 ms（因口径而异），未达到 100 ms 的验收目标。详见 [版本说明](docs/releases/v0.5.0.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 **快捷输入 Markdown 提示词**
 
-KeepMD 运行时按 `Ctrl+Alt+Space`，或点“提示词”打开独立输入窗口。直接在单栏可视化编辑区输入，用工具栏设置标题、加粗、斜体、列表、引用与代码；按 `Ctrl+Enter`、`Esc` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。中文输入法正在组词时，Esc 优先取消组词。
+运行 `KeepPrompt.exe` 后，在任何应用中按 `Ctrl+Alt+Space` 打开输入窗口（KeepMD 中已没有“提示词”入口）。直接在单栏可视化编辑区输入，用工具栏设置标题、加粗、斜体、列表、引用与代码；按 `Ctrl+Enter` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。`Esc` 只收起、不复制（0.4.x 中 Esc 也会复制）。中文输入法正在组词时，Esc 优先取消组词。
 
 格式按钮应用于选中的文字；未选中文字时，“加粗／斜体／代码”会插入选中的占位文字，直接输入即可替换。流程图显示为图形，点“流程图”或双击图形修改该图的 Mermaid 语法。复制和保存仍保留 Markdown。
 
 提示词窗口的“设置”支持自定义快捷键、双击左 Ctrl、置顶、透明度、常驻托盘与登录启动。“文件”支持载入／导出 Markdown 和导入旧 Prompt Flow JSON。草稿自动保存，不影响正在阅读或编辑的文档。
 
 ```powershell
-.\keepmd.exe --prompt    # 立即输入提示词，并启用托盘常驻
-.\keepmd.exe --resident  # 静默驻留，等待全局快捷键
+.\KeepPrompt.exe --show      # 立即输入提示词
+.\KeepPrompt.exe --resident  # 静默驻留并常驻托盘，等待全局快捷键
 ```
 
-默认关闭阅读器即退出；只有明确开启常驻后才保留托盘服务。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
+关闭提示词窗口只是保存并收起；只有明确开启常驻后才显示托盘图标，文件或托盘菜单“退出 KeepPrompt”结束进程。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
 
 **可视化提示词编辑（0.4.0）**
 
@@ -85,4 +92,4 @@ python -m pip install -r tools/requirements-dev.txt
 - [原生阅读决策](docs/decisions/0001-native-reader.md) 与 [编辑控件决策](docs/decisions/0002-source-editor.md)
 - [第三方来源与许可证](THIRD_PARTY_NOTICES.md)
 
-阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、公式、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.4 的交付范围。
+阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、公式、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.5 的交付范围。

@@ -17,7 +17,7 @@ media=OUT/'media-formats.md';media.write_text('# Media\n\n'+''.join(f'![{ext}](m
 mmd=OUT/'standalone.MMD';mmd.write_text('flowchart LR\nA[独立文件]-->B[完成]\n',encoding='utf-8')
 for label,path in [('style',ROOT/'tests/fixtures/flow-details.md'),('media',media),('mmd',mmd)]:
     report=OUT/f'release-{label}.json';picture=OUT/f'release-{label}.png';config=OUT/'release-smoke.ini'
-    config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
+    config.write_text('[Reader]\nVisual=0\nDark=0\n',encoding='utf-8')
     process=subprocess.Popen([str(exe),str(path),'--config',str(config),'--report',str(report),'--snapshot',str(picture),'--exit-after','800'],cwd=ROOT)
     try:
         hwnd=wait(lambda:(windows(process.pid)or[None])[0]);activate(hwnd)

@@ -1,15 +1,32 @@
 {
-  "exe_sha256": "701b1d6295f6c0d717ab5a333b3899fa1d4007154b508f4f8e690344548aa8f3",
-  "suite_status": "incomplete",
+  "exe_sha256": "23810d96bf7aa729fc26e6532f0ef6ba4758b10a8f6eed7b92654e7f3c71052d",
+  "suite_status": "completed",
+  "hotkey": "Ctrl+Alt+Shift+F9",
   "checks": [
     "resident startup: hidden, editor and RichEdit DLL not loaded",
-    "single visual editor, Markdown/flowchart formatting and exact source autosave"
+    "single visual editor, Markdown/flowchart formatting and exact source autosave",
+    "Ctrl+Enter copies exact Markdown and returns focus; target pastes source",
+    "clipboard contention keeps panel and draft visible",
+    "failed shortcut change preserves previous registered shortcut",
+    "custom shortcut summons from another process",
+    "double left Ctrl works; Ctrl+C then Ctrl does not summon",
+    "undoable clear, Markdown export and original Prompt Flow JSON import",
+    "second --show invocation reuses profile owner",
+    "close hides to tray, explicit exit and draft/settings restoration",
+    "installed Chinese IME commits text; Escape path exercised",
+    "hidden prompt idles without rewriting draft or significant CPU",
+    "startup conflict shows settings and accepts alternative shortcut",
+    "locked save retries safely; external draft conflict supports cancel/export/discard without overwriting disk",
+    "corrupt saved draft preserved and editing disabled until repaired",
+    "forwarded --resident request enables tray residency in an existing KeepPrompt window"
   ],
   "measurements": {
-    "cold_resident_private_mib": 2.8515625,
-    "first_summon_observed_ms": 797.4211999680847
-  },
-  "error": "Timed out waiting for GUI state",
-  "failure_line": 116,
-  "process_exit_before_cleanup": null
+    "cold_resident_private_mib": 2.09765625,
+    "first_summon_observed_ms": 92.24369999719784,
+    "hidden_idle_seconds": 5,
+    "hidden_idle_cpu_seconds": 0.0,
+    "hidden_idle_write_bytes": 0,
+    "hidden_private_mib": 5.09765625,
+    "hidden_draft_changed": false
+  }
 }

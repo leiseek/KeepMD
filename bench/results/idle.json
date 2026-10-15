@@ -1,20 +1,20 @@
 {
-  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
-  "seconds": 30.000136199989356,
+  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "seconds": 30.000407599996834,
   "cpu_seconds_delta": 0.0,
   "paint_count_delta": 0,
-  "private_bytes": 14155776,
-  "working_set": 32681984,
+  "private_bytes": 17276928,
+  "working_set": 44609536,
   "gpu_process_counter_rows": [
     {
-      "InstanceName": "pid_13768_luid_0x00000000_0x000100e8_phys_0",
-      "Path": "\\\\flp\\gpu process memory(pid_13768_luid_0x00000000_0x000100e8_phys_0)\\dedicated usage",
+      "InstanceName": "pid_36244_luid_0x00000000_0x0001001e_phys_0",
+      "Path": "\\\\flp\\gpu process memory(pid_36244_luid_0x00000000_0x0001001e_phys_0)\\dedicated usage",
       "CookedValue": 0
     },
     {
-      "InstanceName": "pid_13768_luid_0x00000000_0x000100e8_phys_0",
-      "Path": "\\\\flp\\gpu process memory(pid_13768_luid_0x00000000_0x000100e8_phys_0)\\shared usage",
-      "CookedValue": 2879488
+      "InstanceName": "pid_36244_luid_0x00000000_0x0001001e_phys_0",
+      "Path": "\\\\flp\\gpu process memory(pid_36244_luid_0x00000000_0x0001001e_phys_0)\\shared usage",
+      "CookedValue": 2514944
     }
   ],
   "gpu_note": "An empty list means no matching provider instance/readable counter; it is not a claim of zero system compositor GPU use."

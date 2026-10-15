@@ -36,15 +36,15 @@ class CHARFORMAT(C.Structure):
 class GETTEXT(C.Structure):
     _fields_=[('cb',W.DWORD),('flags',W.DWORD),('page',W.UINT),('default',C.c_void_p),('used',C.c_void_p)]
 root=OUT/'visual-editor';root.mkdir(exist_ok=True)
-cfg=root/'profile.ini';cfg.write_text('[Reader]\nDark=0\n',encoding='utf-8')
-cfg.with_suffix('.prompt.ini').write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\n',encoding='utf-8')
+cfg=root/'profile.ini' # KeepPrompt profile; its draft is profile.draft.md
+cfg.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\n',encoding='utf-8')
 sample='# 实现方案\n\n请围绕 **性能** 和 *可维护性* 给出建议。\n\n- 保留现有约束\n- 标明需要验证的假设\n\n```mermaid\nflowchart LR\nA[阅读] --> B[分析] --> C[建议]\n```\n\n最后列出下一步。\n'
-cfg.with_suffix('.prompt.md').write_text(sample,encoding='utf-8')
+cfg.with_suffix('.draft.md').write_text(sample,encoding='utf-8')
 exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';p=subprocess.Popen([str(prompt_exe),'--show','--config',str(cfg)],cwd=ROOT)
 handle=k.OpenProcess(0x0400|0x0010|0x0020|0x0008,False,p.pid);remote=k.VirtualAllocEx(handle,None,4*1024*1024,0x3000,4)
 checks=[]
 try:
-    panel=wait(lambda:first(p.pid,'KeepMD.Prompt.'));wait(lambda:u.IsWindowVisible(panel))
+    panel=wait(lambda:first(p.pid,'KeepPrompt.'));wait(lambda:u.IsWindowVisible(panel))
     edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.5)
     assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
     assert not u.GetDlgItem(panel,513)
@@ -108,7 +108,7 @@ try:
     # A specialized diagram dialog edits only the selected chart, never exposes whole-document source mode.
     command(panel,512)
     u.PostMessageW(panel,0x111,549,0)
-    box=wait(lambda:first(p.pid,'KeepMD.DiagramInput'));input_=u.GetDlgItem(box,1001)
+    box=wait(lambda:first(p.pid,'Keep.DiagramInput'));input_=u.GetDlgItem(box,1001)
     settext(input_,'flowchart LR\nA[开始] --> B[完成]\n');u.PostMessageW(box,0x111,1,0)
     wait(lambda:not u.IsWindow(box));time.sleep(.3)
     assert source()=='```mermaid\nflowchart LR\nA[开始] --> B[完成]\n```\n'
@@ -117,7 +117,7 @@ try:
     activate(panel,edit);u.SendMessageW(edit,0xB1,0,0)
     screenshot(panel,'visual-diagram-click.png')
     click(edit,110,95);time.sleep(.05);u.mouse_event(2,0,0,0,0);time.sleep(.04);u.mouse_event(4,0,0,0,0)
-    box=wait(lambda:first(p.pid,'KeepMD.DiagramInput'))
+    box=wait(lambda:first(p.pid,'Keep.DiagramInput'))
     input_=u.GetDlgItem(box,1001);assert 'A[开始]' in name(input_)
     u.PostMessageW(box,0x111,2,0);wait(lambda:not u.IsWindow(box))
     assert source()=='```mermaid\nflowchart LR\nA[开始] --> B[完成]\n```\n'
@@ -131,7 +131,7 @@ try:
     assert source()==expected,repr(source())
     def saved_expected():
         try:
-            return cfg.with_suffix('.prompt.md').read_text(encoding='utf-8')==expected
+            return cfg.with_suffix('.draft.md').read_text(encoding='utf-8')==expected
         except (PermissionError,FileNotFoundError):
             return False
     wait(saved_expected)

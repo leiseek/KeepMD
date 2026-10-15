@@ -1,10 +1,14 @@
 {
-  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
-  "prompt_exe_sha256": "cf08bfc2497b318de4c76e1f6cf74fb54cf88649290b1826bad1f19fcaffaef7",
+  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "prompt_exe_sha256": "23810d96bf7aa729fc26e6532f0ef6ba4758b10a8f6eed7b92654e7f3c71052d",
   "checks": [
-    "KeepPrompt resident starts as a separate hidden process without a reader window",
-    "KeepMD broker summons KeepPrompt; visual editor autosaves and copies Markdown",
-    "closing KeepMD leaves the KeepPrompt process and prompt window alive",
-    "KeepPrompt explicit Quit exits its own process"
+    "KeepMD runs alone: no prompt menu, and a legacy --prompt flag starts no other program",
+    "KeepPrompt runs alone as a hidden resident process with its own window class",
+    "a second KeepPrompt launch summons the first; the draft autosaves beside its own profile",
+    "closing KeepMD leaves KeepPrompt running; each program writes only its own settings",
+    "KeepPrompt Quit ends only its own process",
+    "a pre-split portable folder keeps opening its existing prompt draft in place",
+    "a pre-split startup entry uses the old prompt files and leaves the KeepMD reader profile untouched",
+    "a KeepMD 0.4.5 --resident startup entry exits without opening a window or touching settings"
   ]
 }

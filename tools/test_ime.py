@@ -18,7 +18,7 @@ class INPUT(C.Structure):_fields_=[('type',W.DWORD),('data',UNION)]
 u.SendInput.argtypes=[W.UINT,C.POINTER(INPUT),C.c_int];u.SendInput.restype=W.UINT
 
 path=OUT/'ime-input.md';path.write_text('# IME\n\n',encoding='utf-8')
-config=OUT/'ime.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
+config=OUT/'ime.ini';config.write_text('[Reader]\nVisual=0\nDark=0\n',encoding='utf-8')
 process=subprocess.Popen([str(ROOT/'build/release/keepmd.exe'),str(path),'--config',str(config)],cwd=ROOT)
 attempts=[];toggled=False
 previousForeground=u.GetForegroundWindow()

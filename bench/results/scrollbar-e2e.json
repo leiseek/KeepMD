@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
+  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
   "checks": [
     "reader thumb drags past 65535; track click, wheel and keyboard Home work without viewport resize",
     "virtual table of contents scrollbar drags through thousands of headings",

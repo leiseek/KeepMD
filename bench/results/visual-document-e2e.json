@@ -1,0 +1,13 @@
+{
+  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "checks": [
+    "existing document opens in visual editing with the exact Markdown; split-only actions are hidden",
+    "real Unicode typing, Enter and Ctrl+B edit visually while the Markdown markers stay in the source",
+    "saving a visual edit writes the exact Markdown, including the untouched table and flowchart",
+    "Ctrl+E switches visual/source both ways without changing the text and remembers the last mode",
+    "Ctrl+Z/Ctrl+Y undo and redo whole typing bursts; a pause separates two undo steps",
+    "New opens visual editing even when Edit prefers source; typed Markdown saves as a new UTF-8 file",
+    "a document with U+FFFC stays in reading mode and says why, instead of being silently rewritten",
+    "documents beyond the visual limit open in source editing, say why and refuse the visual switch"
+  ]
+}

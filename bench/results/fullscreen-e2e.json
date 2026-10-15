@@ -1,0 +1,68 @@
+{
+  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "checks": [
+    {
+      "case": "F11 covers the monitor; caption, toolbar, status bar and page card hidden",
+      "window": [
+        0,
+        0,
+        1920,
+        1080
+      ]
+    },
+    {
+      "case": "presenter keys page by 90% of the full-screen view; Home/End reach the ends",
+      "page": 961.2,
+      "steps": [
+        [
+          "Space",
+          961.2
+        ],
+        [
+          "Shift+Space",
+          -961.2
+        ],
+        [
+          "Right",
+          961.2
+        ],
+        [
+          "Left",
+          -961.2
+        ],
+        [
+          "PageDown",
+          961.2
+        ],
+        [
+          "PageUp",
+          -961.2
+        ]
+      ]
+    },
+    {
+      "case": "pointer hides after 2.5 s idle over the document and returns on movement"
+    },
+    {
+      "case": "find bar opens inside full screen; first Esc closes it, second Esc restores the window",
+      "restored": [
+        104,
+        104,
+        1164,
+        924
+      ]
+    },
+    {
+      "case": "F11 from a maximized window returns to maximized",
+      "maximized": [
+        -7,
+        -7,
+        1927,
+        1087
+      ]
+    },
+    {
+      "case": "editor fills full screen; Esc stays with the editor and F11 leaves"
+    }
+  ]
+}

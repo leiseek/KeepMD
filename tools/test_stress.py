@@ -18,7 +18,7 @@ def send(hwnd,message,w=0,l=0):
 
 results=[]
 for fixture in ('s100','l10','long-paragraph','long-code','oversized-diagram','table5000','images100','flow200','flow1000'):
-    config=OUT/'stress.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
+    config=OUT/'stress.ini';config.write_text('[Reader]\nVisual=0\nDark=0\n',encoding='utf-8')
     report=OUT/f'stress-{fixture}.json'
     process=subprocess.Popen([str(ROOT/'build/release/keepmd.exe'),str(ROOT/f'bench/corpus/{fixture}.md'),'--config',str(config),'--report',str(report)],cwd=ROOT)
     peak=0

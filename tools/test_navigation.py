@@ -37,7 +37,7 @@ initial=OUT/'navigation 原文.md';saved=OUT/'navigation 另存为.md';nextfile=
 initial.write_bytes(('# Navigation\r\n\r\n[Next](navigation%20next.md)\n\n'+''.join(f'## Section {i}\n\nParagraph {i}.\n\n'for i in range(80))).encode('utf-8'))
 nextfile.write_text('# Companion\n\nNext document.\n',encoding='utf-8')
 if saved.exists():saved.unlink()
-config=OUT/'navigation.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
+config=OUT/'navigation.ini';config.write_text('[Reader]\nVisual=0\nDark=0\n',encoding='utf-8')
 report=OUT/'navigation.json';checks=[]
 def launch(path):return subprocess.Popen([str(ROOT/'build/release/keepmd.exe'),str(path),'--config',str(config),'--report',str(report)],cwd=ROOT)
 process=launch(initial)

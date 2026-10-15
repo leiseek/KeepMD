@@ -2,6 +2,10 @@
 #include "document.h"
 #include "file_io.h"
 #include "html_image.h"
+#include "image_cache.h"
+#include "image_decode.h"
+#include "paths.h"
+#include "remote_image.h"
 #include "prompt_model.h"
 #include "settings.h"
 #include "shell_integration.h"
@@ -10,7 +14,12 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <objbase.h>
+#include <windows.h>
+// The test client links both products and the shared foundation; the products never link each other.
+using namespace keep;
 using namespace keepmd;
+using namespace keepprompt;
 int failures = 0, checks = 0;
 void check(bool value, const char *name) {
     ++checks;
@@ -20,6 +29,8 @@ void check(bool value, const char *name) {
     }
 }
 int main() {
+    // WIC decoding in the image failure checks needs COM on this thread.
+    HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     auto doc = parse_document("# 标题\n\nHello **bold** *italic* ~~gone~~ `code` &amp; &#x1F600;.\n\n- "
                               "first\n- [x] done\n\n[reference][later]\n\n[later]: https://example.com\n\n| "
                               "A | B |\n|:--|--:|\n|one|two|\n\n```cpp\nint x;\nreturn x;\n```\n");
@@ -101,11 +112,96 @@ int main() {
                                   "<script>\n<img src=x.png>\n</script>\n\n"
                                   "<div><img src=x.png></div>\n\n"
                                   "| image |\n| --- |\n| <img src=x.png> |\n");
-    bool unexpectedImage = false;
+    int rawImages = 0;
     for (const auto &block : rawHtml->blocks)
-        unexpectedImage |= block.kind == Kind::Image;
-    check(!unexpectedImage && rawHtml->plain_text().find(L"<img src=x.png>") != std::wstring::npos,
-          "code scripts wrappers and table cells preserve source without image interpretation");
+        rawImages += block.kind == Kind::Image;
+    auto rawText = rawHtml->plain_text();
+    check(rawImages == 1 && rawText.find(L"```") == std::wstring::npos &&
+              rawText.find(L"<script>\n<img src=x.png>") != std::wstring::npos &&
+              rawText.find(L"<img src=x.png>\n<img src=x.png>") != std::wstring::npos &&
+              rawText.ends_with(L"image\n<img src=x.png>\n"),
+          "code scripts and table cells preserve source; a div wrapper renders its image");
+    auto readme = parse_document(
+        "<h1 align=center>\n  <img src=\"https://example.invalid/logo.png\" alt=\"TypeWords\" "
+        "style=\"width: 500px;\"/>\n</h1>\n\n<p align=\"center\">\n  <a href=\"/README.md\">English</a> |\n"
+        "  <a href=\"/docs/README.es.md\">Espa&ntilde;ol</a>\n</p>\n\n<p align=\"center\">\n"
+        "  <b>Practice words</b>\n</p>\n\n# Next\n");
+    check(readme->blocks.size() == 4 && readme->blocks[0].kind == Kind::Image &&
+              readme->blocks[0].text.value == L"TypeWords" && readme->blocks[0].text_align == 2 &&
+              readme->blocks[1].text.value == L"English | Español" && readme->blocks[1].text_align == 2 &&
+              readme->blocks[1].text.spans.size() == 2 && readme->blocks[1].text.spans[0].link == L"/README.md" &&
+              readme->blocks[1].text.spans[1].start == 10 &&
+              readme->blocks[1].text.spans[1].link == L"/docs/README.es.md" &&
+              readme->blocks[2].text.value == L"Practice words" && readme->blocks[2].text.spans[0].style == Bold &&
+              readme->blocks[3].kind == Kind::Heading && readme->headings.size() == 1 &&
+              readme->plain_text().find(L'<') == std::wstring::npos,
+          "README header HTML renders as centered native blocks");
+    auto inlineTags =
+        parse_document("Press <kbd>Ctrl</kbd>+<b>C</b><br>\nnext <a href=\"x.md\">link</a> <!-- note -->"
+                       "<u>end</u><sup>1</sup> x <table> y\n\n## <a name=\"install\"></a>Install\n");
+    const auto &tagged = inlineTags->blocks[0].text;
+    check(tagged.value == L"Press Ctrl+C\nnext link end1 x <table> y" && tagged.spans.size() == 4 &&
+              tagged.spans[0].start == 6 && tagged.spans[0].style == Mono && tagged.spans[1].style == Bold &&
+              tagged.spans[2].link == L"x.md" && tagged.spans[3].style == Underline &&
+              inlineTags->headings.size() == 1 && inlineTags->headings[0].anchor == L"install",
+          "inline README tags format text, hide comments and anchors, keep unknown tags");
+    auto htmlList = parse_document("<ul>\n<li>one</li>\n<li><b>two</b>\n<ol start=\"3\"><li>three</li></ol>\n"
+                                   "</li>\n</ul>\n");
+    check(htmlList->blocks.size() == 3 && htmlList->blocks[0].marker == L"•" &&
+              htmlList->blocks[0].indent == 1 && htmlList->blocks[1].text.spans[0].style == Bold &&
+              htmlList->blocks[2].marker == L"3." && htmlList->blocks[2].indent == 2,
+          "HTML lists keep markers start numbers and nesting");
+    auto details = parse_document("<details>\n<summary>More</summary>\n\n**hidden**\n\n</details>\n\nAfter\n");
+    check(details->blocks.size() == 3 && details->blocks[0].text.value == L"More" &&
+              details->blocks[0].marker == L"▾" && details->blocks[1].text.spans[0].style == Bold,
+          "details content is shown expanded after its summary");
+    auto container = parse_document("<div align=\"center\">\n\n# Title\n\n![logo](logo.png)\n\n**Bold**</div>"
+                                    "\n\nAfter\n\n<center>\n\nMiddle\n\n</center>\n\nEnd\n");
+    check(container->blocks.size() == 6 && container->blocks[0].text_align == 2 &&
+              container->blocks[1].kind == Kind::Image && container->blocks[1].text_align == 2 &&
+              container->blocks[2].text_align == 2 && container->blocks[3].text_align == 0 &&
+              container->blocks[4].text_align == 2 && container->blocks[5].text_align == 0,
+          "open containers align following Markdown until their end tag");
+    auto fallback = parse_document("<div align=\"center\">\n<table><tr><td>cell</td></tr></table>\n</div>\n\n"
+                                   "After\n\n<div align=\"right\">\n<script>x()</script>\n\nRight\n\n</div>\n\n"
+                                   "<p align=\"center\"><img src='x.png'alt='y'></p>\n\nEnd\n");
+    bool fallbackRaw = fallback->blocks.size() == 9 && fallback->blocks[0].kind == Kind::Html &&
+                       fallback->blocks[3].text.value == L"After" && fallback->blocks[3].text_align == 0 &&
+                       fallback->blocks[5].kind == Kind::Html && fallback->blocks[6].text.value == L"Right" &&
+                       fallback->blocks[6].text_align == 3 && fallback->blocks[7].kind == Kind::Html &&
+                       fallback->blocks[8].text_align == 0;
+    check(fallbackRaw, "unsupported HTML keeps source while container nesting stays balanced");
+    auto spacing = parse_document("<p>  a&nbsp;b   &amp;\n c <br> line<br/><br>last </p>\n<p>one<p>two</p>\n"
+                                  "<!-- hidden -->\n\n<p align=\"center\"><span align=\"left\">x</span></p>\n");
+    check(spacing->blocks.size() == 4 && spacing->blocks[0].text.value == L"a b & c\nline\n\nlast" &&
+              spacing->blocks[1].text.value == L"one" && spacing->blocks[2].text.value == L"two" &&
+              spacing->blocks[3].text_align == 2,
+          "HTML whitespace collapses, entities decode, breaks and implied paragraph ends");
+    auto across = parse_document("<p>a <b> </b>c <i>d </i> e</p>\n");
+    check(across->blocks.size() == 1 && across->blocks[0].text.value == L"a c d e" &&
+              across->blocks[0].text.spans.size() == 1 && across->blocks[0].text.spans[0].start == 4 &&
+              across->blocks[0].text.spans[0].length == 2 && across->blocks[0].text.spans[0].style == Italic,
+          "HTML whitespace collapses across inline element boundaries");
+    auto picture = parse_document("- <div>\n  <picture>\n  <source srcset=\"dark.png\">\n  <img src=\"light.png\" "
+                                  "alt=\"Logo\">\n  </picture>\n  </div>\n\n<blockquote><p>quoted</p></blockquote>\n");
+    check(picture->blocks.size() == 2 && picture->blocks[0].kind == Kind::Image &&
+              picture->blocks[0].target == L"light.png" && picture->blocks[0].indent == 1 &&
+              picture->blocks[1].quote == 1,
+          "picture uses its img fallback inside Markdown list context");
+    std::string longHtml = "<p align=\"center\">";
+    for (int i = 0; i < 4000; ++i)
+        longHtml += "word ";
+    auto longHtmlDoc = parse_document(longHtml + "</p>\n");
+    bool longAligned = longHtmlDoc->blocks.size() > 2;
+    for (const auto &block : longHtmlDoc->blocks)
+        longAligned &= block.text_align == 2;
+    check(longAligned && longHtmlDoc->blocks.front().joins_next && !longHtmlDoc->blocks.back().joins_next,
+          "long HTML paragraphs keep alignment across layout chunks");
+    std::string nestedHtml;
+    for (int i = 0; i < 80; ++i)
+        nestedHtml += "<div>";
+    auto deep = parse_document(nestedHtml + "x\n");
+    check(!deep->blocks.empty() && deep->blocks[0].kind == Kind::Html, "HTML nesting depth stays bounded");
     auto extent = image_extent(1164, 265, 400, 0, 800, 1);
     check(extent.width == 400 && std::abs(extent.height - 91.0653f) < .01f,
           "Ghidra logo requested width preserves aspect ratio");
@@ -153,6 +249,15 @@ int main() {
         check(save_file(path, L"changed\n", encoding, error), "replace existing file");
         std::filesystem::remove(path);
     }
+    auto repo = temp / L"repo 中文";
+    std::filesystem::create_directories(repo / L".git");
+    std::filesystem::create_directories(repo / L"docs");
+    check(linked_path(repo / L"docs", L"/public/imgs/words.png") == repo / L"public/imgs/words.png" &&
+              linked_path(repo / L"docs", L"README.es.md") == repo / L"docs/README.es.md" &&
+              linked_path(repo, L"/README.md") == repo / L"README.md" &&
+              linked_path(repo / L"docs", L"//server/share/x.png").wstring().starts_with(L"//server"),
+          "root-relative links resolve to the repository root");
+    std::filesystem::remove_all(repo);
     auto bad = temp / L"invalid.md";
     {
         std::ofstream out(bad, std::ios::binary);
@@ -187,6 +292,32 @@ int main() {
     auto codeDoc = parse_document("```\n" + longCode + "\n```\n");
     check(codeDoc->blocks.size() > 1 && codeDoc->plain_text() == wide(longCode) + L"\n",
           "oversized code line chunks preserve source copying");
+    // Highlight lookup agrees with a full scan for every block, and a match straddling a chunk boundary
+    // belongs to both chunks so its tail is highlighted too.
+    auto wordMatches = search(*longDoc, L"word 中文");
+    bool lookupAgrees = true;
+    for (const auto &block : longDoc->blocks) {
+        size_t begin = block.text_start, end = begin + block_plain(block).size();
+        auto [first, last] = matches_in(wordMatches, begin, end);
+        size_t expected = 0;
+        for (const auto &m : wordMatches)
+            expected += m.absolute + m.length > begin && m.absolute < end;
+        lookupAgrees &= last - first == expected;
+        for (size_t m = first; m < last; ++m)
+            lookupAgrees &= wordMatches[m].absolute + wordMatches[m].length > begin && wordMatches[m].absolute < end;
+    }
+    check(lookupAgrees, "match lookup by text range equals a full scan");
+    auto straddleDoc = parse_document("```\n" + std::string(8190, 'a') + "NEEDLE" + std::string(9000, 'a') + "\n```\n");
+    auto needle = search(*straddleDoc, L"needle");
+    bool straddles = needle.size() == 1 && straddleDoc->blocks[needle[0].block].joins_next &&
+                     needle[0].block + 1 < straddleDoc->blocks.size();
+    if (straddles) {
+        const auto &tail = straddleDoc->blocks[needle[0].block + 1];
+        auto [first, last] = matches_in(needle, tail.text_start, tail.text_start + block_plain(tail).size());
+        straddles = needle[0].absolute + needle[0].length > tail.text_start && first == 0 && last == 1;
+    }
+    check(straddles, "a match straddling a chunk boundary is highlighted in the following chunk");
+    check(matches_in({}, 0, 100) == std::pair<size_t, size_t>(0, 0), "no matches yields an empty range");
     auto bigDiagram =
         parse_document("```mermaid\ngraph LR\n%%" + std::string(100000, 'x') + "\nA-->B\n```\n");
     check(std::none_of(bigDiagram->blocks.begin(), bigDiagram->blocks.end(),
@@ -337,6 +468,37 @@ int main() {
               !prompt_startup_enabled(L"test", startup, startupKey),
           "startup registration can be removed");
     RegDeleteTreeW(HKEY_CURRENT_USER, startupKey.c_str());
+    // Profiles: the portable default, a pre-split folder, and a pre-split startup entry naming the reader profile.
+    auto profiles = temp / L"profiles";
+    std::filesystem::remove_all(profiles);
+    std::filesystem::create_directories(profiles);
+    auto fresh = prompt_profile(profiles / L"KeepPrompt.ini", false);
+    check(fresh.settings == profiles / L"KeepPrompt.ini" && fresh.draft == profiles / L"KeepPrompt.draft.md" &&
+              fresh.readerProfile.empty(),
+          "new prompt profile keeps settings and draft beside KeepPrompt.exe");
+    check(save_file(profiles / L"keepmd.prompt.md", L"# 旧草稿\n", Encoding::Utf8, error), "legacy draft fixture");
+    auto upgraded = prompt_profile(profiles / L"KeepPrompt.ini", false);
+    check(upgraded.settings == profiles / L"keepmd.prompt.ini" && upgraded.draft == profiles / L"keepmd.prompt.md" &&
+              upgraded.readerProfile == profiles / L"keepmd.ini",
+          "pre-split folder keeps using its prompt draft and settings in place");
+    check(save_file(profiles / L"KeepPrompt.draft.md", L"", Encoding::Utf8, error) &&
+              prompt_profile(profiles / L"KeepPrompt.ini", false).readerProfile.empty(),
+          "a folder that already has a KeepPrompt profile uses it");
+    auto reader = profiles / L"reader.ini";
+    check(save_file(reader, L"[Reader]\nDark=0\n", Encoding::Utf8, error), "reader profile fixture");
+    auto entry = prompt_profile(reader, true);
+    check(entry.settings == profiles / L"reader.prompt.ini" && entry.draft == profiles / L"reader.prompt.md" &&
+              entry.readerProfile == reader,
+          "pre-split startup entry never uses the KeepMD reader profile as prompt settings");
+    auto own = profiles / L"own.ini";
+    check(save_prompt_settings(own, PromptSettings{}, error) && prompt_profile(own, true).settings == own &&
+              prompt_profile(own, true).draft == profiles / L"own.draft.md" &&
+              prompt_profile(own, true).readerProfile.empty(),
+          "explicit KeepPrompt profile is used as given");
+    check(save_file(profiles / L"gone.prompt.md", L"x", Encoding::Utf8, error) &&
+              prompt_profile(profiles / L"gone.ini", true).readerProfile == profiles / L"gone.ini",
+          "startup entry whose reader profile was never written still finds its prompt files");
+    std::filesystem::remove_all(profiles);
     auto visual = visual_plan(L"# 标题 😀\n\n正文 **粗体** 和 *斜体* 与 `代码`。\n- 项目\n");
     check(visual.source == L"# 标题 😀\n\n正文 **粗体** 和 *斜体* 与 `代码`。\n- 项目\n",
           "visual mapping preserves original Markdown whitespace and emoji");
@@ -372,6 +534,152 @@ int main() {
           "visual import normalizes only paragraph line endings");
     check(rtf_escape(L"{\\}中文😀").find("\\u") != std::string::npos && rtf_escape(L"{\\}") == "\\{\\\\\\}",
           "RTF output escapes markup and Unicode scalars");
+    auto imageUrl = remote_image_url(L"https://example.com:8443/a%20b.png?raw=1#preview");
+    check(imageUrl && imageUrl->secure && imageUrl->port == 8443 && imageUrl->host == L"example.com" &&
+              imageUrl->resource == L"/a%20b.png?raw=1" && imageUrl->url.find(L'#') == std::wstring::npos,
+          "remote image URL keeps port and escaped query, strips fragment");
+    auto relativeImage = remote_image_url(L"//example.com/photo.png");
+    check(relativeImage && relativeImage->secure && relativeImage->url == L"https://example.com/photo.png",
+          "protocol-relative image uses HTTPS");
+    auto simpleImage = remote_image_url(L"HTTP://localhost:8080?image=1");
+    check(simpleImage && !simpleImage->secure && simpleImage->port == 8080 && simpleImage->resource == L"/?image=1",
+          "remote image supports case-insensitive HTTP and an empty path");
+    auto ipv6Image = remote_image_url(L"https://[::1]:9443/test.png");
+    check(ipv6Image && ipv6Image->port == 9443, "remote image parses bracketed IPv6");
+    check(!remote_image_url(L"https://user:secret@example.com/a.png") &&
+              !remote_image_url(L"http://@example.com/a.png"), "remote image rejects URL credentials");
+    check(!remote_image_url(L"file:///C:/image.png") && !remote_image_url(L"data:image/png;base64,AAAA") &&
+              !remote_image_url(L"\\\\server\\image.png"), "only HTTP(S) images may be downloaded");
+    check(!remote_image_url(L"https://example.com/a\r\nX-Test: value") &&
+              !remote_image_url(L"https://example.com/a b") && !remote_image_url(L"http://"),
+          "remote image rejects control characters, unescaped spaces and missing hosts");
+    check(!remote_image_url(L"https://example.com/" + std::wstring(8192, L'a')), "remote image URL length is bounded");
+    auto canonicalA = remote_image_url(L"HTTPS://EXAMPLE.COM:443/a.png?size=2#image");
+    auto canonicalB = remote_image_url(L"https://example.com/a.png?size=2");
+    check(canonicalA && canonicalB && canonicalA->url == canonicalB->url,
+          "cache identity normalizes scheme, hostname, default port and fragments");
+    check(image_cache_key(L"") == L"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "persistent URL keys use stable SHA-256");
+    check(canonicalA && canonicalB && image_cache_key(canonicalA->url) == image_cache_key(canonicalB->url),
+          "equivalent image URLs share a persistent cache entry");
+    check(image_cache_key(L"https://example.com/a.png?size=1") != image_cache_key(L"https://example.com/a.png?size=2"),
+          "distinct image query parameters retain distinct cache entries");
+    std::atomic_bool cancelledImage{true};
+    auto cancelledFetch = fetch_remote_image(*relativeImage, cancelledImage);
+    check(cancelledFetch.bytes.empty() && !cancelledFetch.error.empty(), "cancelled download starts no request");
+
+    // Decode failures carry a reason, so a missing file is not reported as an unsupported format.
+    auto imageDir = std::filesystem::temp_directory_path() / "keepmd-image-failure-tests";
+    std::error_code imageEc;
+    std::filesystem::remove_all(imageDir, imageEc);
+    std::filesystem::create_directories(imageDir, imageEc);
+    auto missing = decode_image_file(imageDir / L"absent.png");
+    check(missing.failure == ImageFailure::Missing && missing.pixels.empty() && !missing.error.empty(),
+          "absent image reports a missing file");
+    check(missing.error.find(L"absent.png") != std::wstring::npos,
+          "missing image names the file it could not find");
+    auto corrupt = imageDir / L"corrupt.png";
+    {
+        std::ofstream stream(corrupt, std::ios::binary);
+        stream << "this is not an image";
+    }
+    auto corruptImage = decode_image_file(corrupt);
+    check(corruptImage.failure == ImageFailure::Unsupported && corruptImage.error == image_failure_message(ImageFailure::Unsupported),
+          "unreadable content in a present file reports an unsupported format, not a missing file");
+    // Bytes have no path, so every failure there is a format failure.
+    check(decode_image_bytes({}).failure == ImageFailure::Unsupported, "empty image bytes report an unsupported format");
+    const uint8_t notAnImage[] = {0x00, 0x01, 0x02, 0x03};
+    check(decode_image_bytes(notAnImage).failure == ImageFailure::Unsupported, "non-image bytes report an unsupported format");
+    auto directoryAsImage = decode_image_file(imageDir);
+    check(directoryAsImage.failure == ImageFailure::Unreadable, "a directory in place of an image reports an unreadable file");
+    // A present file that cannot be opened (here: held without sharing) is an I/O failure, not a missing file.
+    auto lockedImagePath = imageDir / L"locked.png";
+    std::filesystem::copy_file(corrupt, lockedImagePath, imageEc);
+    HANDLE lockHandle = CreateFileW(lockedImagePath.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    auto lockedImage = decode_image_file(lockedImagePath);
+    check(lockHandle != INVALID_HANDLE_VALUE && lockedImage.failure == ImageFailure::Unreadable &&
+              lockedImage.error.find(L"locked.png") != std::wstring::npos,
+          "an image file locked by another handle reports an unreadable file");
+    if (lockHandle != INVALID_HANDLE_VALUE)
+        CloseHandle(lockHandle);
+    check(image_failure_message(ImageFailure::None).empty(), "successful images carry no failure message");
+    check(image_failure_message(ImageFailure::Missing) != image_failure_message(ImageFailure::Unsupported) &&
+              image_failure_message(ImageFailure::Unreadable) != image_failure_message(ImageFailure::Unsupported) &&
+              image_failure_message(ImageFailure::TooLarge) != image_failure_message(ImageFailure::Unsupported),
+          "each decode failure reason reads differently in the reader");
+
+    // SVG falls back to Direct2D once WIC rejects it. Pure shapes render at intrinsic size, twice as dense.
+    auto svgBytes = [](std::string_view text) {
+        return std::vector<uint8_t>(text.begin(), text.end());
+    };
+    auto shapeSvg = svgBytes("<?xml version='1.0'?><svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>"
+                             "<rect width='40' height='20' fill='#ff0000'/></svg>");
+    auto shape = decode_image_bytes(shapeSvg);
+    check(shape.failure == ImageFailure::None && shape.density == 2 && shape.width == 80 && shape.height == 40,
+          "shape-only SVG rasterizes at twice its intrinsic size");
+    // Pixels are premultiplied BGRA: the opaque red fill must actually have been drawn.
+    check(shape.pixels.size() == 80u * 40 * 4 && shape.pixels[2] == 255 && shape.pixels[3] == 255 &&
+              shape.pixels[0] == 0 && shape.pixels[1] == 0,
+          "SVG fill is drawn into the pixels");
+    auto boxOnly = decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 10'>"
+                                               "<circle cx='5' cy='5' r='5'/></svg>"));
+    check(boxOnly.failure == ImageFailure::None && boxOnly.width == 60 && boxOnly.height == 20,
+          "SVG without width/height takes its size from the viewBox");
+    auto oneSide = decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg' width='50' viewBox='0 0 100 20'>"
+                                               "<rect width='100' height='20'/></svg>"));
+    check(oneSide.failure == ImageFailure::None && oneSide.width == 100 && oneSide.height == 20,
+          "SVG with one explicit side keeps the viewBox aspect ratio");
+    auto bare = decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg'><rect width='1' height='1'/></svg>"));
+    check(bare.failure == ImageFailure::None && bare.width == 600 && bare.height == 300,
+          "SVG with no size information defaults to 300x150 like a browser");
+    auto wide = decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg' width='4000' height='1000'>"
+                                            "<rect width='4000' height='1000'/></svg>"));
+    check(wide.failure == ImageFailure::None && wide.width == 1600 && wide.height == 400 && wide.density == 0.4f,
+          "large SVG rasterizes within the preview pixel cap and keeps its layout size");
+    // Badges carry their meaning in <text>, which Direct2D drops silently: show a placeholder instead.
+    auto badge = decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg' width='90' height='20'>"
+                                             "<rect width='90' height='20'/><text x='5' y='14'>build</text></svg>"));
+    check(badge.failure == ImageFailure::SvgUnsupported && badge.pixels.empty(), "SVG with text reports dropped content");
+    auto styleSheetSvg = decode_image_bytes(svgBytes("<SVG xmlns='http://www.w3.org/2000/svg'><STYLE>.a{fill:red}</STYLE>"
+                                              "<rect class='a' width='9' height='9'/></SVG>"));
+    check(styleSheetSvg.failure == ImageFailure::SvgUnsupported, "SVG style sheets are detected case-insensitively");
+    check(decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect "))
+                  .failure == ImageFailure::Unsupported,
+          "malformed SVG reports an unsupported format");
+    check(decode_image_bytes(svgBytes("<svg xmlns='http://www.w3.org/2000/svg' width='99999' height='10'>"
+                                      "<rect width='9' height='9'/></svg>"))
+                  .failure == ImageFailure::TooLarge,
+          "SVG beyond the preview edge limit is rejected");
+    std::string hugeSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='9' height='9'><desc>";
+    hugeSvg.append(4 * 1024 * 1024, 'x');
+    hugeSvg += "</desc></svg>";
+    check(decode_image_bytes(svgBytes(hugeSvg)).failure == ImageFailure::TooLarge, "SVG source size is bounded");
+    // Raster images are unaffected by the SVG path.
+    check(decode_image_bytes(svgBytes("not xml at all")).failure == ImageFailure::Unsupported,
+          "non-SVG text stays unsupported");
+    auto svgFile = imageDir / L"logo.svg";
+    {
+        std::ofstream stream(svgFile, std::ios::binary);
+        stream.write(reinterpret_cast<const char *>(shapeSvg.data()), (std::streamsize)shapeSvg.size());
+    }
+    auto svgFromFile = decode_image_file(svgFile);
+    check(svgFromFile.failure == ImageFailure::None && svgFromFile.width == 80 && svgFromFile.height == 40,
+          "local SVG files decode through the same path");
+    // An HTML <img width> enlarges the SVG on screen, so it rasterizes at twice that size, laying out unchanged.
+    auto hinted = decode_image_file(svgFile, 160);
+    check(hinted.failure == ImageFailure::None && hinted.width == 320 && hinted.height == 160 &&
+              std::lround(hinted.width / hinted.density) == 40,
+          "requested width rasterizes the SVG sharply at its displayed size");
+    auto hintedHeight = decode_image_bytes(shapeSvg, 0, 60);
+    check(hintedHeight.width == 240 && hintedHeight.height == 120, "requested height alone sets the SVG raster size");
+    auto shrunk = decode_image_bytes(shapeSvg, 10, 0);
+    check(shrunk.width == 80 && shrunk.density == 2, "a smaller requested size never drops below twice intrinsic");
+    auto capped = decode_image_bytes(shapeSvg, 100000, 0);
+    check(capped.width == 1600 && capped.height == 800, "requested size stays within the raster cap");
+    std::filesystem::remove_all(imageDir, imageEc);
+
     std::cout << checks << " checks, " << failures << " failures\n";
+    if (SUCCEEDED(com))
+        CoUninitialize();
     return failures ? 1 : 0;
 }

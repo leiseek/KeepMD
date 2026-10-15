@@ -28,7 +28,7 @@ for encoding,newline in [('utf-8','\n'),('utf-8-sig','\r\n'),('utf-16','\r\n'),(
     path=OUT/f'edit-{encoding}.md'
     initial=('# Before\n\n中文 原文 😀\n').replace('\n',newline)
     path.write_bytes(encode(initial,encoding));original=path.read_bytes()
-    config=OUT/'editor-test.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
+    config=OUT/'editor-test.ini';config.write_text('[Reader]\nVisual=0\nDark=0\n',encoding='utf-8')
     process=subprocess.Popen([str(ROOT/'build/release/keepmd.exe'),str(path),'--config',str(config)],cwd=ROOT)
     try:
         hwnd=wait(lambda:(windows(process.pid)or[None])[0]);wait(lambda:name(hwnd).startswith(path.name))

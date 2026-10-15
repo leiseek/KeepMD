@@ -1,4 +1,4 @@
-param([string]$Version='0.4.6')
+param([string]$Version='0.5.0')
 $ErrorActionPreference='Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9]+)*$') { throw 'Invalid package version.' }
 $root=Split-Path $PSScriptRoot -Parent
@@ -29,7 +29,7 @@ $relativeFiles+=@('PromptFlow集成说明.md','examples/提示词.md','输入提
 $relativeFiles+='bench/results/html-images-e2e.json','bench/results/prompt-process-e2e.json'
 Copy-Item -LiteralPath (Join-Path $root 'bench/results/html-images-e2e.json') -Destination (Join-Path $folder 'bench/results/html-images-e2e.json')
 Copy-Item -LiteralPath (Join-Path $root 'bench/results/prompt-process-e2e.json') -Destination (Join-Path $folder 'bench/results/prompt-process-e2e.json')
-foreach ($result in @('software-s100.json','software-l50.json','scroll.json','stress.json','editor-e2e.json','navigation-e2e.json','dpi-e2e.json','ime-e2e.json','environment.json','dependencies.json','idle.json','release-smoke.json','release-summary.json','prompt-e2e.json','prompt-process-e2e.json','ui-e2e.json','scrollbar-e2e.json','visual-editor-e2e.json','caption-e2e.json','icons-e2e.json','toolbar-toggle-e2e.json')) {
+foreach ($result in @('software-s100.json','software-l50.json','scroll.json','stress.json','editor-e2e.json','navigation-e2e.json','dpi-e2e.json','ime-e2e.json','environment.json','dependencies.json','idle.json','release-smoke.json','release-summary.json','prompt-e2e.json','prompt-process-e2e.json','ui-e2e.json','scrollbar-e2e.json','visual-editor-e2e.json','caption-e2e.json','icons-e2e.json','toolbar-toggle-e2e.json','visual-document-e2e.json','remote-images-e2e.json','brand-ui-e2e.json','fullscreen-e2e.json')) {
     Copy-Item -LiteralPath (Join-Path $root "bench/results/$result") -Destination (Join-Path $folder "bench/results/$result")
     $relativeFiles += "bench/results/$result"
 }

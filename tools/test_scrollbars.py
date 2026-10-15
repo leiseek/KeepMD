@@ -21,7 +21,7 @@ def dims(h):
 def bar_for(root,target,vertical=True):
     target_rect=W.RECT();u.GetWindowRect(target,C.byref(target_rect))
     for h in children(root):
-        if name(h,True)!='KeepMD.Scrollbar' or not u.IsWindowVisible(h):continue
+        if name(h,True)!='Keep.Scrollbar' or not u.IsWindowVisible(h):continue
         if name(h)!=('垂直滚动' if vertical else '水平滚动'):continue
         r=W.RECT();u.GetWindowRect(h,C.byref(r))
         if vertical and abs(r.right-target_rect.right)<2 and abs(r.top-target_rect.top)<2:return h
@@ -45,8 +45,9 @@ def drag(root,target,bar,vertical=True,fraction=.8):
     u.mouse_event(4,0,0,0,0);time.sleep(.1)
     return info(target,1 if vertical else 0)
 exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';config=OUT/'scrollbars.ini';path=OUT/'scrollbars.md'
-config.write_text('[Reader]\nDark=1\n',encoding='utf-8')
-config.with_suffix('.prompt.ini').write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
+prompt_config=OUT/'scrollbars-prompt.ini' # KeepPrompt keeps its own profile and draft
+config.write_text('[Reader]\nVisual=0\nDark=1\n',encoding='utf-8')
+prompt_config.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
 path.write_text(''.join(f'## Section {i}\n\nParagraph {i} — 内容。\n\n' for i in range(4000)),encoding='utf-8')
 checks=[];prompt=None;proc=subprocess.Popen([str(exe),str(path),'--config',str(config)],cwd=ROOT)
 try:
@@ -107,7 +108,7 @@ try:
                 u.UpdateWindow(b)
                 lane=W.RECT();u.GetWindowRect(b,C.byref(lane))
                 pixels=ImageGrab.grab(bbox=(lane.left,lane.top,lane.right,lane.bottom)).convert('RGB')
-                palette={(23,28,36),(78,91,111),(154,169,190),(125,170,255)} if iteration%2 else {(245,247,251),(179,191,207),(100,115,137),(43,96,190)}
+                palette={(32,34,38),(77,82,91),(160,165,175),(217,222,230)} if iteration%2 else {(255,255,255),(187,193,203),(105,112,123),(53,61,73)}
                 valid=sum(1 for color in pixels.get_flattened_data() if color in palette)
                 assert valid/(bw*bh)>.995,('Native scrollbar colors exposed',name(target,True),vertical,valid,bw*bh)
     screenshot(main,'split-scrollbars-dark.png')
@@ -124,12 +125,12 @@ try:
     wait(lambda:info(reader,0).max-info(reader,0).page>1000);bar=bar_for(main,reader,False)
     r=drag(main,reader,bar,False);assert r.pos>1000,(r.pos,r.max)
     checks.append('reader horizontal scrollbar drags long rendered code lines')
-    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(config)],cwd=ROOT)
+    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(prompt_config)],cwd=ROOT)
     def find_prompt():
         panel=[]
         def collect(h,_):
             pid=W.DWORD();u.GetWindowThreadProcessId(h,C.byref(pid))
-            if pid.value==prompt.pid and name(h,True).startswith('KeepMD.Prompt.'):
+            if pid.value==prompt.pid and name(h,True).startswith('KeepPrompt.'):
                 panel.append(h)
             return True
         cb=CALLBACK(collect);u.EnumWindows(cb,0)

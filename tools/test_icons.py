@@ -31,23 +31,25 @@ def keys(h,*vks):
     time.sleep(.1)
 def command(h,id):u.SendMessageW(h,0x111,id,0)
 config=OUT/'icons.ini';config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
-config.with_suffix('.prompt.ini').write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
+prompt_config=OUT/'icons-prompt.ini' # KeepPrompt keeps its own profile and draft
+prompt_config.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
 sample='# 图标工具栏\n\n在这里直接编辑 **提示词**。\n'
-config.with_suffix('.prompt.md').write_text(sample,encoding='utf-8')
+prompt_config.with_suffix('.draft.md').write_text(sample,encoding='utf-8')
 exe=ROOT/'build/release/keepmd.exe';prompt_exe=ROOT/'build/release/KeepPrompt.exe';p=subprocess.Popen([str(exe),str(ROOT/'tests/fixtures/welcome.md'),'--config',str(config)],cwd=ROOT)
 handle=k.OpenProcess(0x0400,False,p.pid);prompt=None;prompt_handle=None;checks=[]
 try:
     main=wait(lambda:(windows(p.pid)or[None])[0]);wait(lambda:'welcome.md' in name(main))
     toolbar=next(h for h in children(main) if name(h,True)=='ToolbarWindow32')
-    hover(main,toolbar,18,18);tooltip=wait(lambda:tip(p.pid,'打开 Markdown'),timeout=5)
-    assert 'Ctrl+O' in name(tooltip)
+    caption=next(h for h in children(main) if name(h,True)=='Keep.Caption')
+    hover(main,u.GetDlgItem(caption,131),14,12);tooltip=wait(lambda:tip(p.pid,'可视化编辑'),timeout=5)
+    assert '直接编辑' in name(tooltip)
     screenshot(main,'icons-reader-tooltip.png')
-    checks.append('reader folder icon exposes native hover explanation and Ctrl+O shortcut')
-    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(config)],cwd=ROOT);prompt_handle=k.OpenProcess(0x0400,False,prompt.pid)
-    panel=wait(lambda:first(prompt.pid,'KeepMD.Prompt.'));edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.4)
+    checks.append('reader caption mode icon exposes its name and native hover explanation')
+    prompt=subprocess.Popen([str(prompt_exe),'--show','--config',str(prompt_config)],cwd=ROOT);prompt_handle=k.OpenProcess(0x0400,False,prompt.pid)
+    panel=wait(lambda:first(prompt.pid,'KeepPrompt.'));edit=wait(lambda:u.GetDlgItem(panel,500));time.sleep(.4)
     # Every icon keeps a meaningful native control name despite hiding its label visually.
     for id,label in [(540,'正文'),(541,'标题 1'),(542,'标题 2'),(543,'加粗'),(544,'斜体'),(545,'列表'),
-                     (546,'编号'),(547,'引用'),(548,'代码'),(549,'流程图'),(514,'快捷键'),(512,'清空'),(511,'复制全文')]:
+                     (546,'编号'),(547,'引用'),(548,'代码'),(549,'流程图'),(512,'清空'),(511,'复制全文')]:
         assert name(u.GetDlgItem(panel,id))==label
     assert '复制并收起' in name(u.GetDlgItem(panel,510))
     checks.append('format and utility icons retain descriptive native names; primary copy action retains visible text')

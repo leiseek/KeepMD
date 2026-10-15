@@ -24,6 +24,13 @@ u.ShowWindow.argtypes=[W.HWND,C.c_int]
 u.GetMessageW.argtypes=[C.POINTER(W.MSG),W.HWND,W.UINT,W.UINT]
 u.DispatchMessageW.argtypes=[C.POINTER(W.MSG)];u.DispatchMessageW.restype=W.LPARAM
 u.TranslateMessage.argtypes=[C.POINTER(W.MSG)]
+# The default shortcut may already be held by another program on the test desktop. The suite then drives an
+# equivalent free combination, which still exercises real global-hotkey delivery, and records which one it used.
+def hotkey_free(mods,vk):
+    if not u.RegisterHotKey(None,997,0x4000|mods,vk):return False
+    u.UnregisterHotKey(None,997);return True
+HOTKEY,HOTKEY_MODS,HOTKEY_VK,HOTKEY_KEYS=(('Ctrl+Alt+Space',3,0x20,(0x11,0x12,0x20)) if hotkey_free(3,0x20) else
+                                         ('Ctrl+Alt+Shift+F9',7,0x78,(0x11,0x12,0x10,0x78)))
 if '--target' in sys.argv:
     h=u.CreateWindowExW(0,'EDIT','KeepMD Test Paste Target',0x00CF0000|0x0004|0x1000,80,80,520,300,None,None,None,None)
     assert h
@@ -80,11 +87,11 @@ def choose(process,h,command,path,replace=False):
         wait(lambda:not u.IsWindow(box))
     else:wait(lambda:not u.IsWindow(d))
 
-exe=ROOT/'build/release/keepmd.exe'
+exe=ROOT/'build/release/KeepPrompt.exe'
 folder=OUT/'prompt-e2e';folder.mkdir(exist_ok=True)
-config=folder/'profile.ini';prefs=config.with_suffix('.prompt.ini');draft=config.with_suffix('.prompt.md')
-config.write_text('[Reader]\nDark=0\n',encoding='utf-8')
-prefs.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\n',encoding='utf-8')
+# KeepPrompt owns this profile; the draft is kept beside it.
+config=folder/'KeepPrompt.ini';prefs=config;draft=config.with_suffix('.draft.md')
+prefs.write_text(f'[Prompt]\nHotkey={HOTKEY}\n',encoding='utf-8')
 if draft.exists():draft.unlink()
 checks=[];measurements={};process=None;target_process=None;held=False
 old_foreground=u.GetForegroundWindow()
@@ -93,22 +100,21 @@ try:
     target_process=subprocess.Popen([sys.executable,__file__,'--target'],cwd=ROOT)
     target=wait(lambda:first(target_process.pid,'Edit'));text(target,'');activate(target)
     process=launch('--resident')
-    panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'))
-    main=wait(lambda:first(process.pid,'KeepMD.Window'))
-    assert not u.IsWindowVisible(panel) and not u.IsWindowVisible(main)
+    panel=wait(lambda:first(process.pid,'KeepPrompt.'))
+    assert not u.IsWindowVisible(panel) and not first(process.pid,'KeepMD')
     assert not u.GetDlgItem(panel,500)
     modules=[m.path.lower() for m in psutil.Process(process.pid).memory_maps()]
     assert not any('msftedit.dll' in m for m in modules)
     checks.append('resident startup: hidden, editor and RichEdit DLL not loaded')
     mem=psutil.Process(process.pid).memory_info();measurements['cold_resident_private_mib']=mem.private/2**20
-    activate(target);start=time.perf_counter();keys(target,0x11,0x12,0x20)
+    activate(target);start=time.perf_counter();keys(target,*HOTKEY_KEYS)
     wait(lambda:u.IsWindowVisible(panel) and u.GetForegroundWindow()==panel)
     measurements['first_summon_observed_ms']=(time.perf_counter()-start)*1000
     edit=wait(lambda:u.GetDlgItem(panel,500));status=u.GetDlgItem(panel,501)
     sample='# 提示词 😀\n\n请按下列步骤处理：\n\n- 保留 **Markdown**\n- 输出简明结论\n\n```mermaid\nflowchart LR\nA[输入] --> B[检查] --> C[结果]\n```\n\n    缩进代码\n\n'
     text(edit,sample);wait(lambda:saved_text(draft,sample))
     time.sleep(.5);screenshot(panel,'prompt-preview.png')
-    assert not any(name(h,True)=='KeepMD.PromptPreview' for h in children(panel))
+    assert not any(name(h,True).startswith('KeepMD') for h in children(panel))
     activate(panel,edit);keys(panel,0x11,ord('A'));keys(panel,0x11,ord('C'))
     assert '提示词' in clipboard() and 'Markdown' in clipboard()
     checks.append('single visual editor, Markdown/flowchart formatting and exact source autosave')
@@ -117,15 +123,18 @@ try:
     assert clipboard()==sample,(repr(clipboard()),repr(sample))
     keys(target,0x11,ord('V'));assert name(target).replace('\r\n','\n')==sample,repr(name(edit))
     checks.append('Ctrl+Enter copies exact Markdown and returns focus; target pastes source')
-    keys(target,0x11,0x12,0x20);wait(lambda:u.GetForegroundWindow()==panel)
-    cmd(panel,511);assert clipboard()==sample
+    keys(target,*HOTKEY_KEYS);wait(lambda:u.GetForegroundWindow()==panel)
+    def full_copy():
+        cmd(panel,511)
+        return clipboard()==sample
+    wait(full_copy) # Clipboard ownership can briefly move to another desktop client.
     assert u.OpenClipboard(None);held=True
     cmd(panel,510)
     assert u.IsWindowVisible(panel) and '剪贴板正忙' in name(status)
     u.CloseClipboard();held=False
     checks.append('clipboard contention keeps panel and draft visible')
     keys(panel,0x1B);wait(lambda:not u.IsWindowVisible(panel))
-    keys(target,0x11,0x12,0x20);wait(lambda:u.GetForegroundWindow()==panel)
+    keys(target,*HOTKEY_KEYS);wait(lambda:u.GetForegroundWindow()==panel)
     # Conflicting replacement must not release the currently working shortcut.
     cmd(panel,514);hk=u.GetDlgItem(panel,502)
     assert u.RegisterHotKey(None,997,0x4000|2|4,ord('J'))
@@ -133,8 +142,9 @@ try:
         text(hk,'Ctrl+Shift+J');cmd(panel,515)
         assert '注册失败' in name(status)
     finally:u.UnregisterHotKey(None,997)
+    cmd(panel,514) # Close settings before hiding the panel.
     keys(panel,0x1B);wait(lambda:not u.IsWindowVisible(panel))
-    keys(target,0x11,0x12,0x20);wait(lambda:u.GetForegroundWindow()==panel)
+    keys(target,*HOTKEY_KEYS);wait(lambda:u.GetForegroundWindow()==panel)
     checks.append('failed shortcut change preserves previous registered shortcut')
     text(hk,'Ctrl+Shift+J');cmd(panel,515)
     keys(panel,0x1B);wait(lambda:u.GetForegroundWindow()==target)
@@ -172,7 +182,7 @@ try:
     wait(exported)
     legacy=folder/'legacy.json'
     legacy_text='# 从 Prompt Flow 导入\n\n  缩进 😀\n'
-    legacy.write_text(json.dumps({'Prompt':legacy_text,'Hotkey':'Ctrl+Alt+Space','AlwaysOnTop':False,'Opacity':90,'Autostart':True}),encoding='utf-8')
+    legacy.write_text(json.dumps({'Prompt':legacy_text,'Hotkey':HOTKEY,'AlwaysOnTop':False,'Opacity':90,'Autostart':True}),encoding='utf-8')
     original=legacy.read_bytes()
     choose(process,panel,523,legacy,replace=True)
     wait(lambda:name(edit).replace('\r\n','\n').replace('\ufffc','')==legacy_text)
@@ -180,17 +190,16 @@ try:
     checks.append('undoable clear, Markdown export and original Prompt Flow JSON import')
     # Second invocation forwards to existing service and exits.
     keys(panel,0x1B);wait(lambda:not u.IsWindowVisible(panel))
-    other=launch('--prompt');other.wait(timeout=8);assert other.returncode==0
-    wait(lambda:u.IsWindowVisible(panel));assert len(tops(process.pid,'KeepMD.Prompt.'))==1
-    checks.append('second --prompt invocation reuses profile owner')
-    # Close main while resident, then explicit exit.
-    cmd(panel,524);wait(lambda:u.IsWindowVisible(main))
-    u.PostMessageW(main,0x10,0,0);wait(lambda:not u.IsWindowVisible(main));assert process.poll() is None
+    other=launch('--show');other.wait(timeout=8);assert other.returncode==0
+    wait(lambda:u.IsWindowVisible(panel));assert len(tops(process.pid,'KeepPrompt.'))==1
+    checks.append('second --show invocation reuses profile owner')
+    # Closing the window saves and hides it; only Quit ends the process.
+    u.PostMessageW(panel,0x10,0,0);wait(lambda:not u.IsWindowVisible(panel));assert process.poll() is None
     cmd(panel,525);process.wait(timeout=8)
-    process=launch('--resident');panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'));main=first(process.pid,'KeepMD.Window')
-    activate(target);keys(target,0x11,0x12,0x20);wait(lambda:u.IsWindowVisible(panel))
+    process=launch('--resident');panel=wait(lambda:first(process.pid,'KeepPrompt.'))
+    activate(target);keys(target,*HOTKEY_KEYS);wait(lambda:u.IsWindowVisible(panel))
     edit=u.GetDlgItem(panel,500);assert name(edit).replace('\r\n','\n').replace('\ufffc','')==legacy_text
-    checks.append('close-to-tray, explicit exit and draft/settings restoration')
+    checks.append('close hides to tray, explicit exit and draft/settings restoration')
     # Real IME input: Escape cancels composition; it must not copy/hide the panel.
     activate(panel,edit);text(edit,'');toggled=False;attempts=[]
     for attempt in range(2):
@@ -226,12 +235,12 @@ try:
                         hidden_private_mib=proc.memory_info().private/2**20,hidden_draft_changed=draft.stat().st_mtime_ns!=stamp)
     assert measurements['hidden_idle_cpu_seconds']<.15 and not measurements['hidden_draft_changed'], measurements
     checks.append('hidden prompt idles without rewriting draft or significant CPU')
-    u.PostMessageW(main,0x111,101,0);process.wait(timeout=8)
+    u.PostMessageW(panel,0x111,525,0);process.wait(timeout=8)
     # Failed initial hotkey registration must be visible and recoverable.
-    prefs.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=1\n',encoding='utf-8')
-    assert u.RegisterHotKey(None,998,0x4000|2|1,0x20)
+    prefs.write_text(f'[Prompt]\nHotkey={HOTKEY}\nResident=1\n',encoding='utf-8')
+    assert u.RegisterHotKey(None,998,0x4000|HOTKEY_MODS,HOTKEY_VK)
     try:
-        process=launch('--resident');panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'))
+        process=launch('--resident');panel=wait(lambda:first(process.pid,'KeepPrompt.'))
         wait(lambda:u.IsWindowVisible(panel));status=u.GetDlgItem(panel,501)
         assert '注册失败' in name(status)
         text(u.GetDlgItem(panel,502),'Ctrl+Shift+J');cmd(panel,515)
@@ -240,8 +249,8 @@ try:
     finally:u.UnregisterHotKey(None,998)
     checks.append('startup conflict shows settings and accepts alternative shortcut')
     # File replacement failure and an externally changed draft must never lose content.
-    prefs.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
-    process=launch('--prompt');panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'))
+    prefs.write_text(f'[Prompt]\nHotkey={HOTKEY}\nResident=0\n',encoding='utf-8')
+    process=launch('--show');panel=wait(lambda:first(process.pid,'KeepPrompt.'))
     edit=wait(lambda:u.GetDlgItem(panel,500));status=u.GetDlgItem(panel,501)
     k.CreateFileW.argtypes=[W.LPCWSTR,W.DWORD,W.DWORD,C.c_void_p,W.DWORD,W.DWORD,W.HANDLE];k.CreateFileW.restype=W.HANDLE
     k.CloseHandle.argtypes=[W.HANDLE]
@@ -255,7 +264,7 @@ try:
     finally:k.CloseHandle(locked)
     cmd(panel,510);wait(lambda:not u.IsWindowVisible(panel))
     assert draft.read_text(encoding='utf-8')=='# 锁定文件时的输入\n'
-    activate(target);keys(target,0x11,0x12,0x20);wait(lambda:u.IsWindowVisible(panel))
+    activate(target);keys(target,*HOTKEY_KEYS);wait(lambda:u.IsWindowVisible(panel))
     draft.write_text('# 磁盘上的外部修改\n',encoding='utf-8')
     text(edit,'# 内存中的未保存输入\n');cmd(panel,510)
     assert u.IsWindowVisible(panel) and '外部发生变化' in name(status)
@@ -274,33 +283,27 @@ try:
     checks.append('locked save retries safely; external draft conflict supports cancel/export/discard without overwriting disk')
     # Corrupt persisted text stays untouched; no read failure may silently initialize a new draft.
     draft.write_bytes(b'\xffinvalid UTF8')
-    process=launch('--prompt');panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'))
+    process=launch('--show');panel=wait(lambda:first(process.pid,'KeepPrompt.'))
     wait(lambda:u.IsWindowVisible(panel))
     edit=wait(lambda:u.GetDlgItem(panel,500));wait(lambda:not u.IsWindowEnabled(edit))
     time.sleep(1);assert draft.read_bytes()==b'\xffinvalid UTF8'
     cmd(panel,525);process.wait(timeout=8)
     draft.write_text(legacy_text,encoding='utf-8')
     checks.append('corrupt saved draft preserved and editing disabled until repaired')
-    # Ordinary reader retains ordinary close behavior and has no prompt editor.
-    prefs.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\nResident=0\n',encoding='utf-8')
-    process=launch(str(ROOT/'tests/fixtures/welcome.md'));main=wait(lambda:first(process.pid,'KeepMD.Window'))
-    panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'));assert not u.GetDlgItem(panel,500)
-    u.PostMessageW(main,0x10,0,0);process.wait(timeout=8)
-    checks.append('ordinary reader exits normally and never creates a prompt editor')
-    # A command-line resident request must also enable residency in an existing ordinary reader.
-    process=launch(str(ROOT/'tests/fixtures/welcome.md'));main=wait(lambda:first(process.pid,'KeepMD.Window'))
-    panel=wait(lambda:first(process.pid,'KeepMD.Prompt.'))
+    # A forwarded --resident request also enables residency in an already visible window.
+    prefs.write_text(f'[Prompt]\nHotkey={HOTKEY}\nResident=0\n',encoding='utf-8')
+    process=launch('--show');panel=wait(lambda:first(process.pid,'KeepPrompt.'));wait(lambda:u.IsWindowVisible(panel))
     other=launch('--resident');other.wait(timeout=8);assert other.returncode==0
     wait(lambda:'Resident=1' in prefs.read_text(encoding='utf-8'))
-    u.PostMessageW(main,0x10,0,0);wait(lambda:not u.IsWindowVisible(main));assert process.poll() is None
-    u.PostMessageW(main,0x111,101,0);process.wait(timeout=8)
-    checks.append('forwarded --resident request enables tray residency in an existing ordinary reader')
-    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'completed','checks':checks,'measurements':measurements}
+    u.PostMessageW(panel,0x10,0,0);wait(lambda:not u.IsWindowVisible(panel));assert process.poll() is None
+    cmd(panel,525);process.wait(timeout=8)
+    checks.append('forwarded --resident request enables tray residency in an existing KeepPrompt window')
+    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'completed','hotkey':HOTKEY,'checks':checks,'measurements':measurements}
     (ROOT/'bench/results/prompt-e2e.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False,indent=2))
 except Exception as error:
     frames=traceback.extract_tb(error.__traceback__)
-    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'incomplete',
+    result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'incomplete','hotkey':HOTKEY,
             'checks':checks,'measurements':measurements,'error':str(error),
             'failure_line':frames[-2 if len(frames)>1 else -1].lineno,
             'process_exit_before_cleanup':process.poll() if process else None}

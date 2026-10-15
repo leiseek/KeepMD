@@ -1,7 +1,7 @@
 {
-  "zip_sha256": "18412a17906823635d20a5ce0020f252b1c8ea975daf94414437bb63b950dc5c",
-  "exe_sha256": "9aee163c1cbe011d97bb581ff5dc144b98df095a126a6c113c82d2ef4a7b5b27",
-  "verified_members": 36,
+  "zip_sha256": "4b2e57ab7a9141f93f8a1ac45c8683a395858f97e2ce90f4868ac691fffb411f",
+  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "verified_members": 40,
   "extracted_package_launch": "passed",
   "extracted_prompt_copy_and_save": "passed",
   "extracted_keep_prompt_process": "passed",
