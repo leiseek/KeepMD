@@ -1187,6 +1187,8 @@ void write_report(App &app) {
         << ",\n  \"private_bytes\": " << memory.PrivateUsage
         << ",\n  \"working_set\": " << memory.WorkingSetSize
         << ",\n  \"layouts\": " << app.view->layout_count()
+        << ",\n  \"formulas_typeset\": " << app.view->formula_counts().first
+        << ",\n  \"formulas_source\": " << app.view->formula_counts().second
         << ",\n  \"reused_layouts\": " << app.view->reused_layouts()
         << ",\n  \"reused_diagrams\": " << app.view->reused_diagrams()
         << ",\n  \"anchor_block\": " << app.view->anchor_block() << ",\n  \"zoom\": " << app.view->zoom()

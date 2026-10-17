@@ -25,6 +25,12 @@ struct DiagramScene {
     std::vector<mermaid::Rect> groups;
     float width = 0, height = 0;
 };
+// Where typeset formulas inside cached text layouts draw: set around each DrawTextLayout, because DirectWrite
+// calls an inline object back without telling it the render target or the text colour.
+struct FormulaInk {
+    ID2D1RenderTarget *target = nullptr;
+    D2D1_COLOR_F color{};
+};
 struct Asset {
     enum Status { Pending, Ready, Failed, NotLoaded } status = Pending;
     ComPtr<ID2D1Bitmap> bitmap;
@@ -104,6 +110,15 @@ class View {
     size_t layout_count() const {
         return cache_.size();
     }
+    // Formulas in the laid-out blocks: typeset by MicroTeX, or kept as LaTeX source because it could not.
+    std::pair<size_t, size_t> formula_counts() const {
+        std::pair<size_t, size_t> counts;
+        for (const auto &[index, entry] : cache_) {
+            counts.first += entry.formulasTypeset;
+            counts.second += entry.formulasSource;
+        }
+        return counts;
+    }
     size_t asset_bytes() const {
         return assetBytes_;
     }
@@ -144,6 +159,7 @@ class View {
         float cardLeft = 0, cardWidth = 0; // Placeholder card for an image or diagram that is not drawn.
         uint64_t use = 0;
         size_t chars = 0;
+        uint32_t formulasTypeset = 0, formulasSource = 0;
     };
     struct Result {
         uint64_t generation = 0;
@@ -178,6 +194,7 @@ class View {
     // Drawing-effect brushes referenced by cached text layouts; recoloured each frame for the theme.
     ComPtr<ID2D1SolidColorBrush> linkBrush_, mutedBrush_;
     std::wstring bodyFamily_ = L"Segoe UI", headingFamily_ = L"Segoe UI";
+    std::shared_ptr<FormulaInk> formulaInk_ = std::make_shared<FormulaInk>();
     ComPtr<ID2D1StrokeStyle> dashed_;
     std::unordered_map<size_t, Entry> cache_;
     std::unordered_map<size_t, Asset> assets_;

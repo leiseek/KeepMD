@@ -20,6 +20,15 @@ u.CreateWindowExW.restype=W.HWND
 u.RegisterHotKey.argtypes=[W.HWND,C.c_int,W.UINT,W.UINT]
 u.UnregisterHotKey.argtypes=[W.HWND,C.c_int]
 u.FindWindowW.argtypes=[W.LPCWSTR,W.LPCWSTR];u.FindWindowW.restype=W.HWND
+u.IsIconic.argtypes=[W.HWND]
+class NOTIFYICONIDENTIFIER(C.Structure):
+    _fields_=[('cbSize',W.DWORD),('hWnd',W.HWND),('uID',W.UINT),('guidItem',C.c_byte*16)]
+shell=C.WinDLL('shell32');shell.Shell_NotifyIconGetRect.argtypes=[C.POINTER(NOTIFYICONIDENTIFIER),C.POINTER(W.RECT)]
+shell.Shell_NotifyIconGetRect.restype=C.c_long
+def tray_icon(h):
+    nid=NOTIFYICONIDENTIFIER(C.sizeof(NOTIFYICONIDENTIFIER),h,1);rect=W.RECT()
+    return shell.Shell_NotifyIconGetRect(C.byref(nid),C.byref(rect))>=0
+def close(h):u.PostMessageW(h,0x10,0,0) # WM_CLOSE saves and hides to the tray; Esc no longer hides.
 u.ShowWindow.argtypes=[W.HWND,C.c_int]
 u.GetMessageW.argtypes=[C.POINTER(W.MSG),W.HWND,W.UINT,W.UINT]
 u.DispatchMessageW.argtypes=[C.POINTER(W.MSG)];u.DispatchMessageW.restype=W.LPARAM
@@ -133,7 +142,10 @@ try:
     assert u.IsWindowVisible(panel) and '剪贴板正忙' in name(status)
     u.CloseClipboard();held=False
     checks.append('clipboard contention keeps panel and draft visible')
-    keys(panel,0x1B);wait(lambda:not u.IsWindowVisible(panel))
+    keys(panel,0x1B);time.sleep(.3);assert u.IsWindowVisible(panel) and process.poll() is None
+    u.PostMessageW(panel,0x112,0xF020,0);wait(lambda:not u.IsWindowVisible(panel)) # SC_MINIMIZE
+    assert not u.IsIconic(panel) and tray_icon(panel) and process.poll() is None
+    checks.append('Esc keeps the panel open; minimize hides it to the tray icon')
     keys(target,*HOTKEY_KEYS);wait(lambda:u.GetForegroundWindow()==panel)
     # Conflicting replacement must not release the currently working shortcut.
     cmd(panel,514);hk=u.GetDlgItem(panel,502)
@@ -142,12 +154,13 @@ try:
         text(hk,'Ctrl+Shift+J');cmd(panel,515)
         assert '注册失败' in name(status)
     finally:u.UnregisterHotKey(None,997)
-    cmd(panel,514) # Close settings before hiding the panel.
-    keys(panel,0x1B);wait(lambda:not u.IsWindowVisible(panel))
+    keys(panel,0x1B);time.sleep(.3) # Esc closes settings and leaves the panel visible.
+    assert u.IsWindowVisible(panel) and not u.IsWindowVisible(hk)
+    close(panel);wait(lambda:not u.IsWindowVisible(panel))
     keys(target,*HOTKEY_KEYS);wait(lambda:u.GetForegroundWindow()==panel)
     checks.append('failed shortcut change preserves previous registered shortcut')
     text(hk,'Ctrl+Shift+J');cmd(panel,515)
-    keys(panel,0x1B);wait(lambda:u.GetForegroundWindow()==target)
+    close(panel);wait(lambda:u.GetForegroundWindow()==target)
     keys(target,0x11,0x10,ord('J'));wait(lambda:u.GetForegroundWindow()==panel)
     checks.append('custom shortcut summons from another process')
     # Double Ctrl and Ctrl+C must not interfere with each other.
@@ -157,9 +170,9 @@ try:
         checks.append('existing Prompt Flow double-Ctrl conflict is explicit and preserves combination shortcut')
         measurements['double_ctrl_live']='not run: existing user Prompt Flow is active; state machine covered by core tests'
     else:
-        keys(panel,0x1B);wait(lambda:u.GetForegroundWindow()==target)
+        close(panel);wait(lambda:u.GetForegroundWindow()==target)
         keys(target,0xA2);keys(target,0xA2);wait(lambda:u.GetForegroundWindow()==panel)
-        keys(panel,0x1B);wait(lambda:u.GetForegroundWindow()==target)
+        close(panel);wait(lambda:u.GetForegroundWindow()==target)
         keys(target,0x11,ord('C'));keys(target,0xA2);time.sleep(.2)
         assert not u.IsWindowVisible(panel)
         time.sleep(.4);keys(target,0xA2);keys(target,0xA2);wait(lambda:u.GetForegroundWindow()==panel)
@@ -189,7 +202,7 @@ try:
     assert legacy.read_bytes()==original
     checks.append('undoable clear, Markdown export and original Prompt Flow JSON import')
     # Second invocation forwards to existing service and exits.
-    keys(panel,0x1B);wait(lambda:not u.IsWindowVisible(panel))
+    close(panel);wait(lambda:not u.IsWindowVisible(panel))
     other=launch('--show');other.wait(timeout=8);assert other.returncode==0
     wait(lambda:u.IsWindowVisible(panel));assert len(tops(process.pid,'KeepPrompt.'))==1
     checks.append('second --show invocation reuses profile owner')
@@ -293,11 +306,12 @@ try:
     # A forwarded --resident request also enables residency in an already visible window.
     prefs.write_text(f'[Prompt]\nHotkey={HOTKEY}\nResident=0\n',encoding='utf-8')
     process=launch('--show');panel=wait(lambda:first(process.pid,'KeepPrompt.'));wait(lambda:u.IsWindowVisible(panel))
+    assert tray_icon(panel) # The tray icon no longer depends on residency.
     other=launch('--resident');other.wait(timeout=8);assert other.returncode==0
     wait(lambda:'Resident=1' in prefs.read_text(encoding='utf-8'))
     u.PostMessageW(panel,0x10,0,0);wait(lambda:not u.IsWindowVisible(panel));assert process.poll() is None
     cmd(panel,525);process.wait(timeout=8)
-    checks.append('forwarded --resident request enables tray residency in an existing KeepPrompt window')
+    checks.append('tray icon shown without residency; forwarded --resident request enables residency in an existing window')
     result={'exe_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'suite_status':'completed','hotkey':HOTKEY,'checks':checks,'measurements':measurements}
     (ROOT/'bench/results/prompt-e2e.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False,indent=2))

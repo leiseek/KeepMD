@@ -1,4 +1,4 @@
-param([string]$Version='0.5.0')
+param([string]$Version='0.6.0')
 $ErrorActionPreference='Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+([.-][A-Za-z0-9]+)*$') { throw 'Invalid package version.' }
 $root=Split-Path $PSScriptRoot -Parent
@@ -19,17 +19,23 @@ Copy-Item -LiteralPath (Join-Path $root 'tests/fixtures/prompt.md') -Destination
 $(Get-Content -LiteralPath (Join-Path $folder '验证报告.md') -Raw -Encoding UTF8).Replace('../bench/results/','bench/results/') | Set-Content -LiteralPath (Join-Path $folder '验证报告.md') -Encoding UTF8
 Copy-Item -LiteralPath (Join-Path $root 'third_party/md4c/LICENSE.md') -Destination (Join-Path $folder 'licenses/MD4C.txt')
 Copy-Item -LiteralPath (Join-Path $root 'third_party/tinta/LICENSE') -Destination (Join-Path $folder 'licenses/Tinta.txt')
+$licenses=[ordered]@{'third_party/microtex/LICENSE'='licenses/MicroTeX.txt';'third_party/microtex/res/fonts/licences/Knuth_License.txt'='licenses/MicroTeX-fonts-Knuth.txt';'third_party/microtex/res/fonts/licences/OFL.txt'='licenses/MicroTeX-fonts-OFL.txt';'third_party/microtex/res/fonts/licences/License_for_dsrom.txt'='licenses/MicroTeX-fonts-dsrom.txt';'third_party/microtex/LICENSE_BAKOMA'='licenses/MicroTeX-fonts-BaKoMa.txt';'third_party/tinyxml2/LICENSE.txt'='licenses/TinyXML-2.txt'}
+foreach ($license in $licenses.GetEnumerator()) { Copy-Item -LiteralPath (Join-Path $root $license.Key) -Destination (Join-Path $folder $license.Value) }
 Copy-Item -LiteralPath (Join-Path $root 'tests/fixtures/welcome.md') -Destination (Join-Path $folder 'examples/欢迎.md')
 $(Get-Content -LiteralPath (Join-Path $folder 'examples/欢迎.md') -Raw -Encoding UTF8).Replace('../../README.md','../使用说明.md') | Set-Content -LiteralPath (Join-Path $folder 'examples/欢迎.md') -Encoding UTF8
 Copy-Item -LiteralPath (Join-Path $root 'tests/fixtures/flow-details.md') -Destination (Join-Path $folder 'examples/流程图.md')
+Copy-Item -LiteralPath (Join-Path $root 'tests/fixtures/math.md') -Destination (Join-Path $folder 'examples/公式.md')
 Copy-Item -LiteralPath (Join-Path $root 'third_party/manifest.json') -Destination (Join-Path $folder 'DEPENDENCIES.json')
-$(Get-Content -LiteralPath (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Raw -Encoding UTF8).Replace('third_party/md4c/LICENSE.md','licenses/MD4C.txt').Replace('third_party/tinta/LICENSE','licenses/Tinta.txt').Replace('third_party/manifest.json','DEPENDENCIES.json') | Set-Content -LiteralPath (Join-Path $folder '第三方说明.md') -Encoding UTF8
-$relativeFiles=@('keepmd.exe','KeepPrompt.exe','使用说明.md','验证报告.md','第三方说明.md','DEPENDENCIES.json','licenses/MD4C.txt','licenses/Tinta.txt','examples/欢迎.md','examples/流程图.md')
+$notices=$(Get-Content -LiteralPath (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Raw -Encoding UTF8).Replace('third_party/md4c/LICENSE.md','licenses/MD4C.txt').Replace('third_party/tinta/LICENSE','licenses/Tinta.txt').Replace('third_party/manifest.json','DEPENDENCIES.json')
+foreach ($license in $licenses.GetEnumerator()) { $notices=$notices.Replace($license.Key,$license.Value) }
+$notices | Set-Content -LiteralPath (Join-Path $folder '第三方说明.md') -Encoding UTF8
+$relativeFiles=@('keepmd.exe','KeepPrompt.exe','使用说明.md','验证报告.md','第三方说明.md','DEPENDENCIES.json','licenses/MD4C.txt','licenses/Tinta.txt','examples/欢迎.md','examples/流程图.md','examples/公式.md')
+$relativeFiles+=@($licenses.Values)
 $relativeFiles+=@('PromptFlow集成说明.md','examples/提示词.md','输入提示词.cmd')
 $relativeFiles+='bench/results/html-images-e2e.json','bench/results/prompt-process-e2e.json'
 Copy-Item -LiteralPath (Join-Path $root 'bench/results/html-images-e2e.json') -Destination (Join-Path $folder 'bench/results/html-images-e2e.json')
 Copy-Item -LiteralPath (Join-Path $root 'bench/results/prompt-process-e2e.json') -Destination (Join-Path $folder 'bench/results/prompt-process-e2e.json')
-foreach ($result in @('software-s100.json','software-l50.json','scroll.json','stress.json','editor-e2e.json','navigation-e2e.json','dpi-e2e.json','ime-e2e.json','environment.json','dependencies.json','idle.json','release-smoke.json','release-summary.json','prompt-e2e.json','prompt-process-e2e.json','ui-e2e.json','scrollbar-e2e.json','visual-editor-e2e.json','caption-e2e.json','icons-e2e.json','toolbar-toggle-e2e.json','visual-document-e2e.json','remote-images-e2e.json','brand-ui-e2e.json','fullscreen-e2e.json')) {
+foreach ($result in @('software-s100.json','software-l50.json','scroll.json','stress.json','editor-e2e.json','navigation-e2e.json','dpi-e2e.json','ime-e2e.json','environment.json','dependencies.json','idle.json','release-smoke.json','release-summary.json','prompt-e2e.json','prompt-process-e2e.json','ui-e2e.json','scrollbar-e2e.json','visual-editor-e2e.json','caption-e2e.json','icons-e2e.json','toolbar-toggle-e2e.json','visual-document-e2e.json','remote-images-e2e.json','brand-ui-e2e.json','fullscreen-e2e.json','math-e2e.json')) {
     Copy-Item -LiteralPath (Join-Path $root "bench/results/$result") -Destination (Join-Path $folder "bench/results/$result")
     $relativeFiles += "bench/results/$result"
 }

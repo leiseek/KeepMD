@@ -1,6 +1,6 @@
-**KeepMD 0.5.0 — Windows 原生 Markdown 阅读器与独立提示词工具**
+**KeepMD 0.6.0 — Windows 原生 Markdown 阅读器与独立提示词工具**
 
-阅读、预览优先，附带按需开启的轻量编辑（可视化与源码）。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词常驻可选开启。
+阅读、预览优先，附带按需开启的轻量编辑（可视化与源码）。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词与阅读器各自独立运行。
 
 交付目标为 Windows 11 x64 便携版。应用运行只使用系统动态库，第三方 Markdown/流程图代码静态编入 EXE。可视化与源码编辑均使用按需创建的系统 RichEdit 控件。
 
@@ -16,9 +16,18 @@
 
 `Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/编辑，`Ctrl+E` 切换可视化/源码，`F11` 全屏，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
 
-支持正文、标题、列表、引用、代码、链接、常见表格和任务列表、本地图片，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
+支持正文、标题、列表、引用、代码、链接、常见表格和任务列表、本地图片、`$…$`／`$$…$$` LaTeX 公式，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
 
 文件菜单的“设为默认打开程序…”会注册 KeepMD 并打开 Windows 默认应用设置，由用户确认扩展名关联。
+
+**0.6.0**
+
+- 阅读视图排版 LaTeX 公式：`$…$` 行内公式与 `$$…$$` 独立公式由内置的 MicroTeX 原生排版、Direct2D 绘制，不联网、不需要 TeX，也不启动浏览器。查找与复制仍得到 LaTeX 源码；“价格 $5 和 $6”等普通文字不会被误认为公式。不认识的命令标红，无法排版的公式按源码显示。
+
+- KeepPrompt 运行期间始终显示托盘图标，不再依赖“常驻系统托盘”开关。以前在默认设置下，窗口一旦收起或最小化就没有入口找回，只能靠全局快捷键。
+- 点最小化或按 Win+↓ 会先保存草稿，再把提示词窗口收到托盘；单击托盘图标或按全局快捷键重新打开。
+- `Esc` 不再收起提示词窗口，也不会复制内容：设置面板展开时只关闭设置面板，中文输入法组词时只取消组词。收起窗口请用标题栏关闭按钮或 `Ctrl+Enter`。
+- 提示词窗口只能从托盘右键菜单退出，避免误关正在输入的草稿；窗口的“文件”菜单不再有“退出 KeepPrompt”。“常驻系统托盘”开关移除，登录启动由“登录 Windows 时启动”单独控制。
 
 **0.5.0**
 
@@ -31,22 +40,22 @@
 - `F11` 全屏阅读：Space／方向键／PageDown 翻页，指针静止后隐藏；Esc 或 F11 退出。
 - 查找可高亮横跨超长段落内部分片处的命中。
 
-已在 Windows 11 x64 验证：233 项核心检查和全部 GUI 测试套件通过，提示词全量集成套件完成（本机默认 `Ctrl+Alt+Space` 被其他程序占用，真实全局唤起改用 `Ctrl+Alt+Shift+F9`）。提示词可视化编辑的中文输入法提交已通过真实输入验证；Esc 取消组词的按键路径已执行但没有单独断言，不宣称完整通过。S100 温热首屏 p95 约 110–119 ms（因口径而异），未达到 100 ms 的验收目标。详见 [版本说明](docs/releases/v0.5.0.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
+已在 Windows 11 x64 验证：233 项核心检查和全部 GUI 测试套件通过，提示词全量集成套件完成（本机默认 `Ctrl+Alt+Space` 被其他程序占用，真实全局唤起改用 `Ctrl+Alt+Shift+F9`）。提示词可视化编辑的中文输入法提交已通过真实输入验证；Esc 取消组词的按键路径已执行但没有单独断言，不宣称完整通过。本版提示词套件新增“Esc 后窗口保留”“最小化收起到托盘”“未开启常驻也有托盘图标”三项检查。详见 [版本说明](docs/releases/v0.6.0.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 **快捷输入 Markdown 提示词**
 
-运行 `KeepPrompt.exe` 后，在任何应用中按 `Ctrl+Alt+Space` 打开输入窗口（KeepMD 中已没有“提示词”入口）。直接在单栏可视化编辑区输入，用工具栏设置标题、加粗、斜体、列表、引用与代码；按 `Ctrl+Enter` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。`Esc` 只收起、不复制（0.4.x 中 Esc 也会复制）。中文输入法正在组词时，Esc 优先取消组词。
+运行 `KeepPrompt.exe` 后，在任何应用中按 `Ctrl+Alt+Space` 打开输入窗口（KeepMD 中已没有“提示词”入口）。直接在单栏可视化编辑区输入，用工具栏设置标题、加粗、斜体、列表、引用与代码；按 `Ctrl+Enter` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。`Esc` 不再收起窗口，只在设置展开时关闭设置；中文输入法正在组词时，Esc 取消组词。
 
 格式按钮应用于选中的文字；未选中文字时，“加粗／斜体／代码”会插入选中的占位文字，直接输入即可替换。流程图显示为图形，点“流程图”或双击图形修改该图的 Mermaid 语法。复制和保存仍保留 Markdown。
 
-提示词窗口的“设置”支持自定义快捷键、双击左 Ctrl、置顶、透明度、常驻托盘与登录启动。“文件”支持载入／导出 Markdown 和导入旧 Prompt Flow JSON。草稿自动保存，不影响正在阅读或编辑的文档。
+提示词窗口的“设置”支持自定义快捷键、双击左 Ctrl、置顶、透明度与登录启动。“文件”支持载入／导出 Markdown 和导入旧 Prompt Flow JSON。草稿自动保存，不影响正在阅读或编辑的文档。
 
 ```powershell
 .\KeepPrompt.exe --show      # 立即输入提示词
-.\KeepPrompt.exe --resident  # 静默驻留并常驻托盘，等待全局快捷键
+.\KeepPrompt.exe --resident  # 静默驻留在托盘，等待全局快捷键
 ```
 
-关闭提示词窗口只是保存并收起；只有明确开启常驻后才显示托盘图标，文件或托盘菜单“退出 KeepPrompt”结束进程。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
+KeepPrompt 运行期间始终显示托盘图标。关闭或最小化提示词窗口只是保存并收起到托盘，单击托盘图标或按全局快捷键重新打开；只有右键托盘图标选择“退出 KeepPrompt”才结束进程。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
 
 **可视化提示词编辑（0.4.0）**
 
@@ -92,4 +101,4 @@ python -m pip install -r tools/requirements-dev.txt
 - [原生阅读决策](docs/decisions/0001-native-reader.md) 与 [编辑控件决策](docs/decisions/0002-source-editor.md)
 - [第三方来源与许可证](THIRD_PARTY_NOTICES.md)
 
-阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、公式、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.5 的交付范围。
+阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、完整 LaTeX（公式只支持 MicroTeX 子集）、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.6 的交付范围。

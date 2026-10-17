@@ -1,6 +1,6 @@
 {
-  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
-  "prompt_exe_sha256": "23810d96bf7aa729fc26e6532f0ef6ba4758b10a8f6eed7b92654e7f3c71052d",
+  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
+  "prompt_exe_sha256": "9292b5b0c4425df6cb3726313d07c5ac3aa9704a397b8b04de53d0c8fe5b650b",
   "checks": [
     "no standalone action row; named mode icons fit the 32px caption at 640, 850 and 1180px",
     "reading preview preserves the unsaved buffer and undo history without a save dialog",
@@ -8,8 +8,8 @@
     "caption mode icons remain available with the toolbar collapsed and in dark theme",
     "File menu opens from the caption and its New command creates a blank visual document",
     "prompt header row is removed; formatting and editor move up at compact and large sizes",
-    "settings fit at 720px; Escape closes settings before hiding the panel",
-    "Escape hides even while clipboard is busy and keeps the draft exact",
+    "settings fit at 720px; Escape closes the settings panel and leaves the prompt panel open",
+    "Escape keeps the panel open even while clipboard is busy; close hides and keeps the draft exact",
     "template menu appends structured text and one Undo restores the exact existing draft",
     "Clear remains reversible after template insertion"
   ]

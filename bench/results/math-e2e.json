@@ -1,0 +1,12 @@
+{
+  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
+  "fixture": "math.md",
+  "formulas_typeset": 15,
+  "formulas_source": 1,
+  "checks": [
+    "15 formulas typeset and one unrecoverable formula kept as source in the real reader",
+    "find matches LaTeX source inside a typeset formula",
+    "copy returns the exact LaTeX source of typeset formulas, and prose dollar signs",
+    "formulas are typeset again after a theme change and zoom"
+  ]
+}

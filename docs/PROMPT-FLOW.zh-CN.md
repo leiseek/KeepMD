@@ -4,16 +4,16 @@
 
 ## 功能对应
 
-| 同级 Prompt Flow 的能力 | KeepPrompt 0.5.0 的实现 |
+| 同级 Prompt Flow 的能力 | KeepPrompt 0.6.0 的实现 |
 | --- | --- |
 | 托盘静默启动，单实例 | 独立 `KeepPrompt.exe --resident`；每份配置只有一个提示词实例，再次启动只转发唤起请求。KeepMD 不启动也不转发提示词 |
 | 全局组合键 / 双击左 Ctrl | 默认 Ctrl+Alt+Space；可自定义，保留 LCtrl x2 选项 |
 | 多行文本输入 | 按需加载 Windows RichEdit；支持中文输入法、撤销、软换行、可视化文字编辑，复制保存 Markdown |
-| 再按快捷键或 Esc 自动复制并隐藏 | 再按快捷键或 Ctrl+Enter 复制并收起；Esc 仅收起（0.4.x 中 Esc 也会复制），设置展开时先关闭设置；返回唤起前的窗口 |
+| 再按快捷键或 Esc 自动复制并隐藏 | 再按快捷键或 Ctrl+Enter 复制并收起；Esc 不收起窗口，仅在设置展开时关闭设置；关闭或最小化收起到托盘；返回唤起前的窗口 |
 | 复制按钮、清空、字数和行数 | 原生按钮；清空可撤销；显示 UTF-16 单元数和逻辑行数 |
 | 草稿及窗口偏好持久化 | 独立 UTF-8 草稿与偏好文件（`KeepPrompt.draft.md`／`KeepPrompt.ini`，0.4.x 的 `.prompt.md`／`.prompt.ini` 原位沿用）；防抖保存、原子替换、写入失败提示 |
 | 置顶、30–100% 不透明度、右侧定位 | 设置菜单；按唤起前窗口所在显示器的工作区定位 |
-| 当前用户登录时启动 | 设置菜单显式启用；注册命令包含引号和配置路径，关闭常驻时移除该配置的启动项 |
+| 当前用户登录时启动 | 设置菜单显式启用或关闭；注册命令包含引号和配置路径 |
 | JSON 配置 | 文件菜单可导入旧 JSON 的草稿、快捷键、置顶与透明度；不修改旧文件、不继承自启动 |
 | 无 Markdown 渲染 | 原生 RichEdit 可视化编辑，支持常用 Markdown 文字结构和内嵌 Mermaid 图形 |
 | 无 Markdown 文件入口 | 新增 Markdown 载入与导出，草稿可用普通编辑器读取 |
@@ -24,7 +24,7 @@
 
 `prompt_model` 负责快捷键语法、双 Ctrl 状态机、偏好、旧 JSON 导入和自启动命令；`prompt_window` 管理提示词窗口、托盘、焦点与剪贴板；`prompt_main` 提供隐藏宿主消息窗口和独立进程生命周期。KeepMD 与 KeepPrompt 完全独立：KeepMD 不启动、不唤起 KeepPrompt，KeepPrompt 也不再提供“打开阅读器”；两者只在构建时共用 `keep_shared` 界面基础库，`prompt_model` 与 `prompt_window` 不链接进 `keepmd.exe`。
 
-普通组合键使用 Windows [`RegisterHotKey`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey) 和 `MOD_NOREPEAT`。先注册新键，成功后才撤销旧键；失败时保留旧配置。程序运行时可全局唤起，退出后不占用快捷键。常驻托盘默认关闭，登录启动默认关闭。
+普通组合键使用 Windows [`RegisterHotKey`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey) 和 `MOD_NOREPEAT`。先注册新键，成功后才撤销旧键；失败时保留旧配置。程序运行时可全局唤起，退出后不占用快捷键。运行期间始终显示托盘图标，进程只能从托盘右键菜单退出；登录启动默认关闭。
 
 双 Ctrl 通过可选 Raw Input 输入接收实现，没有默认全局键盘钩子。两次完整的左 Ctrl 按下/松开需在 350 ms 内完成，按住、自动重复或夹杂其他按键不会按双击处理。发现旧 Prompt Flow 的窗口类仍存在时，拒绝启用该模式并说明原因，避免两个工具同时唤起；组合键可以与旧工具共存。
 

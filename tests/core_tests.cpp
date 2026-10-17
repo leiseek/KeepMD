@@ -4,6 +4,7 @@
 #include "html_image.h"
 #include "image_cache.h"
 #include "image_decode.h"
+#include "math_formula.h"
 #include "paths.h"
 #include "remote_image.h"
 #include "prompt_model.h"
@@ -11,6 +12,9 @@
 #include "shell_integration.h"
 #include "visual_markdown.h"
 #include <cmath>
+#include <d2d1.h>
+#include <wincodec.h>
+#include <wrl/client.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,6 +31,62 @@ void check(bool value, const char *name) {
         std::cerr << "FAIL: " << name << '\n';
         ++failures;
     }
+}
+
+// Ink a formula leaves on a transparent bitmap, and the box it covers relative to the formula's top-left.
+struct Ink {
+    size_t pixels = 0, red = 0;
+    bool restored = false; // The target's transform is unchanged after drawing.
+    float left = 1e9f, top = 1e9f, right = -1e9f, bottom = -1e9f;
+};
+Ink draw_formula(const MathFormula &formula) {
+    using Microsoft::WRL::ComPtr;
+    constexpr UINT W = 600, H = 300;
+    constexpr float X = 50, Y = 50;
+    Ink ink;
+    ComPtr<IWICImagingFactory> wic;
+    ComPtr<IWICBitmap> bitmap;
+    ComPtr<ID2D1Factory> d2d;
+    ComPtr<ID2D1RenderTarget> target;
+    CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.GetAddressOf()));
+    D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2d.GetAddressOf());
+    if (!wic || !d2d ||
+        FAILED(wic->CreateBitmap(W, H, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, bitmap.GetAddressOf())) ||
+        FAILED(d2d->CreateWicBitmapRenderTarget(bitmap.Get(), D2D1::RenderTargetProperties(),
+                                                target.GetAddressOf())))
+        return ink;
+    target->BeginDraw();
+    target->Clear(D2D1::ColorF(0, 0, 0, 0));
+    // Draw under a caller transform, as the reader does for scrolled text, and offset back to the origin.
+    const auto callerTransform = D2D1::Matrix3x2F::Translation(7, 3);
+    target->SetTransform(callerTransform);
+    formula.draw(target.Get(), X - 7, Y - 3, D2D1::ColorF(0, 0, 0));
+    D2D1::Matrix3x2F after;
+    target->GetTransform(&after);
+    ink.restored = after.dx == callerTransform.dx && after.dy == callerTransform.dy && after._11 == 1 &&
+                   after._22 == 1 && after._12 == 0 && after._21 == 0;
+    target->EndDraw();
+    WICRect all{0, 0, (INT)W, (INT)H};
+    std::vector<BYTE> pixels(W * H * 4);
+    bitmap->CopyPixels(&all, W * 4, (UINT)pixels.size(), pixels.data());
+    for (UINT y = 0; y < H; ++y)
+        for (UINT x = 0; x < W; ++x)
+            if (const BYTE *px = &pixels[(y * W + x) * 4]; px[3] > 64) {
+                ++ink.pixels;
+                if (px[2] > 160 && px[1] < 80 && px[0] < 80) // Premultiplied BGRA: strongly red.
+                    ++ink.red;
+                ink.left = std::min(ink.left, x - X);
+                ink.right = std::max(ink.right, x + 1 - X);
+                ink.top = std::min(ink.top, y - Y);
+                ink.bottom = std::max(ink.bottom, y + 1 - Y);
+            }
+    return ink;
+}
+// The ink stays inside the typeset box, allowing for antialiasing and side bearings.
+bool ink_fits(const MathFormula &formula, const Ink &ink) {
+    constexpr float slack = 3;
+    return ink.pixels && ink.left >= -slack && ink.top >= -slack && ink.right <= formula.width + slack &&
+           ink.bottom <= formula.ascent + formula.descent + slack;
 }
 int main() {
     // WIC decoding in the image failure checks needs COM on this thread.
@@ -202,6 +262,131 @@ int main() {
         nestedHtml += "<div>";
     auto deep = parse_document(nestedHtml + "x\n");
     check(!deep->blocks.empty() && deep->blocks[0].kind == Kind::Html, "HTML nesting depth stays bounded");
+    // Math is parsed but not typeset: the LaTeX source stays exactly as written and is marked with the
+    // Formula style, so nothing is silently dropped or rewritten.
+    auto math = parse_document(R"(Inline $E = mc^2$ and display:
+
+$$\int_0^1 x^2 \, dx$$
+)");
+    std::vector<std::wstring> formulas;
+    for (const auto &block : math->blocks)
+        for (const auto &span : block.text.spans)
+            if (span.style & Formula)
+                formulas.push_back(block.text.value.substr(span.start, span.length));
+    check(formulas.size() == 2, "inline and display math are both recognized");
+    check(formulas.size() == 2 && formulas[0] == L"E = mc^2", "inline math keeps its exact source text");
+    check(formulas.size() == 2 && formulas[1] == L"\\int_0^1 x^2 \\, dx",
+          "display math keeps its exact source text");
+    check(math->plain_text().find(L"E = mc^2") != std::wstring::npos &&
+              math->plain_text().find(L"\\int_0^1 x^2 \\, dx") != std::wstring::npos &&
+              math->plain_text().find(L"$") == std::wstring::npos,
+          "math source stays searchable without its delimiters");
+    check(search(*math, L"mc^2").size() == 1, "math source is searchable");
+    auto escapedDollar = parse_document("Costs $5 and $6 total.\n");
+    check(escapedDollar->plain_text().find(L"$5") != std::wstring::npos, "a lone dollar sign stays literal");
+    auto spaced = parse_document("售价 $ 100 和 $ 200 元\n");
+    check(spaced->plain_text().find(L"售价 $ 100 和 $ 200 元") != std::wstring::npos && !spaced->blocks.empty() &&
+              spaced->blocks[0].text.spans.empty(),
+          "dollar signs around spaces stay prose, with the dollars kept");
+    std::string longMath(9000, 'a');
+    for (size_t i = 100; i < longMath.size(); i += 100)
+        longMath[i] = ' ';
+    longMath += " $x + y + z$ tail\n";
+    // The formula has spaces of its own and straddles the 8192-character chunk limit, so the usual break at
+    // the last space before the limit would fall inside it.
+    std::string straddling = "q";
+    for (int i = 0; i < 99; ++i)
+        straddling += " q";
+    longMath.insert(8150, " $" + straddling + "$ ");
+    auto chunked = parse_document(longMath);
+    bool wholeFormulas = true;
+    size_t formulaCount = 0;
+    for (const auto &block : chunked->blocks)
+        for (const auto &span : block.text.spans)
+            if (span.style & Formula) {
+                ++formulaCount;
+                wholeFormulas &= span.length == 199 || span.length == 9;
+            }
+    check(chunked->blocks.size() > 1 && formulaCount == 2 && wholeFormulas,
+          "splitting a long paragraph never cuts through a formula");
+    // Verbatim text that merely contains dollar signs must not be captured as math.
+    // Case list: expected Formula-span count per line.
+    {
+        const std::pair<std::wstring, size_t> dollarCases[] = {
+            {L"价格 $5 和 $6 之间没有公式。", 0},
+            {L"从 $5 到 $10 元。", 0},
+            {L"总价 $5。", 0},
+            {L"行内 $E = mc^2$ 混排。", 1},
+            {L"$a$ 与 $b$", 2},
+            {L"**加粗 $x^2$ 结尾**", 1},
+            {L"售价 $ 100 和 $ 200 元", 0},
+            {L"$$ x^2 $$", 1},
+            {L"![图 $x$](a.png) 后文", 0},
+        };
+        for (const auto &[source, expected] : dollarCases) {
+            auto probe = parse_document(keep::utf8(source));
+            size_t found = 0;
+            for (const auto &item : probe->blocks)
+                for (const auto &span : item.text.spans)
+                    if (span.style & Formula)
+                        ++found;
+            check(found == expected,
+                  (std::string("dollar signs: ") + keep::utf8(source)).c_str());
+        }
+    }
+    // MicroTeX typesets with KeepMD's Direct2D backend and embedded Computer Modern fonts.
+    std::wstring mathError;
+    auto energy = MathFormula::create(L"E = mc^2", false, 20, &mathError);
+    check(energy && energy->width > 40 && energy->ascent > 8 && mathError.empty(), "inline formula is typeset");
+    if (energy) {
+        auto ink = draw_formula(*energy);
+        check(ink.pixels > 80, "inline formula draws glyphs from the embedded fonts");
+        check(ink_fits(*energy, ink), "inline formula ink stays inside its typeset box");
+        check(ink.restored, "drawing a formula restores the caller's transform");
+    }
+    auto half = MathFormula::create(LR"(\frac{1}{2})", true, 20);
+    check(half && half->ascent > 10 && half->descent > 5, "display fraction straddles the baseline");
+    if (half)
+        check(ink_fits(*half, draw_formula(*half)), "fraction bar and digits stay inside the box");
+    auto integral = MathFormula::create(LR"(\int_0^1 x^2 \, dx = \frac{1}{3})", true, 20);
+    check(integral && integral->width > 80, "display integral is typeset");
+    if (integral) {
+        auto ink = draw_formula(*integral);
+        check(ink.pixels > 200 && ink_fits(*integral, ink), "display integral draws inside its box");
+    }
+    auto inlineIntegral = MathFormula::create(LR"(\int_0^1 x^2 \, dx)", false, 20);
+    auto displayIntegral = MathFormula::create(LR"(\int_0^1 x^2 \, dx)", true, 20);
+    check(inlineIntegral && displayIntegral &&
+              inlineIntegral->ascent + inlineIntegral->descent < displayIntegral->ascent + displayIntegral->descent,
+          "text style sets a lower integral than display style");
+    auto chinese = MathFormula::create(LR"(\text{面积} = \pi r^2)", false, 20);
+    check(chinese && chinese->width > 60, "Chinese text inside a formula is laid out");
+    if (chinese)
+        check(draw_formula(*chinese).pixels > 150, "Chinese text inside a formula is drawn");
+    // Fonts with an unclear licence are not embedded; their symbols are drawn from Windows faces instead.
+    check(FindResourceW(nullptr, L"CMR10", RT_RCDATA) && !FindResourceW(nullptr, L"SPECIAL", RT_RCDATA) &&
+              !FindResourceW(nullptr, L"R10", RT_RCDATA) && !FindResourceW(nullptr, L"TT10", RT_RCDATA),
+          "only fonts with a known licence are embedded");
+    for (const wchar_t *symbol : {LR"(\texteuro)", LR"(\textperthousand)", LR"(\og x \fg)", LR"(\parallelogram)",
+                                  LR"(\textmu)", LR"(\TeX)"}) {
+        auto formula = MathFormula::create(symbol, false, 20);
+        check(formula && draw_formula(*formula).pixels > 20,
+              ("substituted symbol is drawn: " + keep::utf8(symbol)).c_str());
+    }
+    auto robot = MathFormula::create(LR"(a \android b)", false, 20);
+    check(robot && draw_formula(*robot).pixels > 20, "a symbol without a stand-in leaves the rest of the formula");
+    mathError.clear();
+    check(!MathFormula::create(LR"(}{)", false, 20, &mathError) && !mathError.empty(),
+          "a formula MicroTeX cannot recover from reports an error instead of drawing");
+    // Like KaTeX, an unknown command stays visible in red rather than failing the whole formula.
+    auto unknown = MathFormula::create(LR"(a + \nosuchcommand)", false, 20);
+    check(unknown && draw_formula(*unknown).red > 20, "an unknown command is drawn in red");
+    if (energy)
+        check(draw_formula(*energy).red == 0, "a valid formula has no red error ink");
+    mathError.clear();
+    check(!MathFormula::create(std::wstring(MathFormula::kMaxSource + 1, L'x'), false, 20, &mathError) &&
+              !mathError.empty(),
+          "oversized formula stays as source");
     auto extent = image_extent(1164, 265, 400, 0, 800, 1);
     check(extent.width == 400 && std::abs(extent.height - 91.0653f) < .01f,
           "Ghidra logo requested width preserves aspect ratio");

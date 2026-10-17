@@ -3,7 +3,9 @@
 #include "paths.h"
 #include "remote_image.h"
 #include "image_cache.h"
+#include "math_formula.h"
 #include "ui.h"
+#include <atomic>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -14,6 +16,60 @@
 
 namespace keepmd {
 namespace {
+// Computer Modern sits visually smaller than the UI face at the same pixel size, so formulas are set slightly
+// larger than the surrounding text, as KaTeX does.
+constexpr float kMathScale = 1.15f;
+
+// A typeset formula standing in for its LaTeX source inside a text layout. The source text stays in the layout,
+// so selection, copy, search and hit testing keep working on it.
+class FormulaObject final : public IDWriteInlineObject {
+  public:
+    FormulaObject(std::shared_ptr<MathFormula> formula, std::shared_ptr<FormulaInk> ink)
+        : formula_(std::move(formula)), ink_(std::move(ink)) {}
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID id, void **object) override {
+        if (id == __uuidof(IUnknown) || id == __uuidof(IDWriteInlineObject)) {
+            *object = static_cast<IDWriteInlineObject *>(this);
+            AddRef();
+            return S_OK;
+        }
+        *object = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override {
+        return ++refs_;
+    }
+    ULONG STDMETHODCALLTYPE Release() override {
+        ULONG left = --refs_;
+        if (!left)
+            delete this;
+        return left;
+    }
+    HRESULT STDMETHODCALLTYPE Draw(void *, IDWriteTextRenderer *, FLOAT x, FLOAT y, BOOL, BOOL,
+                                   IUnknown *) override {
+        if (ink_->target)
+            formula_->draw(ink_->target, x, y, ink_->color);
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetMetrics(DWRITE_INLINE_OBJECT_METRICS *metrics) override {
+        *metrics = {formula_->width, formula_->ascent + formula_->descent, formula_->ascent, FALSE};
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetOverhangMetrics(DWRITE_OVERHANG_METRICS *overhangs) override {
+        *overhangs = {};
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetBreakConditions(DWRITE_BREAK_CONDITION *before,
+                                                 DWRITE_BREAK_CONDITION *after) override {
+        *before = *after = DWRITE_BREAK_CONDITION_NEUTRAL;
+        return S_OK;
+    }
+
+  private:
+    std::atomic<ULONG> refs_{1};
+    std::shared_ptr<MathFormula> formula_;
+    std::shared_ptr<FormulaInk> ink_;
+};
+
 float clampf(float v, float lo, float hi) {
     return std::clamp(v, lo, std::max(lo, hi));
 }
@@ -499,11 +555,40 @@ View::Entry &View::layout(size_t index) {
             if (!format)
                 continue;
             format->SetWordWrapping(code ? DWRITE_WORD_WRAPPING_NO_WRAP : DWRITE_WORD_WRAPPING_WRAP);
-            if (heading)
-                format->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, size * 1.32f, size * 1.06f);
-            else
-                format->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, size * 1.6f, size * 1.23f);
-            if (b.kind == Kind::TableRow && c < b.align.size())
+            // Typeset formulas first: a tall one (a fraction, an integral with limits) widens the line spacing.
+            // A formula MicroTeX cannot typeset keeps its source text, styled below.
+            std::vector<std::pair<DWRITE_TEXT_RANGE, std::shared_ptr<MathFormula>>> formulas;
+            float mathAscent = 0, mathDescent = 0;
+            bool displayOnly = false;
+            if (!code && !card)
+                for (const auto &span : text.spans) {
+                    if (!(span.style & Formula))
+                        continue;
+                    auto formula = MathFormula::create(text.value.substr(span.start, span.length),
+                                                       (span.style & DisplayMath) != 0, size * kMathScale);
+                    if (!formula) {
+                        ++entry.formulasSource;
+                        continue;
+                    }
+                    ++entry.formulasTypeset;
+                    mathAscent = std::max(mathAscent, formula->ascent);
+                    mathDescent = std::max(mathDescent, formula->descent);
+                    displayOnly = (span.style & DisplayMath) && span.start == 0 &&
+                                  span.length == text.value.size() && text.spans.size() == 1;
+                    formulas.push_back({{span.start, span.length}, std::move(formula)});
+                }
+            float lineHeight = size * (heading ? 1.32f : 1.6f), baseline = size * (heading ? 1.06f : 1.23f);
+            if (!formulas.empty()) {
+                // Every line of the paragraph grows alike, so its spacing stays even while the tallest formula
+                // clears the lines above and below it.
+                float below = std::max(lineHeight - baseline, mathDescent + size * .2f);
+                baseline = std::max(baseline, mathAscent + size * .2f);
+                lineHeight = baseline + below;
+            }
+            format->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, lineHeight, baseline);
+            if (displayOnly && b.kind != Kind::TableRow)
+                format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            else if (b.kind == Kind::TableRow && c < b.align.size())
                 format->SetTextAlignment(b.align[c] == 2   ? DWRITE_TEXT_ALIGNMENT_CENTER
                                          : b.align[c] == 3 ? DWRITE_TEXT_ALIGNMENT_TRAILING
                                                            : DWRITE_TEXT_ALIGNMENT_LEADING);
@@ -527,12 +612,22 @@ View::Entry &View::layout(size_t index) {
                     tl->SetFontFamilyName(ui::code_font(), range);
                     tl->SetFontSize(fs * .9f, range);
                 }
+                if (span.style & Formula) {
+                    // Source kept for a formula that could not be typeset: the code face, tinted like inline code.
+                    tl->SetFontFamilyName(ui::code_font(), range);
+                    tl->SetFontSize(fs * .95f, range);
+                }
                 if ((!span.link.empty() && !card) || (span.style & Underline))
                     tl->SetUnderline(TRUE, range);
                 if (card)
                     tl->SetDrawingEffect(span.link.empty() ? mutedBrush_.Get() : linkBrush_.Get(), range);
                 else if (!span.link.empty() && linkBrush_)
                     tl->SetDrawingEffect(linkBrush_.Get(), range);
+            }
+            for (auto &[range, formula] : formulas) {
+                ComPtr<IDWriteInlineObject> object;
+                object.Attach(new FormulaObject(formula, formulaInk_));
+                tl->SetInlineObject(object.Get(), range);
             }
             DWRITE_TEXT_METRICS metrics{};
             tl->GetMetrics(&metrics);
@@ -755,6 +850,12 @@ void View::draw_block(ID2D1RenderTarget *target, size_t index, Entry &entry, flo
             for (const auto &span : text->spans)
                 if (span.style & Mono)
                     range_rects(target, tl, span.start, span.length, tx, ty, color(p.codeInline), 4 * zoom_);
+            for (const auto &span : text->spans) {
+                ComPtr<IDWriteInlineObject> typeset;
+                if ((span.style & Formula) &&
+                    (FAILED(tl->GetInlineObject(span.start, typeset.GetAddressOf(), nullptr)) || !typeset))
+                    range_rects(target, tl, span.start, span.length, tx, ty, color(p.codeInline), 4 * zoom_);
+            }
             if (selEnd > start && selStart < end)
                 range_rects(target, tl, (uint32_t)(std::max(selStart, start) - start),
                             (uint32_t)(std::min(selEnd, end) - std::max(selStart, start)), tx, ty,
@@ -767,7 +868,9 @@ void View::draw_block(ID2D1RenderTarget *target, size_t index, Entry &entry, flo
             }
         }
         brush_->SetColor(b.quote ? color(p.muted) : foreground());
+        *formulaInk_ = {target, b.quote ? color(p.muted) : foreground()};
         target->DrawTextLayout(D2D1::Point2F(tx, ty), tl, brush_.Get(), D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+        formulaInk_->target = nullptr;
     }
 }
 void View::render(ID2D1RenderTarget *target) {

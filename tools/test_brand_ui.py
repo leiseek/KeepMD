@@ -174,21 +174,24 @@ try:
     u.PostMessageW(u.GetDlgItem(h,502), 0x100, 0x1B, 0)
     wait(lambda: not u.IsWindowVisible(u.GetDlgItem(h,502)))
     assert u.IsWindowVisible(h)
-    checks.append('settings fit at 720px; Escape closes settings before hiding the panel')
-    # The copy action is explicitly tested even with an empty draft elsewhere. Holding the clipboard
-    # proves Esc can hide without copying or replacing the clipboard, unlike Ctrl+Enter.
+    checks.append('settings fit at 720px; Escape closes the settings panel and leaves the prompt panel open')
+    # Holding the clipboard proves Esc leaves both panel and clipboard alone, unlike Ctrl+Enter.
     wait(lambda: u.OpenClipboard(None))
     try:
         u.PostMessageW(edit, 0x100, 0x1B, 0)
-        wait(lambda: not u.IsWindowVisible(h))
+        time.sleep(.3)
+        assert u.IsWindowVisible(h) and p.poll() is None
     finally:
         u.CloseClipboard()
     assert draft.read_text(encoding='utf-8') == sample
+    # Only the caption close button hides the window; the tray icon or a second launch brings it back.
+    u.PostMessageW(h, 0x10, 0, 0)
+    wait(lambda: not u.IsWindowVisible(h))
     broker = subprocess.Popen([str(ROOT/'build/release/KeepPrompt.exe'), '--show', '--config', str(config)], cwd=ROOT)
     broker.wait(timeout=8)
     wait(lambda: u.IsWindowVisible(h))
     assert text(edit) == sample
-    checks.append('Escape hides even while clipboard is busy and keeps the draft exact')
+    checks.append('Escape keeps the panel open even while clipboard is busy; close hides and keeps the draft exact')
     # The menu and its commands are addressed to this process, without taking desktop keyboard focus.
     u.PostMessageW(caption(h), 0x111, 9201, 0)
     menu = wait(lambda: top(p.pid, '#32768'))

@@ -1,0 +1,23 @@
+// Computer Modern fonts that MicroTeX measures formulas against, embedded so math needs no files beside
+// the EXE. The resource name is the font file name; src/keepmd/math_formula.cpp looks fonts up by it.
+// Generated from third_party/microtex/res/fonts; regenerate when the pinned MicroTeX changes.
+CMEX10 RCDATA "../../third_party/microtex/res/fonts/base/cmex10.ttf"
+CMMI10 RCDATA "../../third_party/microtex/res/fonts/base/cmmi10.ttf"
+CMMIB10 RCDATA "../../third_party/microtex/res/fonts/base/cmmib10.ttf"
+EUFB10 RCDATA "../../third_party/microtex/res/fonts/euler/eufb10.ttf"
+EUFM10 RCDATA "../../third_party/microtex/res/fonts/euler/eufm10.ttf"
+CMR10 RCDATA "../../third_party/microtex/res/fonts/latin/cmr10.ttf"
+CMBX10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmbx10.ttf"
+CMBXTI10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmbxti10.ttf"
+CMSS10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmss10.ttf"
+CMSSBX10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmssbx10.ttf"
+CMSSI10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmssi10.ttf"
+CMTI10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmti10.ttf"
+CMTT10 RCDATA "../../third_party/microtex/res/fonts/latin/optional/cmtt10.ttf"
+CMBSY10 RCDATA "../../third_party/microtex/res/fonts/maths/cmbsy10.ttf"
+CMSY10 RCDATA "../../third_party/microtex/res/fonts/maths/cmsy10.ttf"
+MSAM10 RCDATA "../../third_party/microtex/res/fonts/maths/msam10.ttf"
+MSBM10 RCDATA "../../third_party/microtex/res/fonts/maths/msbm10.ttf"
+DSROM10 RCDATA "../../third_party/microtex/res/fonts/maths/optional/dsrom10.ttf"
+RSFS10 RCDATA "../../third_party/microtex/res/fonts/maths/rsfs10.ttf"
+STMARY10 RCDATA "../../third_party/microtex/res/fonts/maths/stmary10.ttf"

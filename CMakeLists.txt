@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(KeepMD VERSION 0.5.0 LANGUAGES C CXX)
+project(KeepMD VERSION 0.6.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -17,6 +17,19 @@ add_library(md4c STATIC third_party/md4c/md4c.c third_party/md4c/entity.c)
 target_include_directories(md4c PUBLIC third_party/md4c)
 add_library(flowchart STATIC third_party/tinta/mermaid.cpp)
 target_include_directories(flowchart PUBLIC third_party/tinta)
+# MicroTeX lays out LaTeX math against compiled-in Computer Modern metrics; KeepMD draws it with its own
+# Direct2D backend (src/keepmd/math_formula.cpp). Its XML reader is only used for optional extra alphabets, but the
+# pinned sources link it, so tinyxml2 is pinned too. Both stay byte-identical to upstream.
+add_library(tinyxml2 STATIC third_party/tinyxml2/tinyxml2.cpp)
+target_include_directories(tinyxml2 PUBLIC third_party/tinyxml2)
+file(GLOB_RECURSE MICROTEX_SOURCES CONFIGURE_DEPENDS third_party/microtex/src/*.cpp)
+add_library(microtex STATIC ${MICROTEX_SOURCES})
+target_include_directories(microtex PUBLIC third_party/microtex/src)
+target_link_libraries(microtex PRIVATE tinyxml2)
+set_target_properties(microtex PROPERTIES CXX_STANDARD 17)
+if(MSVC)
+  target_compile_options(microtex PRIVATE /W0)
+endif()
 
 # Product-neutral foundation: text and file I/O, native UI kit, Mermaid parsing and the visual Markdown
 # editor. It never refers to KeepMD or KeepPrompt.
@@ -29,11 +42,14 @@ target_link_libraries(keep_shared PUBLIC md4c flowchart comctl32 dwmapi imm32 ol
 # KeepMD and KeepPrompt are independent programs: neither links, includes, launches nor messages the other.
 add_library(keepmd_core STATIC src/keepmd/document.cpp src/keepmd/html.cpp src/keepmd/html_image.cpp
   src/keepmd/settings.cpp src/keepmd/shell_integration.cpp src/keepmd/paths.cpp
-  src/keepmd/remote_image.cpp src/keepmd/image_decode.cpp src/keepmd/image_cache.cpp)
+  src/keepmd/remote_image.cpp src/keepmd/image_decode.cpp src/keepmd/image_cache.cpp
+  src/keepmd/math_formula.cpp)
 target_include_directories(keepmd_core PUBLIC include/keepmd)
-target_link_libraries(keepmd_core PUBLIC keep_shared advapi32 winhttp windowscodecs d2d1 bcrypt shell32)
+target_link_libraries(keepmd_core PUBLIC keep_shared advapi32 winhttp windowscodecs d2d1 dwrite bcrypt shell32
+  PRIVATE microtex)
+# Any program linking keepmd_core that typesets math also embeds the fonts it draws with.
 add_executable(keepmd WIN32 src/keepmd/main.cpp src/keepmd/view.cpp src/keepmd/editor.cpp
-  resources/keepmd/app.rc resources/keepmd/app.manifest)
+  resources/keepmd/app.rc resources/keepmd/math_fonts.rc resources/keepmd/app.manifest)
 target_link_libraries(keepmd PRIVATE keepmd_core d2d1 dwrite windowscodecs comdlg32 shell32 shlwapi psapi)
 
 add_library(keepprompt_core STATIC src/keepprompt/prompt_model.cpp)
@@ -45,10 +61,17 @@ target_link_libraries(KeepPrompt PRIVATE keepprompt_core comdlg32 shell32 shlwap
 
 include(CTest)
 if(BUILD_TESTING)
-  add_executable(core_tests tests/core_tests.cpp)
+  add_executable(core_tests tests/core_tests.cpp resources/keepmd/math_fonts.rc)
   target_link_libraries(core_tests PRIVATE keepmd_core keepprompt_core)
   add_test(NAME core COMMAND core_tests)
 endif()
 install(TARGETS keepmd KeepPrompt RUNTIME DESTINATION .)
 install(FILES third_party/md4c/LICENSE.md DESTINATION licenses RENAME MD4C.txt)
 install(FILES third_party/tinta/LICENSE DESTINATION licenses RENAME Tinta.txt)
+install(FILES third_party/microtex/LICENSE DESTINATION licenses RENAME MicroTeX.txt)
+install(FILES third_party/microtex/res/fonts/licences/Knuth_License.txt DESTINATION licenses RENAME MicroTeX-fonts-Knuth.txt)
+install(FILES third_party/microtex/res/fonts/licences/OFL.txt DESTINATION licenses RENAME MicroTeX-fonts-OFL.txt)
+install(FILES third_party/microtex/res/fonts/licences/License_for_dsrom.txt DESTINATION licenses
+  RENAME MicroTeX-fonts-dsrom.txt)
+install(FILES third_party/microtex/LICENSE_BAKOMA DESTINATION licenses RENAME MicroTeX-fonts-BaKoMa.txt)
+install(FILES third_party/tinyxml2/LICENSE.txt DESTINATION licenses RENAME TinyXML-2.txt)

@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
   "checks": [
     "one visual editor: Markdown markers hidden, heading/bold/italic rendered; source preserved exactly",
     "native diagram picture and light/dark rich text survive theme changes without source changes",

@@ -71,6 +71,9 @@ try:
     before=rect(main);activate(main);keys(main,0x5B,0x25)
     wait(lambda:rect(main)!=before)
     snap=rect(main);assert snap[2]-snap[0]<monitor.work.right-monitor.work.left
+    # A Windows snap can briefly give foreground ownership to another app.
+    # Re-activate the test window before sending the restore chord.
+    activate(main);wait(lambda:u.GetForegroundWindow()==main)
     keys(main,0x5B,0x27);time.sleep(.2)
     u.ShowWindow(main,9);activate(main)
     checks.append('Win+Left docking remains available with the custom frame')

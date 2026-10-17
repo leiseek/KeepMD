@@ -28,7 +28,7 @@ enum Action {
     Apply,
     DoubleCtrl,
     DefaultKey,
-    Resident,
+    Resident, // Retired: the tray icon is always shown.
     Top,
     Startup,
     ImportMd,
@@ -381,17 +381,18 @@ struct PromptWindow::Impl {
         }
         apply_appearance();
         bool ok = shortcut(settings.hotkey);
-        if (settings.resident)
-            tray_icon(true);
+        // The tray icon is the window's only way back after it is hidden or minimized, and its menu is how the
+        // process ends, so it stays for the whole process lifetime.
+        tray_icon(true);
         if (forceResident)
             persist_settings();
-        if (showNow || (settings.resident && (!ok || !tray))) {
+        if (showNow || !ok || !tray) {
             show();
             if (!ok) {
                 options = true;
                 layout();
                 say(hotkeyError);
-            } else if (settings.resident && !tray)
+            } else if (!tray)
                 say(L"托盘图标创建失败；提示词窗口保持可见。");
         }
         return true;
@@ -410,8 +411,6 @@ struct PromptWindow::Impl {
         AppendMenuW(file, MF_STRING, ImportMd, L"载入 Markdown…");
         AppendMenuW(file, MF_STRING, ExportMd, L"导出 Markdown…\tCtrl+S");
         AppendMenuW(file, MF_STRING, ImportLegacy, L"导入 Prompt Flow 配置…");
-        AppendMenuW(file, MF_SEPARATOR, 0, nullptr);
-        AppendMenuW(file, MF_STRING, Quit, L"退出 KeepPrompt");
         AppendMenuW(menu, MF_POPUP, (UINT_PTR)file, L"文件");
         auto templates = CreatePopupMenu();
         AppendMenuW(templates, MF_STRING, TemplateTask, L"任务说明 · 目标 / 背景 / 输出");
@@ -420,7 +419,6 @@ struct PromptWindow::Impl {
         AppendMenuW(menu, MF_POPUP, (UINT_PTR)templates, L"模板");
         AppendMenuW(prefsMenu, MF_STRING, Options, L"设置全局快捷键");
         AppendMenuW(prefsMenu, MF_STRING, ToggleToolbar, L"显示格式工具栏\tCtrl+Shift+T");
-        AppendMenuW(prefsMenu, MF_STRING, Resident, L"常驻系统托盘");
         AppendMenuW(prefsMenu, MF_STRING, Startup, L"登录 Windows 时启动");
         AppendMenuW(prefsMenu, MF_STRING, Top, L"窗口置顶");
         for (int i : {100, 90, 80, 70, 60, 50, 40, 30}) {
@@ -715,6 +713,8 @@ struct PromptWindow::Impl {
             return false;
         if (!flush())
             return false;
+        if (!tray)
+            tray_icon(true);
         KillTimer(hwnd, 1);
         KillTimer(hwnd, 2);
         bool restore = GetForegroundWindow() == hwnd;
@@ -751,8 +751,7 @@ struct PromptWindow::Impl {
     void update_menu() {
         if (!prefsMenu)
             return;
-        for (auto [id, checked] : {std::pair{Resident, settings.resident},
-                                   {ToggleToolbar, settings.toolbar},
+        for (auto [id, checked] : {std::pair{ToggleToolbar, settings.toolbar},
                                    {Top, settings.top},
                                    {Startup, prompt_startup_enabled(startupValue, startupCommand)}})
             CheckMenuItem(prefsMenu, id, MF_BYCOMMAND | (checked ? MF_CHECKED : MF_UNCHECKED));
@@ -937,21 +936,6 @@ struct PromptWindow::Impl {
                     say(L"全局快捷键已设置为 " + settings.hotkey);
             }
             break;
-        case Resident:
-            if (!settings.resident) {
-                settings.resident = true;
-                tray_icon(true);
-            } else {
-                std::wstring error;
-                if (!set_prompt_startup(startupValue, startupCommand, false, error)) {
-                    say(error);
-                    break;
-                }
-                settings.resident = false;
-                tray_icon(false);
-            }
-            persist_settings();
-            break;
         case Top:
             settings.top = !settings.top;
             apply_appearance();
@@ -1006,11 +990,9 @@ struct PromptWindow::Impl {
         if (msg.message == WM_KEYDOWN) {
             bool ctrl = GetKeyState(VK_CONTROL) < 0, shift = GetKeyState(VK_SHIFT) < 0;
             bool ime = editor && editor->composing();
-            if (!ime && msg.wParam == VK_ESCAPE) {
-                if (options)
-                    action(Options);
-                else
-                    hide(false);
+            // Esc only closes the settings panel; it never hides the window. Quit lives on the tray menu.
+            if (!ime && msg.wParam == VK_ESCAPE && options) {
+                action(Options);
                 return true;
             }
             if (!ime && ctrl && msg.wParam == VK_RETURN) {
@@ -1050,7 +1032,7 @@ struct PromptWindow::Impl {
         }
         if (!p)
             return DefWindowProcW(h, m, w, l);
-        if (m == p->taskbar && p->settings.resident) {
+        if (m == p->taskbar) {
             p->tray = false;
             p->tray_icon(true);
             return 0;
@@ -1110,6 +1092,13 @@ struct PromptWindow::Impl {
         case WM_INITMENUPOPUP:
             p->update_menu();
             return 0;
+        case WM_SYSCOMMAND:
+            // A tool window has no taskbar button, so minimizing would strand it; hide to the tray instead.
+            if ((w & 0xFFF0) == SC_MINIMIZE) {
+                p->hide(false);
+                return 0;
+            }
+            break;
         case WM_SIZE:
             p->layout();
             return 0;
@@ -1200,7 +1189,8 @@ struct PromptWindow::Impl {
         case WM_QUERYENDSESSION:
             return p->flush();
         case WM_CLOSE:
-            // Closing saves and hides; the global hotkey summons the window again. Quit ends the process.
+            // Closing saves and hides to the tray; the tray icon or global hotkey summons the window again.
+            // Only the tray menu's Quit ends the process.
             p->hide(false);
             return 0;
         }

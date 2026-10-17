@@ -186,6 +186,8 @@ struct Builder {
     int cell = -1, imageDepth = 0;
     Block image;
     bool imageInCell = false;
+    const Text *mathText = nullptr; // The text an inline $...$ span is being appended to, and where it began.
+    size_t mathStart = 0;
     std::wstring inlineHtml;
     const char *inlineHtmlSource = nullptr;
     bool oversizedHtml = false;
@@ -279,6 +281,11 @@ struct Builder {
                     else {
                         end = safe_fragment_end(b.text.value, start, end);
                     }
+                    // A formula is typeset whole, so a chunk never ends inside one.
+                    for (const auto &span : b.text.spans)
+                        if ((span.style & Formula) && span.start > start && span.start < end &&
+                            end < (size_t)span.start + span.length)
+                            end = span.start;
                 }
                 Block chunk;
                 chunk.kind = b.kind;
@@ -578,6 +585,23 @@ int leave_block(MD_BLOCKTYPE type, void *, void *data) {
     }
     return b.stopped() ? 1 : 0;
 }
+// Turns an inline math span back into the prose it was: plain styling and both dollar signs restored. The
+// span's runs are the last ones in `text`, appended from `start` on.
+void unwrap_math(Text &text, size_t start) {
+    for (auto it = text.spans.begin(); it != text.spans.end();) {
+        if (it->start >= start) {
+            it->style &= ~uint32_t(Formula);
+            if (!it->style && it->link.empty()) {
+                it = text.spans.erase(it);
+                continue;
+            }
+            ++it->start;
+        }
+        ++it;
+    }
+    text.value.insert(start, 1, L'$');
+    text.value += L'$';
+}
 int enter_span(MD_SPANTYPE type, void *detail, void *data) {
     auto &b = *static_cast<Builder *>(data);
     b.finish_html();
@@ -594,6 +618,16 @@ int enter_span(MD_SPANTYPE type, void *detail, void *data) {
         break;
     case MD_SPAN_CODE:
         b.format.style |= Mono;
+        break;
+    case MD_SPAN_LATEXMATH:
+        b.format.style |= Formula;
+        if (!b.imageDepth) { // Image alt text is collected separately and never typeset.
+            b.mathText = &b.target();
+            b.mathStart = b.mathText->value.size();
+        }
+        break;
+    case MD_SPAN_LATEXMATH_DISPLAY:
+        b.format.style |= Formula | DisplayMath;
         break;
     case MD_SPAN_A: {
         auto &attr = static_cast<MD_SPAN_A_DETAIL *>(detail)->href;
@@ -624,6 +658,15 @@ int enter_span(MD_SPANTYPE type, void *detail, void *data) {
 int leave_span(MD_SPANTYPE type, void *, void *data) {
     auto &b = *static_cast<Builder *>(data);
     b.finish_html();
+    if (type == MD_SPAN_LATEXMATH && b.mathText == b.current_text()) {
+        // MD4C only checks the outer side of each $. As in Pandoc and GitHub, an inline formula must not begin
+        // or end with a space, so "售价 $ 100 和 $ 200" stays prose with its dollar signs.
+        auto &text = b.target();
+        if (b.mathStart >= text.value.size() || iswspace(text.value[b.mathStart]) || iswspace(text.value.back()))
+            unwrap_math(text, b.mathStart);
+    }
+    if (type == MD_SPAN_LATEXMATH)
+        b.mathText = nullptr;
     if (type == MD_SPAN_IMG && b.imageDepth > 0 && --b.imageDepth == 0 && !b.imageInCell)
         b.doc.blocks.push_back(std::move(b.image));
     if (!b.formats.empty()) {
@@ -670,7 +713,9 @@ std::shared_ptr<Document> parse_document(std::string source, const std::atomic_b
     doc->source = std::move(source);
     Builder builder{*doc, cancel};
     MD_PARSER parser{};
-    parser.flags = MD_DIALECT_GITHUB;
+    // $...$ and $$...$$ keep their source text, marked with the Formula style: the reader typesets them, and
+    // search, copy and selection still see the LaTeX exactly as written.
+    parser.flags = MD_DIALECT_GITHUB | MD_FLAG_LATEXMATHSPANS;
     parser.enter_block = enter_block;
     parser.leave_block = leave_block;
     parser.enter_span = enter_span;

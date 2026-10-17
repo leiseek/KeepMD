@@ -43,5 +43,760 @@
     "path": "third_party/tinta/upstream_mermaid_tests.cpp",
     "source": "https://raw.githubusercontent.com/oipoistar/tinta/db70698e49a1f700c7ad98add1bebe713ac796bd/tests/mermaid_tests.cpp",
     "sha256": "5fc2da1211a554eb2890f26b213855067dd4ac10156790e30aef9e218669677c"
+  },
+  {
+    "path": "third_party/tinyxml2/tinyxml2.h",
+    "source": "https://raw.githubusercontent.com/leethomason/tinyxml2/9148bdf719e997d1f474be6bcc7943881046dba1/tinyxml2.h",
+    "sha256": "0f3c6e5a91b6d65caca3cc7239926455f21e488cff80ac3d27c74f5262fd2602"
+  },
+  {
+    "path": "third_party/tinyxml2/tinyxml2.cpp",
+    "source": "https://raw.githubusercontent.com/leethomason/tinyxml2/9148bdf719e997d1f474be6bcc7943881046dba1/tinyxml2.cpp",
+    "sha256": "95f64e4cb06c9e147d5b12e8860c88898944858dfbc38fed92ebf918f1436554"
+  },
+  {
+    "path": "third_party/tinyxml2/LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/leethomason/tinyxml2/9148bdf719e997d1f474be6bcc7943881046dba1/LICENSE.txt",
+    "sha256": "9332252e9b9e46db8285d4a3f0bf25f139bf1dca6781b956d57f2302efca6432"
+  },
+  {
+    "path": "third_party/microtex/LICENSE_BAKOMA",
+    "source": "https://raw.githubusercontent.com/matplotlib/matplotlib/fed55c63a314351cd39a12783f385009782c06e1/LICENSE/LICENSE_BAKOMA",
+    "sha256": "93adb2b53c02b7ce06b26bff41358c21248f42fed287b633ec4c31038377cdbb"
+  },
+  {
+    "path": "third_party/microtex/LICENSE",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/LICENSE",
+    "sha256": "bc05c564a978284269047da23db39cdc1db811a88670989dc48cacfd54f203d9"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/base/cmex10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/base/cmex10.ttf",
+    "sha256": "7b2b08616ff6c98ab58c1db654e22f24af17b47fbdd2d99443228d2bc66c3502"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/base/cmmi10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/base/cmmi10.ttf",
+    "sha256": "429148cd695008b52a2981e1e2fd94b62794c42fa007096b69299083ee0a2063"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/base/cmmib10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/base/cmmib10.ttf",
+    "sha256": "71f6917c54829ddf7abf34741d7d6d67598166692ce8560f29574336e972cb53"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/euler/eufb10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/euler/eufb10.ttf",
+    "sha256": "881440a3d0b72a2986278cd8ca68d4fecbe5304e5727bce168028de702db273f"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/euler/eufm10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/euler/eufm10.ttf",
+    "sha256": "db2e9aa9408a418ba59ef76ff61dd62a7f87e13803363b92cf8b12637bd9c183"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/cmr10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/cmr10.ttf",
+    "sha256": "303ba1ef9f3485a60201cb16cc263566820e872d8c982825accc0df53d3796d8"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmbx10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmbx10.ttf",
+    "sha256": "83911bd4d1d40ff8cb0d21b774ce9a58046b7eb7950ddaf658edc18cb1bf8269"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmbxti10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmbxti10.ttf",
+    "sha256": "b1ea9eb622cc7169cfee11af84b53c2f2a85b0b95261577f70034f97528e3469"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmss10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmss10.ttf",
+    "sha256": "de04c3410627816a1414f577fcfcf2be19da92017b6bbba52931256e8bd66d2c"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmssbx10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmssbx10.ttf",
+    "sha256": "945ee3d582cf5d8334f16bc4b647f4166e461c38173060e6b1a8013d79a9f558"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmssi10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmssi10.ttf",
+    "sha256": "7cd4403d0c1e77bac0592fd7f63b876a272429b5c3ea452179f7261d146b725b"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmti10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmti10.ttf",
+    "sha256": "6b89f04bd485bc43a4ab0be4a78ae70b0a09f165f9ce5a7baf7ca04179587c94"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/latin/optional/cmtt10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/latin/optional/cmtt10.ttf",
+    "sha256": "04dc44c52573e1580c5bf9550b2a03fccfb02b848e568ec7e24210ece06c9933"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/licences/Knuth_License.txt",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/licences/Knuth_License.txt",
+    "sha256": "8dfa2050f50d341636748e7ab0ed175dde130e33d722678cfa99351c6aded331"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/licences/License_for_dsrom.txt",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/licences/License_for_dsrom.txt",
+    "sha256": "6c4321c24c91ce63ce7f77286207eddf59066b1daa9e393f3e697d578ce4789e"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/licences/OFL.txt",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/licences/OFL.txt",
+    "sha256": "c5f826ca32b56a30e0f22467be9f51068b747a6e461314b7650238c3b90ee819"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/cmbsy10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/cmbsy10.ttf",
+    "sha256": "4187e269273d0f0c261e05a839c27496e60a69e8bd573ebe9970c29daed62395"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/cmsy10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/cmsy10.ttf",
+    "sha256": "fbec0615cc79ac80a439b71e44fb486b0b80fc82a3a370343dcb9a83190d3bf3"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/msam10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/msam10.ttf",
+    "sha256": "896a21b5d61124cdd6a390ac76af6b13f5748a6b4a4cea2fb63c7ad412837ff4"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/msbm10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/msbm10.ttf",
+    "sha256": "8ed7494575a25da918de700334b68fc4a6c608f734d5ecec5295acc86e303192"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/optional/dsrom10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/optional/dsrom10.ttf",
+    "sha256": "ef05119469bb897a609d6d00e7dcbc289e25f6d094c69bbe2ff403684648c909"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/rsfs10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/rsfs10.ttf",
+    "sha256": "a32ac550c63959794542959b5e31de7b5a9b10d45fcbf4d204f0fb4fa68c24ff"
+  },
+  {
+    "path": "third_party/microtex/res/fonts/maths/stmary10.ttf",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/res/fonts/maths/stmary10.ttf",
+    "sha256": "6fbb2fa122c5b14b1e8aa818657a3a31a7f22144aac22e21e57288defa6b66ea"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom.h",
+    "sha256": "43dee68bb3334db01d2b9d4e67fa981dcaa7f43db1f32b9b3ad43c375c404f44"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_basic.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_basic.cpp",
+    "sha256": "5e0aee2bb96bfa1b3b33a2545ceb3e15f94ec45923c40a8cfbe7002fbde8378a"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_basic.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_basic.h",
+    "sha256": "7c07f82699a16b167c5322e84a8e1994e1db22f6c4956065ee767fc2bf12a6ef"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_char.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_char.cpp",
+    "sha256": "32caea81e233d7538d891fcfa9ffe5d76584b44892733939590a9c1d4af19fbe"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_char.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_char.h",
+    "sha256": "4b28a74d4e69d71e7686aefb0960625284bf2e41e78ad0b7fd0c50129a09c204"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_impl.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_impl.cpp",
+    "sha256": "2df7c8aa39b8f31c90ad0b5a11439e575a8e31393fd16ea074d67b642cbeafa5"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_impl.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_impl.h",
+    "sha256": "54da4cf891c4776d94ef49ef528a11223ed844f63324bf877f42eec9dcb9ec69"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_matrix.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_matrix.cpp",
+    "sha256": "59002c4336b920e861c8736d225c6023e0300ec81e3edb28374cde4d108de758"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_matrix.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_matrix.h",
+    "sha256": "edd779f80d87a5738b30de8f58cb82c085fde44f2adc0720d02cf9fb4e3b4510"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_row.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_row.cpp",
+    "sha256": "697afd3d3d7ceaaa450566d0c0b722263f750855e594a7461d61b6081360c642"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_row.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_row.h",
+    "sha256": "971d632bd066fe8d895b5da7eecffe4105284a2d8aac54d6a95633506e8c2188"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_space.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_space.cpp",
+    "sha256": "5c949df83913b08cc88c8137ec767be34a84ae2e684fb3007638af854a5bb5e8"
+  },
+  {
+    "path": "third_party/microtex/src/atom/atom_space.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/atom_space.h",
+    "sha256": "fff572c862b9d182bde97b508947d93d90beacc39f8e0a2f38f4a71ad2133d8f"
+  },
+  {
+    "path": "third_party/microtex/src/atom/colors_def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/colors_def.cpp",
+    "sha256": "199141af410da2cfdc17e7b4d24fd38cfe769031e95a53d25baa60f37057f492"
+  },
+  {
+    "path": "third_party/microtex/src/atom/unit_conversion.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/atom/unit_conversion.cpp",
+    "sha256": "0cf3378ef5755e7026aa0199c4943422bfaf8e859f0968e8a7b055b0c13ef7f6"
+  },
+  {
+    "path": "third_party/microtex/src/box/box.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box.cpp",
+    "sha256": "d1ca4838e8d8f4bc12db92386c9d695ba5579604bf880928b1e76645fff4262f"
+  },
+  {
+    "path": "third_party/microtex/src/box/box.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box.h",
+    "sha256": "a6396cd11aea29eaef4f57ed17760bdfd81a72ee460d6d48acb83f869136a783"
+  },
+  {
+    "path": "third_party/microtex/src/box/box_factory.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_factory.cpp",
+    "sha256": "4c5b4d64c4831f2a33ea9b5ca494b61ad5c6bfa4f94f2034215f3fc803eda1f6"
+  },
+  {
+    "path": "third_party/microtex/src/box/box_factory.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_factory.h",
+    "sha256": "0de9feca61e79a1e1574a42cdac40500ee2fee564bb4ba02b666d679b96a1adb"
+  },
+  {
+    "path": "third_party/microtex/src/box/box_group.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_group.cpp",
+    "sha256": "ae02d1f76374f498af0ac919b444634bbb780b278410797244b7f73d93670ad0"
+  },
+  {
+    "path": "third_party/microtex/src/box/box_group.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_group.h",
+    "sha256": "71740fcc01ad6eb41cc96c3595355fd9ef2e4a1137b68c3281c03a963f658565"
+  },
+  {
+    "path": "third_party/microtex/src/box/box_single.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_single.cpp",
+    "sha256": "b1537700cfda0529a7946e208da748a12b8301781d96fab4b61b630c8d3e7118"
+  },
+  {
+    "path": "third_party/microtex/src/box/box_single.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_single.h",
+    "sha256": "033449186ce01bc297d757c196eb41b7d8236b09b4f6dd853fa3a623e5cb0c14"
+  },
+  {
+    "path": "third_party/microtex/src/common.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/common.h",
+    "sha256": "bc9b1177baa28c1c216ac9abe76270ebe10344b901be90a189073834cc65ddbf"
+  },
+  {
+    "path": "third_party/microtex/src/config.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/config.h",
+    "sha256": "89c5ce5047fd9dfc12aa02643812e8602fd8f22ede1da86c0b34da06b20251fc"
+  },
+  {
+    "path": "third_party/microtex/src/core/core.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/core.cpp",
+    "sha256": "029bbfeb26da7cd74529357a08e580df9bf467701e10aa8bf094dc241a1689e1"
+  },
+  {
+    "path": "third_party/microtex/src/core/core.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/core.h",
+    "sha256": "1ffddcb59db819aa0925d8e15c7c3992cf633b4c625053eca45080b18c31b978"
+  },
+  {
+    "path": "third_party/microtex/src/core/formula.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/formula.cpp",
+    "sha256": "acc74bab6e5275dc9e67d971aae7e2f402b06fb36967fd298dcc93d6685562cd"
+  },
+  {
+    "path": "third_party/microtex/src/core/formula.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/formula.h",
+    "sha256": "3098654922f39f2a5e01afacc9d86d2f63594298db08a0043adf4544a5dde279"
+  },
+  {
+    "path": "third_party/microtex/src/core/formula_def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/formula_def.cpp",
+    "sha256": "bd3cb59a1c390f2b41419ac0390a83fe0819a694b9ed9c157fed13ec927a81c3"
+  },
+  {
+    "path": "third_party/microtex/src/core/glue.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/glue.cpp",
+    "sha256": "d94a07b263c69c731cdcc68ccea5840224013d377bd647da9bd10d8a02de6286"
+  },
+  {
+    "path": "third_party/microtex/src/core/glue.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/glue.h",
+    "sha256": "354f070e2d4800a954dee50b61b28c7841426ce437ddd136a79733240b0482dd"
+  },
+  {
+    "path": "third_party/microtex/src/core/localized_num.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/localized_num.cpp",
+    "sha256": "5056c5576d4b03c0d2f42525e65f5d9268737f77f7417d5662f75f889393fa89"
+  },
+  {
+    "path": "third_party/microtex/src/core/macro.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/macro.cpp",
+    "sha256": "972c55d6ce850ca123d6924ab75d9150ce3822864244f2021ef2f2ca7f0a3875"
+  },
+  {
+    "path": "third_party/microtex/src/core/macro.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/macro.h",
+    "sha256": "f92957bb4bbc8583912bad8de8f5b63db80dde4dc5b0ee29d2500aefc1cee526"
+  },
+  {
+    "path": "third_party/microtex/src/core/macro_def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/macro_def.cpp",
+    "sha256": "c21823fde854359edaec4bec5f8ee8fe18f67ebb56da535facc5e5d24388ae60"
+  },
+  {
+    "path": "third_party/microtex/src/core/macro_impl.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/macro_impl.cpp",
+    "sha256": "8b21293721f032db8b43f146e416f430203da762a4200b5cc8fbb51dbd1609be"
+  },
+  {
+    "path": "third_party/microtex/src/core/macro_impl.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/macro_impl.h",
+    "sha256": "17b553325c1150bc57eed50ee2322996cecccbac172a7562e7ddb01849848a4a"
+  },
+  {
+    "path": "third_party/microtex/src/core/parser.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/parser.cpp",
+    "sha256": "6b6367d98264b3366383f7fce014023f93c7fab3ceb5be9dac90c019b7442d72"
+  },
+  {
+    "path": "third_party/microtex/src/core/parser.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/core/parser.h",
+    "sha256": "f249bc2a78d5e6350e8e28103b899f25197ddb2bae8b6de47e574bfb81bbc8bb"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/alphabet.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/alphabet.cpp",
+    "sha256": "ff4583f29097ae67e05a5c8b8725085dc84b54547edce140dec4b127980b5677"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/alphabet.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/alphabet.h",
+    "sha256": "0b887f8d07a53525ac6cfb86e8df02f6f4ca8e35c275628a97b2d2433b8c79a8"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/font_basic.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/font_basic.cpp",
+    "sha256": "4d54b6ce79cb49a960ba7a452ad3527f5b10fb97f3bb5540c9fa73353f5ddabf"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/font_basic.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/font_basic.h",
+    "sha256": "940039cc6ffd9349f49c25a5d6e43f98e2b02188830827509e4dba83cad6516a"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/font_info.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/font_info.cpp",
+    "sha256": "2eb19f8572150d07fb5f635fbdb3ff43d663af759dcafa95bd99f66e0ade507b"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/font_info.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/font_info.h",
+    "sha256": "2ec4cd5c9e3d6d2224d6460384092c9c3b4d79673a4f8fbd8b2715d06703d260"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/font_reg.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/font_reg.h",
+    "sha256": "27c46028f10dbddeb83df4e5dd382ea1643be5d0c2ccbd3c7afa662876f082e9"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/fonts.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/fonts.cpp",
+    "sha256": "9c721969a3305b39c626181e0c23c4c7a72064720c7888dc71288dcae12f9dea"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/fonts.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/fonts.h",
+    "sha256": "d1a2c6c062505895ce45d0b68407b0dc092116753533ff6e88e2271cb3294a2a"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/symbol_reg.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/symbol_reg.h",
+    "sha256": "f91197289b5440f6d7c2b829077fcfe614bb64f3b0cf10f8946af7b107e173a6"
+  },
+  {
+    "path": "third_party/microtex/src/fonts/tex_font.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/fonts/tex_font.h",
+    "sha256": "a229f81074df3c030c37335e3618379033004e179ef793e340c43bdad408f9c2"
+  },
+  {
+    "path": "third_party/microtex/src/graphic/graphic.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/graphic/graphic.h",
+    "sha256": "9db2f2068610f5396d1d1c1e212f1afa888ec44616d8bfaa60f02f0e6e754141"
+  },
+  {
+    "path": "third_party/microtex/src/graphic/graphic_basic.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/graphic/graphic_basic.h",
+    "sha256": "774f54bb8a2db37c295aa1bfbee67262f1611f1b2e4991597b32d7300c812383"
+  },
+  {
+    "path": "third_party/microtex/src/latex.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/latex.cpp",
+    "sha256": "4d0c29a4281270892e7d1f10ada900bcd69a37fc412d7bb3cc8fffd0c0a21ed7"
+  },
+  {
+    "path": "third_party/microtex/src/latex.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/latex.h",
+    "sha256": "b0d4784bc1ab737be6eef9e9fa80ad3c136e8328873b149ac566c2b642c4eacd"
+  },
+  {
+    "path": "third_party/microtex/src/render.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/render.cpp",
+    "sha256": "c24e445028db25ac7c125a4da5063a05485af3525a18abff9762761363884452"
+  },
+  {
+    "path": "third_party/microtex/src/render.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/render.h",
+    "sha256": "3bfce4dd85bdf6b0eec80f247364307423f1b614c8588f307b6249c8b63787f4"
+  },
+  {
+    "path": "third_party/microtex/src/res/builtin/formula_mappings.res.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/builtin/formula_mappings.res.cpp",
+    "sha256": "a944678778b0ef9b491f532d1aab589907f8ce6427dcd92e8d90d5400e111ce6"
+  },
+  {
+    "path": "third_party/microtex/src/res/builtin/symbol_mapping.res.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/builtin/symbol_mapping.res.cpp",
+    "sha256": "5e088abbbdeddf81c3bda75c79004de4dec652b1974f2f2715a4038202a86827"
+  },
+  {
+    "path": "third_party/microtex/src/res/builtin/tex_param.res.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/builtin/tex_param.res.cpp",
+    "sha256": "9cb2ab3076c912e73644f2bc2eedc6985ebb37d443a1cd8ac1d4500c3a5bbcd3"
+  },
+  {
+    "path": "third_party/microtex/src/res/builtin/tex_symbols.res.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/builtin/tex_symbols.res.cpp",
+    "sha256": "d8213a235da73d364bc79ab375f63b9cfbcdb8659953012409bbc55c4fab307e"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/bi10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/bi10.def.cpp",
+    "sha256": "d8ea5741e131b11357c800d0406f7c5c8391a3caee4c461639fbb28f45d9fb25"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/bx10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/bx10.def.cpp",
+    "sha256": "f255e4a8b78834da55c8217702f101aaa0ade7771116e885b7f00527757ea0d6"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmbsy10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmbsy10.def.cpp",
+    "sha256": "6c1325a274edf78359c98b404f66c96e503e0be3ddc5976b5a0f7a2f7cf6a7e9"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmbx10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmbx10.def.cpp",
+    "sha256": "52c66ca17fe09eb2f039d478856326b7b5819ebadc95ddc8470857d704065af4"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmbxti10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmbxti10.def.cpp",
+    "sha256": "526774b8338df1626a9d6de232fe313a9d00f9afa1524604ec765538f5f18d77"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmex10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmex10.def.cpp",
+    "sha256": "40d5c4e1703e70911ea2337bcf6a6056f4f584a9bf68dafd91cc6ab7b4181d50"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmmi10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmmi10.def.cpp",
+    "sha256": "52570da61ef8d30e679e488587dfef54c9860d38d51812001924e2b60c250c87"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmmi10_unchanged.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmmi10_unchanged.def.cpp",
+    "sha256": "df29234421c9de676c0d462e3c69663c453c5c8e72acf07133d17579f357608d"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmmib10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmmib10.def.cpp",
+    "sha256": "c1a5ac804d63c7796633d980c95cbe9d61ab96d4fc0c20f0aedd1b0174e8be14"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmmib10_unchanged.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmmib10_unchanged.def.cpp",
+    "sha256": "4f8d1e425392aad14caa1f896a72dab9f435faea3a30f845e4d36e2f3139544c"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmr10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmr10.def.cpp",
+    "sha256": "660d5ef5eb25ff968ddc793166385b6f1a6e7bcf7495d648555f237d2b2efc20"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmss10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmss10.def.cpp",
+    "sha256": "8b410642e159270ec05bd27c7203cf926840e366d9bd2988f6f3eee4292d81b8"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmssbx10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmssbx10.def.cpp",
+    "sha256": "d32e9813a235e47e1e26b7b2110b5ed3d40cd5d4dc6c3cbd23ca5879211b44f9"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmssi10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmssi10.def.cpp",
+    "sha256": "6eb80e2cf2cc5e4dc5c3657b25dcb1c31a185b1e2e8fba0147d123e3d5de8a41"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmsy10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmsy10.def.cpp",
+    "sha256": "78886c8ae0d2ac04b15785e6ae6637c4a83c044ce2c533b337238b083296e5fe"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmti10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmti10.def.cpp",
+    "sha256": "23570c57e58dd10e0ff65c9ae26793b517d685aa1892533f2fa36ab1d3f71ccf"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmti10_unchanged.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmti10_unchanged.def.cpp",
+    "sha256": "5d0959746621f8f9ff2a9678096e4c82ace17eb487344751e4da10bd97002ff8"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/cmtt10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/cmtt10.def.cpp",
+    "sha256": "15d22ff3274f83293cfeef73b6abee50eeb7b77a3230cb808049b3e4b10d6cdb"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/dsrom10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/dsrom10.def.cpp",
+    "sha256": "21f8a33cbf6425efa1778f6f51fe88c900fbf9d68757cfe85488da6d8a4dcdf2"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/eufb10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/eufb10.def.cpp",
+    "sha256": "6404477a0ecd5e89ae42fdffda2264e6cdd55d2e58fcd6065772f2ab3dd45f8f"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/eufm10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/eufm10.def.cpp",
+    "sha256": "0092b43f11948a0b958df91d56ba31ff7c1ad2b4b7ace68ee5601d00953fa8ae"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/i10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/i10.def.cpp",
+    "sha256": "ff5ca32f6203fe808ad56aad9f7d6b2dd22a00b67945ccee918a1010dd7cbc59"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/moustache.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/moustache.def.cpp",
+    "sha256": "4426e5fabdfa8b8ee477aa602419a32bce3353d5654c4cb9c79fd7c7d2868102"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/msam10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/msam10.def.cpp",
+    "sha256": "4cbfe54be7557daec8851086983bed9ba43e02528d1e98e0d40d710e2ed26566"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/msbm10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/msbm10.def.cpp",
+    "sha256": "3328eeb13458f53e783f317ece505b4a564ae04ba038b510469277c378a00ee9"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/r10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/r10.def.cpp",
+    "sha256": "67d1c135f3f2f00a4b953f0d133ef8e695a841e1c95d8cccd010d812b2aab821"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/r10_unchanged.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/r10_unchanged.def.cpp",
+    "sha256": "49626a5d0326ee93e48ccae98d8612a14872efaf58b52185ab72e8d33ff4b78e"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/rsfs10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/rsfs10.def.cpp",
+    "sha256": "918d9c32ed134200a42fa5ae571a30d0e63c1f4020a1c05e27d330437af3bfe3"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/sb10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/sb10.def.cpp",
+    "sha256": "ba13cf1de28eca15e4d0790a05c2bd3c62cf1e46b69a9dc6905d14cbc6ce489e"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/sbi10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/sbi10.def.cpp",
+    "sha256": "17fa9a3e02cc0bce9f31b789b2387d4a42ef9b4acfe0cb0fd73186db2a992622"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/si10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/si10.def.cpp",
+    "sha256": "351d400cf3c31e9dbdf21759790a076f953fac11674f91ddd3ec7d998a6d8c7c"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/special.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/special.def.cpp",
+    "sha256": "e2606b43eb98dfe13d5513901e2f157704f376121637ea7e50f118bf9afffa69"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/ss10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/ss10.def.cpp",
+    "sha256": "186d4a9a01b23824bfc3b192b9a49a32e9ec99fc2f1ec6c8d8f9610bca809a86"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/stmary10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/stmary10.def.cpp",
+    "sha256": "dda827fe15b4e3f1fc7960a749f241099e13c8da6aa4998e4458e4c09bc2fa3e"
+  },
+  {
+    "path": "third_party/microtex/src/res/font/tt10.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font/tt10.def.cpp",
+    "sha256": "c94cce3f8b70ddb74480781afd17cc80585e4d8b0647caca83608b73673f834e"
+  },
+  {
+    "path": "third_party/microtex/src/res/font_def.res.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/font_def.res.h",
+    "sha256": "7de7f11b75bd517af28cd16bfdcc75386fbfeee41b0fd890e0b85c2bcb3da8a5"
+  },
+  {
+    "path": "third_party/microtex/src/res/parser/font_parser.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/parser/font_parser.cpp",
+    "sha256": "4dbdb04b5a6d13f60b1f6b95a9f50eeddc1b5f8616eae7dccdfe79d7ed523379"
+  },
+  {
+    "path": "third_party/microtex/src/res/parser/font_parser.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/parser/font_parser.h",
+    "sha256": "0365fa7b621da70c85e15b2b265a79803e089466a787e3721014067f43f98519"
+  },
+  {
+    "path": "third_party/microtex/src/res/parser/formula_parser.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/parser/formula_parser.cpp",
+    "sha256": "3ed5a1a272bf764ea041bf2e37724148974254ed69e09b2ee337d923488a20d8"
+  },
+  {
+    "path": "third_party/microtex/src/res/parser/formula_parser.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/parser/formula_parser.h",
+    "sha256": "2bc134254a5948471f2ac3354edf4ad15b365bd2e06393fbef76049b7841b86f"
+  },
+  {
+    "path": "third_party/microtex/src/res/reg/builtin_font_reg.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/reg/builtin_font_reg.cpp",
+    "sha256": "53b06bbe8f1ea73bc13ddea4d9b983c18a8cc42931108e5a63c8dab2d474fc0e"
+  },
+  {
+    "path": "third_party/microtex/src/res/reg/builtin_font_reg.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/reg/builtin_font_reg.h",
+    "sha256": "ab0ad978fc4b0e2efb60f83b6b6b636b2969dbca09617b0f287ba0fba6ebdb8e"
+  },
+  {
+    "path": "third_party/microtex/src/res/reg/builtin_syms_reg.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/reg/builtin_syms_reg.cpp",
+    "sha256": "71a33a7bb71e54b417cc7c3b69e990aed0117e03d21c8c9a8394b943e583bb20"
+  },
+  {
+    "path": "third_party/microtex/src/res/reg/builtin_syms_reg.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/reg/builtin_syms_reg.h",
+    "sha256": "b27b70091f541fe2221ddcd92a38cd6b3cef8b1d42941f9756a5f24a4e61bafa"
+  },
+  {
+    "path": "third_party/microtex/src/res/sym/amsfonts.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/sym/amsfonts.def.cpp",
+    "sha256": "dfc27135ee72736cbd60580925906174f101c8095890afab5c1a9841e8751ec2"
+  },
+  {
+    "path": "third_party/microtex/src/res/sym/amssymb.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/sym/amssymb.def.cpp",
+    "sha256": "0d79cc6e30822907f0904f350fbf7036d173cf1a05dfdf922fc06655033a57df"
+  },
+  {
+    "path": "third_party/microtex/src/res/sym/base.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/sym/base.def.cpp",
+    "sha256": "40e8d3608dd8ff995d62a5bc5f0b083b2097663bf7eccd65e83bb56cf529de9d"
+  },
+  {
+    "path": "third_party/microtex/src/res/sym/stmaryrd.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/sym/stmaryrd.def.cpp",
+    "sha256": "cb8a19cf006d7558c5a651e458a6427fd24798d52c0708c050a81a0d806cb762"
+  },
+  {
+    "path": "third_party/microtex/src/res/sym/symspecial.def.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/sym/symspecial.def.cpp",
+    "sha256": "75e1865bc0d8a2418f3596de1f548fa2ed9881b55c6efbc5e56ffe1a460296af"
+  },
+  {
+    "path": "third_party/microtex/src/res/symbol_def.res.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/res/symbol_def.res.h",
+    "sha256": "ce4b0c277a1bc5e48169c41b45803e58d4b61effa8c57d0da8fb1a1685cd43aa"
+  },
+  {
+    "path": "third_party/microtex/src/utils/dict_tree.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/dict_tree.h",
+    "sha256": "087dc719709ef9f37460df6780742d97ba1e55165b1f3e3c4ccceaab8e237e46"
+  },
+  {
+    "path": "third_party/microtex/src/utils/enums.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/enums.h",
+    "sha256": "0b3362d846d3c69998981a6ac37ef02bcd5ea56b030aef27de24db7423a87bc3"
+  },
+  {
+    "path": "third_party/microtex/src/utils/exceptions.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/exceptions.h",
+    "sha256": "b9c8ec55d1dc3d4ce38b427251a829d0e39183cfa5ec0966ee69e5e56f7b48a8"
+  },
+  {
+    "path": "third_party/microtex/src/utils/indexed_arr.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/indexed_arr.h",
+    "sha256": "c749921439b638af4ca053cf61c9722d9ec12aefd225c8751f7c1acd51152d1d"
+  },
+  {
+    "path": "third_party/microtex/src/utils/log.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/log.h",
+    "sha256": "7fc701090e9d94c2910bb710be396f63f3e2e9c324d7c890d4af8459e6661e91"
+  },
+  {
+    "path": "third_party/microtex/src/utils/nums.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/nums.h",
+    "sha256": "69b98bfff8fc3e768e0eab581617023ce740edaa5eff179fd12e511021c7e94b"
+  },
+  {
+    "path": "third_party/microtex/src/utils/string_utils.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/string_utils.cpp",
+    "sha256": "58cbb4903801c507d4e517de86d264bdbb748d8b49307cc441d782f39ac62e17"
+  },
+  {
+    "path": "third_party/microtex/src/utils/string_utils.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/string_utils.h",
+    "sha256": "6a00f953848d3d64027a4936b961b73ccb407d368b626a5bfb280e29127fdbcd"
+  },
+  {
+    "path": "third_party/microtex/src/utils/utf.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/utf.cpp",
+    "sha256": "6a549a26d4fac6c14caec190d051765ae7c536cda6fd9d6ddac532ef3c3b31d3"
+  },
+  {
+    "path": "third_party/microtex/src/utils/utf.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/utf.h",
+    "sha256": "a06db527fc870e397c16fc745ea32f0a6a36cb2bbc76ef23ad0c37f5f3ea4f02"
+  },
+  {
+    "path": "third_party/microtex/src/utils/utils.cpp",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/utils.cpp",
+    "sha256": "c24e8b77895fc192ef840cbf11dea5f44844dd105855de079bcdfef4146847f4"
+  },
+  {
+    "path": "third_party/microtex/src/utils/utils.h",
+    "source": "https://raw.githubusercontent.com/NanoMichael/MicroTeX/0e3707f6dafebb121d98b53c64364d16fefe481d/src/utils/utils.h",
+    "sha256": "60ae6e14917b226c923443f178e2f33240d081e4c68fb8b4b79962c23a09b062"
   }
 ]

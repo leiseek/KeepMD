@@ -9,8 +9,8 @@ from datetime import datetime
 
 ROOT=Path(__file__).resolve().parents[1]
 RESULTS=ROOT/'bench/results'
-VERSION='0.5.0'
-PREVIOUS_TAG='v0.4.6' # Comparison baseline: the previous release's own recorded results, read from its tag.
+VERSION='0.6.0'
+PREVIOUS_TAG='v0.5.0' # Comparison baseline: the previous release's own recorded results, read from its tag.
 def read(name):return json.loads((RESULTS/name).read_text(encoding='utf-8-sig'))
 def previous(name):
     text=subprocess.run(['git','show',f'{PREVIOUS_TAG}:bench/results/{name}'],cwd=ROOT,capture_output=True,check=True).stdout
@@ -23,7 +23,8 @@ prompt=read('prompt-e2e.json');pm=prompt['measurements'];ui=read('ui-e2e.json');
 html=read('html-images-e2e.json')
 prompt_process=read('prompt-process-e2e.json')
 document=read('visual-document-e2e.json');remote=read('remote-images-e2e.json');brand=read('brand-ui-e2e.json');fullscreen=read('fullscreen-e2e.json')
-for item in (startup,idle,large,imports,smoke,ui,bars,visual,caption,icons,toggle,html,prompt_process,document,remote,brand,fullscreen):
+math=read('math-e2e.json')
+for item in (startup,idle,large,imports,smoke,ui,bars,visual,caption,icons,toggle,html,prompt_process,document,remote,brand,fullscreen,math):
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
 assert prompt_process['prompt_exe_sha256']==prompt_sha and brand['prompt_exe_sha256']==prompt_sha, 'KeepPrompt results belong to a different executable.'
 prompt_is_current = prompt.get('exe_sha256') == prompt_sha
@@ -67,6 +68,7 @@ summary={'version':VERSION,'generated_at':datetime.now().astimezone().isoformat(
          'prompt_process_e2e_checks':len(prompt_process['checks']),
          'visual_document_e2e_checks':len(document['checks']),'remote_images_e2e_checks':len(remote['checks']),
          'brand_ui_e2e_checks':len(brand['checks']),'fullscreen_e2e_checks':len(fullscreen['checks']),
+         'math_e2e_checks':len(math['checks']),'math_formulas_typeset':math['formulas_typeset'],'math_formulas_source':math['formulas_source'],
          'prompt_ime_verified':prompt_ime_verified,'prompt_ime_commit_verified':prompt_ime_committed,
          'prompt_integration_completed':prompt_complete,'prompt_hotkey_exercised':prompt_hotkey,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
@@ -74,11 +76,16 @@ summary={'version':VERSION,'generated_at':datetime.now().astimezone().isoformat(
          'scrollbar_e2e_checks':len(bars['checks']),'visual_editor_e2e_checks':len(visual['checks']),'caption_e2e_checks':len(caption['checks']),'icon_e2e_checks':len(icons['checks']),'toolbar_toggle_e2e_checks':len(toggle['checks']),
          'startup_launch_p95_ms':startup['launch_to_first_paint_p95_ms'],'private_median_mib':startup['private_p50_mib'],'working_set_median_mib':working,
          'large_50mib_launch_p95_ms':large['launch_to_first_paint_p95_ms'],'large_50mib_private_median_mib':large['private_p50_mib'],
+         'validation_retries':{'initial_failures':['test_dpi.py: local-link hit-test timed out','test_visual_editor.py: transient source assertion failure','test_caption.py: foreground focus left test window after Win+Left snap'],
+                              'final_results':{'test_dpi.py':'passed on retry','test_visual_editor.py':'passed on retry','test_caption.py':'passed after test harness reactivated the snapped window'},
+                              'caption_baseline':'Unmodified v0.5.0 EXE reproduced the same foreground-focus assertion before the harness adjustment.'},
          'previous_release':{'tag':PREVIOUS_TAG,'exe_bytes':before['exe_bytes'],'startup_launch_p50_ms':before_startup['launch_to_first_paint_p50_ms'],
                              'startup_launch_p95_ms':before_startup['launch_to_first_paint_p95_ms'],'private_median_mib':before_startup['private_p50_mib']},
-         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','README HTML subset and HTML images including external READMEs','network image switch and persistent URL cache with a local HTTP server','KeepMD document visual editing','KeepMD/KeepPrompt independence and legacy upgrade paths','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips','custom window caption, native resize/drag, work-area maximize, docking and close guards','shared visual system and compact menus','full screen reading and presenter paging'],
+         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','README HTML subset and HTML images including external READMEs','network image switch and persistent URL cache with a local HTTP server','KeepMD document visual editing','KeepMD/KeepPrompt independence and legacy upgrade paths','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips','custom window caption, native resize/drag, work-area maximize, docking and close guards','shared visual system and compact menus','full screen reading and presenter paging','LaTeX formulas typeset in the reader with find/copy of the LaTeX source, theme and zoom'],
          'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented','Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested',
-                        'README HTML subset only: no CSS, style or script execution and no arbitrary layout; images inside table cells stay as source','SVG limited to the Direct2D subset: SVGs with text, style sheets, masks, patterns or symbols show a placeholder','Network images load only after the per-document switch is turned on; data: and network-share images are not loaded']}
+                        'README HTML subset only: no CSS, style or script execution and no arbitrary layout; images inside table cells stay as source','SVG limited to the Direct2D subset: SVGs with text, style sheets, masks, patterns or symbols show a placeholder','Network images load only after the per-document switch is turned on; data: and network-share images are not loaded',
+                        'LaTeX formulas: the MicroTeX subset in the reader only; no \\def, \\tag or LaTeX packages; editors show formulas as source',
+                        'Ten upstream MicroTeX fonts with unclear licences are not shipped; their symbols are drawn from Windows fonts and \\android is blank']}
 if not double_ctrl:
     summary['limitations'].append('Live double-Ctrl summon not exercised while original Prompt Flow is running')
 if not prompt_ime_verified:
@@ -111,6 +118,13 @@ report=f'''**KeepMD {VERSION} 交付验证报告**
 
 **{VERSION} 的变化与验证**
 
+- **LaTeX 公式。** 阅读视图用固定版本的 MicroTeX 排版 `$…$` 与 `$$…$$`，由 KeepMD 自己的 Direct2D 后端绘制，字体嵌入 EXE，不联网、不启动浏览器。真实窗口中 {math['formulas_typeset']} 个公式排版、{math['formulas_source']} 个无法恢复的公式按源码显示；{len(math['checks'])} 组检查通过：查找命中公式源码、复制得到原样 LaTeX、主题切换与缩放后重新排版。核心检查覆盖离屏绘制的墨迹位于排版框内、绘制后恢复调用方变换、未知命令标红、无法恢复的错误退回源码、“价格 $5 和 $6”与“售价 $ 100 和 $ 200”不被识别为公式、超长段落切块不切开公式，以及替代符号可见。见 [公式验证](../bench/results/math-e2e.json)。
+- **公式字体许可。** 只嵌入许可明确的 20 个字体；上游 10 个许可或来源不明的字体不随附，其中的 « » ‰ € µ 等符号改用 Windows 自带字体绘制，`\\android` 不显示。逐个字体的依据见第三方说明。
+- **KeepPrompt 托盘与按键。** 运行期间始终显示托盘图标；最小化与关闭都保存并收起到托盘；Esc 不再收起窗口，只关闭设置面板；进程只能从托盘菜单退出。提示词全量套件 {len(prompt['checks'])} 项与视觉系统套件按新行为断言（Esc 后窗口保留、最小化后托盘图标存在、未开启常驻也有托盘图标）。
+- **启动开销。** `keepmd.exe` 静态链接 MicroTeX 与公式字体后体积增大，见下文；在不含公式的文档上，MicroTeX 只在首次遇到公式时初始化，其全局表在启动时约多占 0.3 MiB 私有内存。
+
+**0.5.0 引入的能力（本版回归）**
+
 - **两个独立程序。** KeepMD 与 KeepPrompt 只共用界面基础库，互不链接、启动或发送消息，各自保存设置。{len(prompt_process['checks'])} 组检查通过：KeepMD 单独运行且没有提示词入口，旧的 `--prompt` 参数不再启动其他程序；KeepPrompt 隐藏常驻并转发第二次启动；关闭 KeepMD 不影响 KeepPrompt；0.4.x 便携目录与登录启动项升级后原位沿用提示词草稿，0.4.5 的 `keepmd.exe --resident` 启动项静默退出。见 [独立性验证](../bench/results/prompt-process-e2e.json)。
 - **README HTML 子集与 HTML 图片。** 常见 README HTML 块转为原生块，子集外的块保留原文。{len(html['checks'])} 组检查覆盖 `<img>` 宽高／缩放／多行属性、中文与空格路径、行内图片、双栏预览、居中与跨块对齐、仓库根相对路径、代码／表格／缺失／远程回退及源码无改动保存；{external_note}见 [HTML 验证](../bench/results/html-images-e2e.json)。
 - **KeepMD 文档可视化编辑。** {len(document['checks'])} 组真实键盘检查通过：打开即为可视化编辑且 Markdown 原样保留，Unicode 输入与 Ctrl+B，保存未触碰的表格和流程图，Ctrl+E 双向切换并记住模式，连续输入合并为一步撤销，新建文档进入可视化，含 U+FFFC 的文件保留阅读，超出可视化上限的文件使用源码编辑并说明原因。见 [文档可视化编辑验证](../bench/results/visual-document-e2e.json)。
@@ -131,7 +145,7 @@ report=f'''**KeepMD {VERSION} 交付验证报告**
 
 功能证据：[编辑](../bench/results/editor-e2e.json)、[导航](../bench/results/navigation-e2e.json)、[输入法](../bench/results/ime-e2e.json)、[DPI](../bench/results/dpi-e2e.json)、[压力](../bench/results/stress.json)、[显示检查](../bench/results/release-smoke.json)。
 
-回归记录：本轮除两个套件外均首次即通过。工具栏收起套件两次失败：测试桌面上另一程序占用了 Ctrl+Alt+Space，KeepPrompt 按设计在显示后展开快捷键设置，测试在设置展开前取了基准位置；测试改为等布局稳定后取值，随后连续两次通过。提示词全量套件在唤起步骤失败，原因相同（真实按键被占用程序截获）；套件改为先探测快捷键，默认键被占用时改用等价的空闲组合。两次失败都没有修改产品代码。{prompt_scope}
+回归记录：首轮 DPI、视觉编辑器和标题栏套件遇到桌面焦点／窗口状态问题。DPI 与视觉编辑器单独重跑通过；标题栏套件在 Windows 贴靠后失去前台焦点，未修改的 v0.5.0 基线在同一断言复现。测试补上贴靠后重新激活窗口再发送恢复快捷键的步骤，随后当前 0.6.0 EXE 的完整标题栏套件通过。没有修改产品代码。{prompt_scope}
 
 **图标工具栏与双栏滚动**
 
@@ -173,7 +187,7 @@ S100 为约 100 KiB 的中英混排 Markdown。每次新建进程、文件缓存
 | 50 MiB 压力文件首屏 p95（3 次初筛） | {large['launch_to_first_paint_p95_ms']:.2f} ms | {before_large['launch_to_first_paint_p95_ms']:.2f} ms |
 | 50 MiB 压力文件 Private Bytes 中位数 | {large['private_p50_mib']:.2f} MiB | {before_large['private_p50_mib']:.2f} MiB |
 
-与 {PREVIOUS_TAG} 相比：{comparison}；同期 `keepmd.exe` 从 {before['exe_bytes']:,} 字节增至 {exe.stat().st_size:,} 字节（加入了文档可视化编辑、视觉系统、README HTML、网络图片与 SVG 代码）。差异的具体来源未逐项定位，不将其归因于某一项改动。50 MiB 只有 3 次初筛，波动较大。验收文档的 S100 温热首屏目标为 p95 ≤ 100 ms，{target_note}稳态内存远低于 40 MiB 的目标。
+与 {PREVIOUS_TAG} 相比：{comparison}；同期 `keepmd.exe` 从 {before['exe_bytes']:,} 字节增至 {exe.stat().st_size:,} 字节（加入了 MicroTeX 公式排版代码与 20 个嵌入字体）。差异的具体来源未逐项定位，不将其归因于某一项改动。50 MiB 只有 3 次初筛，波动较大。验收文档的 S100 温热首屏目标为 p95 ≤ 100 ms，{target_note}稳态内存远低于 40 MiB 的目标。
 
 50 MiB 文件的语义文本与块模型仍随文件大小增长，不能把小文档内存数字套到所有文件。正式数值见 [S100 原始结果](../bench/results/software-s100.json)、[50 MiB 结果](../bench/results/software-l50.json)。
 

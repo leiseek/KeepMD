@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "c7ab389a6eb2e1364f2b3a78ee2d0e79dc8cb6525b1575e8057d5b1a478438e0",
+  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
   "checks": [
     "reader caption mode icon exposes its name and native hover explanation",
     "format and utility icons retain descriptive native names; primary copy action retains visible text",
@@ -7,7 +7,7 @@
     "icon click executes formatting and undo; icon-only copy still activates with Space",
     "360 icon repaints and 60 theme changes do not accumulate GDI objects"
   ],
-  "gdi_before": 56,
-  "gdi_after": 56,
+  "gdi_before": 52,
+  "gdi_after": 52,
   "implementation": "native GDI vector paths, temporary supersampling bitmap; no icon font or third-party UI runtime"
 }
