@@ -1,111 +1,119 @@
-**KeepMD 0.7.0 — Windows 原生 Markdown 阅读器与独立提示词工具**
+<div align="center">
 
-阅读、预览优先，附带按需开启的轻量编辑（可视化与源码）。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词与阅读器各自独立运行，发布为两个互不包含的便携包。
+<img src="docs/images/icon.png" width="96" alt="KeepMD" />
 
-交付目标为 Windows 11 x64 便携版。应用运行只使用系统动态库，第三方 Markdown/流程图代码静态编入 EXE。可视化与源码编辑均使用按需创建的系统 RichEdit 控件。
+# KeepMD
 
-**使用**
+**原生 Windows Markdown 阅读器，附独立的快捷提示词工具**
 
-从 [GitHub Releases](https://github.com/leiseek/KeepMD/releases/latest) 下载 Windows x64 便携包，解压到可写目录后运行 `keepmd.exe`。阅读器与提示词是两个独立程序，Release 提供两个互不包含的便携包（`KeepMD-*-windows-x64.zip`、`KeepPrompt-*-windows-x64.zip`），另有完整源码与 SHA-256 校验文件。
+C++20 · Win32 · DirectWrite · Direct2D · 单文件便携 EXE · 无 Electron / WebView / JavaScript 运行时
 
-打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
+[![Release](https://img.shields.io/github/v/release/leiseek/KeepMD?label=%E5%8F%91%E5%B8%83)](https://github.com/leiseek/KeepMD/releases/latest)
+[![Platform](https://img.shields.io/badge/platform-Windows%2011%20x64-0078D4)](https://github.com/leiseek/KeepMD/releases/latest)
+[![Language](https://img.shields.io/badge/C%2B%2B-20-00599C)](https://github.com/leiseek/KeepMD)
+[![Runtime](https://img.shields.io/badge/%E8%BF%90%E8%A1%8C%E6%97%B6-%E4%BB%85%E7%B3%BB%E7%BB%9F%20DLL-2EA44F)](docs/VALIDATION.zh-CN.md)
 
-```powershell
-.\keepmd.exe .\example.md
-```
+*Native Windows Markdown reader and quick-prompt tool. Single portable EXE, no WebView.*
+*下图均为真实程序截图：*
 
-`Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/编辑，`Ctrl+E` 切换可视化/源码，`F11` 全屏，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。代码块按语言原生语法着色，右上角“复制”按钮一键复制整块源码。没有状态栏：文件名与当前模式（阅读／可视化编辑／源码编辑）显示在标题栏，瞬时消息短暂出现后恢复。
+</div>
 
-支持正文、标题、列表、引用、代码（常见语言语法着色与一键复制）、链接、常见表格和任务列表、本地图片、`$…$`／`$$…$$` LaTeX 公式，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
+---
 
-文件菜单的“设为默认打开程序…”会注册 KeepMD 并打开 Windows 默认应用设置，由用户确认扩展名关联。
+![KeepMD 阅读视图：代码块语法着色与一键复制](docs/images/reader-light.png)
 
-**0.7.0**
+## 为什么是 KeepMD
 
-- 围栏代码块按语言原生语法着色：关键字、内置类型与对象、字符串、注释、数字、函数调用及 JSON/YAML/INI 的键各有颜色，浅色与深色主题各配一套，注释为斜体。识别 C、C++、C#、Java、JavaScript、TypeScript、Python、Rust、Go、JSON、YAML、Shell、PowerShell、SQL、CSS 和 HTML/XML；不认识的语言保持单色。着色只是显示层，选择、查找和复制仍是代码原文。
-- 每个围栏代码块右上角有“复制”按钮：点击复制整块围栏源码，短暂显示“已复制”，悬停显示手型光标。
-- 界面收敛：移除状态栏与页面卡片顶部的标签行，文件名与当前模式（阅读／可视化编辑／源码编辑）显示在标题栏，瞬时消息短暂出现后恢复；工具栏按钮收窄为 30×26 DIP。
-- 修复双击标题栏最大化后遮挡任务栏与开始菜单的问题：最大化矩形钳制到显示器工作区，窗口不再被当作全屏面合成。
+打开一个 `.md` 文件，它应该**立刻可读**——像打开记事本一样快，像排版好的书一样好看。KeepMD 用纯 Win32 + DirectWrite 实现，不嵌入浏览器内核：
 
-**0.6.0**
+| | KeepMD | WebView 方案 |
+| --- | --- | --- |
+| 体积 | 单 EXE 2.7 MiB | 通常 100 MiB+ |
+| 内存（闲置阅读） | ~16 MiB | 数百 MiB |
+| 启动到首屏（温缓存） | p50 147 ms | 明显更慢 |
+| 进程内依赖 | 仅 Windows 系统 DLL | 捆绑浏览器运行时 |
 
-- 阅读视图排版 LaTeX 公式：`$…$` 行内公式与 `$$…$$` 独立公式由内置的 MicroTeX 原生排版、Direct2D 绘制，不联网、不需要 TeX，也不启动浏览器。查找与复制仍得到 LaTeX 源码；“价格 $5 和 $6”等普通文字不会被误认为公式。不认识的命令标红，无法排版的公式按源码显示。
+数据来自本机实测（Windows 11 x64，30 次取中位数），口径见[验证报告](docs/VALIDATION.zh-CN.md)。
 
-- KeepPrompt 运行期间始终显示托盘图标，不再依赖“常驻系统托盘”开关。以前在默认设置下，窗口一旦收起或最小化就没有入口找回，只能靠全局快捷键。
-- 点最小化或按 Win+↓ 会先保存草稿，再把提示词窗口收到托盘；单击托盘图标或按全局快捷键重新打开。
-- `Esc` 不再收起提示词窗口，也不会复制内容：设置面板展开时只关闭设置面板，中文输入法组词时只取消组词。收起窗口请用标题栏关闭按钮或 `Ctrl+Enter`。
-- 提示词窗口只能从托盘右键菜单退出，避免误关正在输入的草稿；窗口的“文件”菜单不再有“退出 KeepPrompt”。“常驻系统托盘”开关移除，登录启动由“登录 Windows 时启动”单独控制。
+## 功能一览
 
-**0.5.0**
+### 代码块：按语言着色，一键复制
 
-- KeepMD 与 KeepPrompt 是两个完全独立的程序：互不链接、互不启动、不收发消息，各自保存设置、使用各自的图标。KeepMD 不再有“提示词”菜单、按钮和全局快捷键，需要时直接运行 `KeepPrompt.exe`。0.4.x 的提示词草稿、设置和登录启动项升级后原位沿用；0.4.5 的 `keepmd.exe --resident` 启动项现在静默退出。
-- 统一的黑白灰浅色／深色视觉系统和 32 DIP 紧凑标题栏。KeepMD 新建／打开／保存进入文件菜单，阅读／可视化／源码由标题栏图标切换；KeepPrompt 的模板、快捷键、主题统一进入菜单。
-- KeepMD 可视化文档编辑：新建文档直接进入可视化编辑，`Ctrl+E` 在可视化与源码之间切换并记住选择，保存的始终是原样的 Markdown；超过约 26 万字符的文档使用源码编辑。
-- 常见 README HTML 子集原生显示：标题、段落、链接、强调、列表、引用、分隔线、`details`／`summary`、`picture`、`align`／`<center>`；以 `/` 开头的路径按仓库根目录解析。`<img>` 支持本地相对路径、中文／空格路径和 `width`／`height`。不提供任意 HTML/CSS 排版。
-- 工具栏最右侧的“网络图片”开关一次加载当前文档的全部 HTTP(S) 图片，按 URL 持久缓存到本地，跨文档和重启复用。默认关闭，未开启时不联网。
-- SVG 由 Windows Direct2D 绘制，限纯图形 SVG；含文字、样式表或遮罩等内容的 SVG 显示占位和原因。图片占位卡片说明失败原因：找不到文件、无法读取、无法解码或超出上限。
-- `F11` 全屏阅读：Space／方向键／PageDown 翻页，指针静止后隐藏；Esc 或 F11 退出。
-- 查找可高亮横跨超长段落内部分片处的命中。
+17 种语言及常见别名（C、C++、C#、Java、JavaScript、TypeScript、Python、Rust、Go、JSON、YAML、Shell、PowerShell、SQL、CSS、HTML、XML）的关键字、字符串、注释、数字、函数调用各有颜色，注释斜体，深浅主题各配一套。着色只是显示层——**选择、查找、复制得到的仍是代码原文**。每个代码块右上角的「复制」按钮一点即得整块源码，并短暂显示「已复制」。
 
-已在 Windows 11 x64 验证：283 项核心检查和全部 GUI 测试套件（含新增的语法着色与复制套件）在同一组 Release EXE 上通过；语法颜色的双主题像素断言、芯片点击复制与“已复制”反馈由真实窗口检查覆盖；双击最大化往返、F11 全屏与任务栏可见性经像素级验证。提示词可视化编辑的中文输入法提交仍通过真实输入验证。详见 [版本说明](docs/releases/v0.7.0.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
+### 公式与流程图，全部原生排版
 
-**快捷输入 Markdown 提示词**
+`$…$` 行内公式与 `$$…$$` 独立公式由内置 MicroTeX 排版、Direct2D 绘制——不联网、不用安装 TeX。Mermaid flowchart 由内置解析器转成原生图形，双击可在适应宽度与原始大小间切换。
 
-运行 `KeepPrompt.exe` 后，在任何应用中按 `Ctrl+Alt+Space` 打开输入窗口（KeepMD 中已没有“提示词”入口）。直接在单栏可视化编辑区输入，用工具栏设置标题、加粗、斜体、列表、引用与代码；按 `Ctrl+Enter` 或再次按全局快捷键，复制源码并收起，然后在原窗口 `Ctrl+V`。`Esc` 不再收起窗口，只在设置展开时关闭设置；中文输入法正在组词时，Esc 取消组词。
+![深色主题：公式、Mermaid 流程图与代码着色](docs/images/reader-dark.png)
 
-格式按钮应用于选中的文字；未选中文字时，“加粗／斜体／代码”会插入选中的占位文字，直接输入即可替换。流程图显示为图形，点“流程图”或双击图形修改该图的 Mermaid 语法。复制和保存仍保留 Markdown。
+### 更多阅读能力
 
-提示词窗口的“设置”支持自定义快捷键、双击左 Ctrl、置顶、透明度与登录启动。“文件”支持载入／导出 Markdown 和导入旧 Prompt Flow JSON。草稿自动保存，不影响正在阅读或编辑的文档。
+- **目录**（F9）自动生成、点击跳转；**查找**（Ctrl+F）命中横跨超长段落仍然高亮
+- 常见 GFM 表格、任务列表、引用、本地图片（PNG/JPEG/BMP/SVG）、README 常用 HTML 子集
+- 网络图片默认不联网，工具栏开关一次加载并按 URL 持久缓存
+- F11 全屏阅读：Space／方向键翻页，指针静止自动隐藏，适合演示与翻页笔
+- 文件名与当前模式常驻标题栏（如 `fix1.md — 阅读`），任务栏同步
 
-```powershell
-.\KeepPrompt.exe --show      # 立即输入提示词
-.\KeepPrompt.exe --resident  # 静默驻留在托盘，等待全局快捷键
-```
+![目录视图](docs/images/reader-toc.png)
 
-KeepPrompt 运行期间始终显示托盘图标。关闭或最小化提示词窗口只是保存并收起到托盘，单击托盘图标或按全局快捷键重新打开；只有右键托盘图标选择“退出 KeepPrompt”才结束进程。旧 Prompt Flow 仍运行时请使用组合快捷键，退出旧工具后才能启用双击 Ctrl。能力对应和验证边界见 [Prompt Flow 集成说明](docs/PROMPT-FLOW.zh-CN.md)。
+### 按需编辑：可视化与源码
 
-**可视化提示词编辑（0.4.0）**
+F6 进入编辑：**可视化模式**直接编辑排版后的内容（标题、加粗、列表、代码、流程图），保存的始终是原样 Markdown；**源码模式**使用系统 RichEdit 控件，支持 UTF-8/UTF-16、LF/CRLF 混合换行原样保存。超大文档（>26 万字符）自动切到源码模式保持流畅。
 
-提示词窗口提供原生可视化编辑、底部“复制并收起”主操作和可折叠快捷键设置，不再提供源码／预览双栏。深浅主题同步覆盖标题栏、顶层菜单、按钮、目录和状态栏；阅读器工具栏在窄窗口自动换行。输入区增加边距，提示词窗口本次运行中保留调整后的尺寸与位置。正文、编辑器、预览与目录统一使用主题色窄滑块，支持拖动、点击轨道翻页和滚轮；系统弹出菜单和文件对话框沿用 Windows 外观。
+## KeepPrompt：快捷提示词工具
 
-**窗口顶栏（0.4.1）**
+同仓库的另一个独立程序，**与阅读器分开打包**。在任何应用里按 `Ctrl+Alt+Space` 唤起输入窗口，写好提示词后 `Ctrl+Enter` 复制并收起，回到目标窗口 `Ctrl+V`。可视化编辑、草稿自动保存、模板与托盘常驻，单 EXE 0.6 MiB。
 
-阅读器、提示词和流程图编辑窗口统一使用自绘顶栏，去掉系统标题栏和默认关闭图标。顶部保留菜单、文件名及细线最小化／最大化／关闭按钮；支持拖动、边缘缩放、双击最大化、Win+方向键贴靠、F10 菜单与 Alt+Space 系统菜单。
+![KeepPrompt 提示词窗口](docs/images/prompt-light.png)
 
-**图标与可收起工具栏（0.4.2）**
+## 快速开始
 
-阅读器和提示词格式栏改为统一线性图标，悬停显示中文功能名及适用的快捷键。主操作“复制并收起”保留短文字。点击顶栏的箭头或按 `Ctrl+Shift+T`，可随时收起／展开当前窗口工具栏；阅读器和提示词分别保存状态，阅读／源码编辑／双栏预览均可使用。双栏两侧滚动条保持主题色细滑块，修复控件层级变化后默认轨道露出的情况。
-
-**界面文案与滚动条修正（0.4.4）**
-
-移除常驻的说明性副标题、空白页教学文字、状态栏快捷键教学和图表编辑说明，收紧对应留白。图标名称、菜单快捷键、内容统计、保存状态及失败反馈保留。双栏、提示词及图表输入区禁用系统滚动条样式，由 KeepMD 预留 12 DIP 轨道并绘制细滑块；双栏实际屏幕像素检查纳入回归。
-
-**构建与验证**
-
-构建脚本使用 PowerShell 7；需要包含 MSVC、Windows SDK、CMake ≥ 3.25 和 Ninja 的 Visual Studio C++ Build Tools。依赖源码已固定并随仓库提供，普通构建无需下载它们。
+1. 从 [Releases](https://github.com/leiseek/KeepMD/releases/latest) 下载：
+   - `KeepMD-x.y.z-windows-x64.zip` —— 阅读器
+   - `KeepPrompt-x.y.z-windows-x64.zip` —— 提示词工具（按需）
+2. 解压到任意可写目录，运行 `keepmd.exe`（或拖入 / 关联 `.md` 文件）。
 
 ```powershell
-.\tools\build.ps1 -Test
-# 输出：build/release/keepmd.exe
+.\keepmd.exe .\README.md          # 打开文件
+.\KeepPrompt.exe --show           # 提示词：立即输入
+.\KeepPrompt.exe --resident       # 提示词：驻留托盘等待快捷键
 ```
 
-完整端到端验证需要可交互的 Windows 桌面、Python 和开发依赖；测试会打开自己的窗口，真实输入法测试会在测试窗口输入 `nihao`：
+### 常用快捷键
+
+| 按键 | 功能 | 按键 | 功能 |
+| --- | --- | --- | --- |
+| `Ctrl+O` / `Ctrl+N` | 打开 / 新建 | `Ctrl+F` / `F3` | 查找 / 下一个 |
+| `F9` | 目录 | `Ctrl+D` | 深浅主题 |
+| `Ctrl+滚轮` | 缩放 | `F6` | 阅读 / 编辑 |
+| `Ctrl+E` | 可视化 / 源码 | `Ctrl+S` | 保存 |
+| `F11` | 全屏阅读 | `Ctrl+Shift+T` | 收起工具栏 |
+
+完整列表见[使用说明](docs/USAGE.zh-CN.md)。
+
+## 构建与验证
+
+需要 Visual Studio C++ Build Tools（MSVC + Windows SDK）、CMake ≥ 3.25、Ninja、PowerShell 7。依赖源码已固定并随仓库提供，构建不需要联网下载：
 
 ```powershell
-python -m pip install -r tools/requirements-dev.txt
-.\tools\validate.ps1 -Performance
-# 没有可用中文输入法时可加 -SkipIme；会跳过输入法及提示词全链路测试，结果必须注明。
+.\tools\build.ps1 -Test          # 构建并运行 283 项核心检查
+.\tools\validate.ps1             # 全部 GUI 套件（会打开真实窗口）
 ```
 
-基准区分温热缓存、进程创建、首屏提交、绘制耗时、Private Bytes 和 Working Set。测量不等同于物理显示器帧时间，也不宣称其他机器具有相同性能。当前数据、环境和未验证项见 [验证报告](docs/VALIDATION.zh-CN.md) 及 `bench/results/`。
+每个版本发布前在同一组 EXE 上完成核心检查、全部 GUI 套件、基准、导入表审计（确认只依赖系统 DLL）与打包后真实启动验证；数据与边界如实记录在 [VALIDATION.zh-CN.md](docs/VALIDATION.zh-CN.md)。
 
-**项目资料**
+## 项目文档
 
-- [实施与交付状态](ROADMAP.md)
-- [迭代记录](docs/ITERATION-LOG.md)
-- [技术调研](docs/RESEARCH.zh-CN.md) 与 [Tinta 复用评估](docs/TINTA-AUDIT.zh-CN.md)
-- [验收约定](docs/ACCEPTANCE.zh-CN.md)
-- [原生阅读决策](docs/decisions/0001-native-reader.md) 与 [编辑控件决策](docs/decisions/0002-source-editor.md)
+- [使用说明与支持范围](docs/USAGE.zh-CN.md) · [验证报告](docs/VALIDATION.zh-CN.md)
+- [版本说明](docs/releases/) · [迭代记录](docs/ITERATION-LOG.md) · [路线图](ROADMAP.md)
+- [KeepPrompt 与 Prompt Flow](docs/PROMPT-FLOW.zh-CN.md) · [技术调研](docs/RESEARCH.zh-CN.md)
 - [第三方来源与许可证](THIRD_PARTY_NOTICES.md)
 
-阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、完整 LaTeX（公式只支持 MicroTeX 子集）、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.7 的交付范围。
+## 边界（不做什么）
+
+阅读器是本项目重点。以下**不在**当前范围：完整 Mermaid、任意 HTML/CSS/JS、SVG 全特性（含文字/样式表的 SVG 显示占位与原因）、PDF/DOCX 导出、云同步、跨平台。公式只支持 MicroTeX 子集；Windows 10 与 ARM64 未实测；便携程序未签名。已验证与未验证的内容同样如实列出——见验证报告。
+
+## 许可
+
+源码与发布物随附第三方组件清单（MD4C、Tinta、MicroTeX、tinyxml2， licenses/ 目录含逐项许可证）。项目自身尚未声明开源许可证；引用或分发前请先阅读 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 并与作者确认。
