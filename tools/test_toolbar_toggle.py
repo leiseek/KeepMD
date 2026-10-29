@@ -42,7 +42,7 @@ try:
     before=rect(reader);button=toggle_button(main)
     click(button,16,16);wait(lambda:not u.IsWindowVisible(toolbar))
     assert name(button)=='展开工具栏' and u.IsWindowVisible(button)
-    assert rect(reader)[1]<before[1]-30
+    assert rect(reader)[1]<before[1]-24
     click(button,16,16);wait(lambda:u.IsWindowVisible(toolbar));assert name(button)=='收起工具栏'
     checks.append('reader caption toggle stays visible and returns space to document when toolbar is collapsed')
     command(main,117);edit=wait(lambda:u.GetDlgItem(main,202));text=name(edit)

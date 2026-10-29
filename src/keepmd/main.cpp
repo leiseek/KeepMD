@@ -189,7 +189,7 @@ struct LoadResult {
     size_t cursorSource = 0;
 };
 struct App {
-    HWND hwnd = nullptr, reader = nullptr, toolbar = nullptr, status = nullptr, searchBox = nullptr,
+    HWND hwnd = nullptr, reader = nullptr, toolbar = nullptr, searchBox = nullptr,
          searchNext = nullptr, searchPrev = nullptr, toc = nullptr, replaceBox = nullptr,
          replaceOne = nullptr, replaceAll = nullptr, remoteImages = nullptr;
     HFONT font = nullptr;
@@ -227,9 +227,26 @@ struct App {
     HMENU recentMenu = nullptr;
     std::unique_ptr<Editor> editor;
     bool suppressEdit = false, showReplace = false, split = true, readingDraft = false;
+    // Transient status lives in the window title after the file name; an empty note shows the mode.
+    std::wstring note;
+    uint64_t noteAt = 0;
+    std::wstring state() const {
+        if (!note.empty())
+            return note;
+        if (editor && !readingDraft)
+            return editor->visual() ? L"可视化编辑" : L"源码编辑";
+        if (editor)
+            return L"阅读预览";
+        return path.empty() ? L"" : L"阅读";
+    }
     std::wstring title() const {
-        return (editor && editor->modified() ? L"* " : L"") +
-               (path.empty() ? L"KeepMD" : path.filename().wstring() + L" — KeepMD");
+        std::wstring prefix = editor && editor->modified() ? L"* " : L"";
+        std::wstring parts;
+        if (!path.empty())
+            parts = path.filename().wstring();
+        if (auto tail = state(); !tail.empty())
+            parts = parts.empty() ? tail : parts + L" — " + tail;
+        return parts.empty() ? prefix + L"KeepMD" : prefix + parts + L" — KeepMD";
     }
     ~App() {
         if (cancel)
@@ -248,18 +265,22 @@ bool is_mmd(const std::filesystem::path &path) {
     return _wcsicmp(path.extension().c_str(), L".mmd") == 0;
 }
 void status(App &app, const std::wstring &text) {
-    SendMessageW(app.status, SB_SETTEXTW, 0, reinterpret_cast<LPARAM>(text.c_str()));
+    app.note = text;
+    app.noteAt = GetTickCount64();
+    SetWindowTextW(app.hwnd, app.title().c_str());
+}
+// Title and the status note both follow the current path and mode.
+void set_title(App &app) {
+    SetWindowTextW(app.hwnd, app.title().c_str());
 }
 void update_ui_font(App &app, unsigned dpi) {
     HFONT old = app.font;
     app.font = ui::font(dpi);
-    for (HWND child : {app.toolbar, app.status, app.searchBox, app.searchNext, app.searchPrev, app.replaceBox,
+    for (HWND child : {app.toolbar, app.searchBox, app.searchNext, app.searchPrev, app.replaceBox,
                        app.replaceOne, app.replaceAll, app.toc, app.remoteImages})
         if (child)
             SendMessageW(child, WM_SETFONT, (WPARAM)app.font, TRUE);
-    if (app.status)
-        SendMessageW(app.status, SB_SETMINHEIGHT, MulDiv(26, dpi, 96), 0);
-    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(34, dpi, 96), MulDiv(32, dpi, 96)));
+    SendMessageW(app.toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(MulDiv(30, dpi, 96), MulDiv(26, dpi, 96)));
     for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
         TBBUTTON b{};
         SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
@@ -307,33 +328,6 @@ void chrome_theme(App &app) {
     }
     RedrawWindow(app.hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
 }
-LRESULT CALLBACK status_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DWORD_PTR data) {
-    auto &app = *(App *)data;
-    if (m == WM_ERASEBKGND)
-        return 1;
-    if (m == WM_PAINT) {
-        PAINTSTRUCT ps{};
-        auto dc = BeginPaint(h, &ps);
-        auto colors = ui::palette(app.view && app.view->dark());
-        RECT r{};
-        GetClientRect(h, &r);
-        ui::fill(dc, r, colors.background);
-        ui::line(dc, 0, 0, r.right, 0, colors.border);
-        int size = std::min(4096, (int)LOWORD(SendMessageW(h, SB_GETTEXTLENGTHW, 0, 0)));
-        // Status text is controlled by this process; allocate the actual reported length.
-        std::wstring label((size_t)LOWORD(SendMessageW(h, SB_GETTEXTLENGTHW, 0, 0)) + 1, 0);
-        SendMessageW(h, SB_GETTEXTW, 0, (LPARAM)label.data());
-        label.resize(size);
-        r.left += (int)(16 * app.dpi);
-        r.right -= (int)(16 * app.dpi);
-        ui::text(dc, app.font, label, r, colors.muted);
-        EndPaint(h, &ps);
-        return 0;
-    }
-    if (m == WM_NCDESTROY)
-        RemoveWindowSubclass(h, status_proc, id);
-    return DefSubclassProc(h, m, w, l);
-}
 void copy_text(HWND owner, const std::wstring &text) {
     if (text.empty() || !OpenClipboard(owner))
         return;
@@ -366,14 +360,12 @@ void arrange(App &app) {
     auto px = [&](int n) { return (int)(n * app.dpi); };
     // Full screen keeps only the document, plus the find bar or outline when the reader opens them.
     bool chrome = !app.fullscreen, toolbar = chrome && app.preferences.toolbar;
-    int bottom = chrome ? px(30) : 0, margin = px(18), side = app.showToc ? px(226) : 0;
-    int toolsTop = caption + px(6);
-    ShowWindow(app.status, chrome ? SW_SHOWNA : SW_HIDE);
-    SendMessageW(app.status, WM_SIZE, 0, 0);
+    int margin = px(18), side = app.showToc ? px(226) : 0;
+    int toolsTop = caption + px(4);
     MoveWindow(app.toolbar, (int)(12 * app.dpi), toolsTop,
-               std::max(1L, r.right - (int)(68 * app.dpi)), (int)(64 * app.dpi), TRUE);
+               std::max(1L, r.right - (int)(68 * app.dpi)), (int)(30 * app.dpi), TRUE);
     SendMessageW(app.toolbar, TB_AUTOSIZE, 0, 0);
-    int toolbarHeight = px(32);
+    int toolbarHeight = px(26);
     for (int i = 0; i < SendMessageW(app.toolbar, TB_BUTTONCOUNT, 0, 0); ++i) {
         TBBUTTON b{};
         SendMessageW(app.toolbar, TB_GETBUTTON, i, (LPARAM)&b);
@@ -383,10 +375,10 @@ void arrange(App &app) {
         SendMessageW(app.toolbar, TB_GETITEMRECT, i, (LPARAM)&br);
         toolbarHeight = std::max(toolbarHeight, (int)br.bottom);
     }
-    int top = chrome ? toolsTop + (toolbar ? toolbarHeight + px(10) : 0) : 0;
+    int top = chrome ? toolsTop + (toolbar ? toolbarHeight + px(4) : 0) : 0;
     ShowWindow(app.toolbar, toolbar ? SW_SHOWNA : SW_HIDE);
     ShowWindow(app.remoteImages, toolbar ? SW_SHOWNA : SW_HIDE);
-    MoveWindow(app.remoteImages, r.right - px(44), toolsTop, px(32), px(32), TRUE);
+    MoveWindow(app.remoteImages, r.right - px(42), toolsTop, px(30), px(26), TRUE);
     ui::caption_toolbar(app.hwnd, app.preferences.toolbar);
     if (auto menu = ui::window_menu(app.hwnd))
         CheckMenuItem(GetSubMenu(menu, 1), ToggleToolbar,
@@ -420,14 +412,14 @@ void arrange(App &app) {
         ShowWindow(app.toc, app.showToc ? SW_SHOW : SW_HIDE);
         MoveWindow(app.toc, (int)(12 * app.dpi), top + searchHeight + (int)(38 * app.dpi),
                    std::max(1, side - (int)(24 * app.dpi)),
-                   std::max<int>(1, r.bottom - top - searchHeight - bottom - (int)(46 * app.dpi)), TRUE);
+                   std::max<int>(1, r.bottom - top - searchHeight - (int)(46 * app.dpi)), TRUE);
         ListView_SetColumnWidth(app.toc, 0, std::max(1, side - (int)(44 * app.dpi)));
     }
     // The visual editor is its own preview; the source editor can share the width with the reader.
     bool preview = app.editor && !app.readingDraft && !app.editor->visual() && app.split;
     int contentLeft = side + margin + px(8), contentRight = r.right - margin - px(8);
-    app.pageCard = {side + margin, top + searchHeight, r.right - margin, r.bottom - bottom - px(10)};
-    int contentTop = app.pageCard.top + px(38), contentBottom = app.pageCard.bottom - px(8);
+    app.pageCard = {side + margin, top + searchHeight, r.right - margin, r.bottom - px(10)};
+    int contentTop = app.pageCard.top + px(6), contentBottom = app.pageCard.bottom - px(8);
     if (!chrome) {
         // No page card: the document fills everything below the find bar and beside the outline.
         app.pageCard = {};
@@ -520,7 +512,7 @@ bool allow_navigation(App &app) {
         app.showReplace = false;
         arrange(app);
         update_controls(app);
-        SetWindowTextW(app.hwnd, app.title().c_str());
+        set_title(app);
     }
     return true;
 }
@@ -572,9 +564,12 @@ std::unique_ptr<Editor> make_editor(App &app, std::wstring_view source, bool vis
         return nullptr;
     return editor;
 }
-// Names the active mode, and why a visual request opened the source editor instead.
+// A visual request that opened the source editor instead explains why; the plain mode lives in the title.
 void editor_status(App &app, bool requestedVisual) {
-    status(app, app.editor->visual() ? L"可视化编辑" : requestedVisual ? SourceOnly : L"Markdown 源码编辑");
+    if (!app.editor->visual() && requestedVisual)
+        status(app, SourceOnly);
+    else
+        status(app, L""); // Drop any leftover note; the title shows the new mode.
 }
 void show_editor(App &app) {
     app.readingDraft = false;
@@ -605,7 +600,7 @@ void switch_edit_mode(App &app) {
     app.preferences.visual = app.editor->visual();
     show_editor(app);
     app.suppressEdit = false;
-    SetWindowTextW(app.hwnd, app.title().c_str());
+    set_title(app);
     editor_status(app, false);
 }
 void toggle_editor(App &app, bool visual) {
@@ -712,9 +707,9 @@ bool save_editor(App &app, bool saveAs) {
     app.editor->saved(text);
     app.preferences.remember(target, app.view->anchor_block());
     update_recent(app);
-    SetWindowTextW(app.hwnd, app.title().c_str());
+    set_title(app);
     queue_preview(app);
-    status(app, L"已保存 · " + target.filename().wstring());
+    status(app, L"已保存");
     return true;
 }
 void update_toc(App &app) {
@@ -792,7 +787,7 @@ void begin_load(App &app, const std::filesystem::path &path, bool refresh = fals
     auto cancel = app.cancel;
     auto version = ++app.generation;
     app.loading = true;
-    status(app, L"正在读取 · " + path.filename().wstring());
+    status(app, L"正在读取");
     app.loader->push([&app, path, cancel, version, refresh] {
         LoadResult result;
         result.generation = version;
@@ -989,6 +984,8 @@ void command(App &app, int id) {
         app.showSearch = !app.showSearch;
         if (app.showSearch)
             ensure_search(app);
+        else
+            status(app, L""); // The match counter leaves with the find bar.
         arrange(app);
         SetFocus(app.showSearch ? app.searchBox : app.editor && !app.readingDraft ? app.editor->hwnd() : app.reader);
         break;
@@ -1057,7 +1054,7 @@ void command(App &app, int id) {
             queue_preview(app);
             update_controls(app);
             SetFocus(app.reader);
-            status(app, app.editor->modified() ? L"阅读预览 · 更改尚未保存，Ctrl+S 保存" : L"阅读预览");
+            status(app, app.editor->modified() ? L"更改尚未保存，Ctrl+S 保存" : L"");
         }
         break;
     case ModeVisual:
@@ -1101,7 +1098,7 @@ void command(App &app, int id) {
             app.view->set_document(parse_document(""), {});
             update_toc(app);
             toggle_editor(app, true);
-            SetWindowTextW(app.hwnd, app.title().c_str());
+            set_title(app);
         }
         break;
     case Replace:
@@ -1249,7 +1246,7 @@ LRESULT CALLBACK reader_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         POINT point{};
         GetCursorPos(&point);
         ScreenToClient(hwnd, &point);
-        if (!view.link_at(point.x / dpi, point.y / dpi).empty()) {
+        if (!view.link_at(point.x / dpi, point.y / dpi).empty() || view.copy_hover()) {
             SetCursor(LoadCursorW(nullptr, IDC_HAND));
             return TRUE;
         }
@@ -1361,6 +1358,9 @@ LRESULT CALLBACK reader_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
     case WM_ASSET_READY:
         view.collect_assets();
         return 0;
+    case WM_TIMER:
+        view.expire_copy_feedback();
+        return 0;
     case WM_CONTEXTMENU: {
         HMENU menu = CreatePopupMenu();
         POINT p{GET_X_LPARAM(l), GET_Y_LPARAM(l)};
@@ -1439,10 +1439,6 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
                 SendMessageW(app->toolbar, TB_ADDBUTTONSW, 1, (LPARAM)&sep);
             }
         }
-        app->status = CreateWindowExW(0, STATUSCLASSNAMEW, L"就绪", WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0,
-                                      0, 0, 0, hwnd, nullptr, nullptr, nullptr);
-        SendMessageW(app->status, WM_SETFONT, (WPARAM)app->font, TRUE);
-        SetWindowSubclass(app->status, status_proc, 1, (DWORD_PTR)app);
         app->reader = CreateWindowExW(0, L"KeepMD.Reader", nullptr,
                                       WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP, 0, 0, 0,
                                       0, hwnd, nullptr, nullptr, app);
@@ -1456,6 +1452,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         if (app->renderDpi)
             app->view->set_render_dpi(app->renderDpi);
         app->view->on_link = [app](const auto &target) { link(*app, target); };
+        app->view->on_copy = [reader = app->reader](const std::wstring &text) { copy_text(reader, text); };
         if (app->settingsPath.empty()) {
             wchar_t executablePath[32768]{};
             GetModuleFileNameW(nullptr, executablePath, 32768);
@@ -1499,14 +1496,6 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
             OffsetRect(&shadow, 0, px(2));
             ui::rounded(dc, shadow, p.border, p.border, px(12));
             ui::rounded(dc, app->pageCard, p.surface, p.border, px(12));
-            RECT label{app->pageCard.left + px(18), app->pageCard.top + px(4),
-                       app->pageCard.right - px(130), app->pageCard.top + px(34)};
-            auto name = app->path.empty() ? (app->editor ? L"未命名文档" : L"文档工作区") : app->path.filename().wstring();
-            ui::text(dc, app->font, name, label, p.muted);
-            ui::text(dc, app->font, app->editor && !app->readingDraft ? (app->editor->visual() ? L"可视化编辑" : L"Markdown") : L"阅读视图",
-                     {app->pageCard.right - px(122), label.top, app->pageCard.right - px(16), label.bottom},
-                     p.accent, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-            ui::line(dc, app->pageCard.left + px(16), label.bottom, app->pageCard.right - px(16), label.bottom, p.border);
         }
         if (app->showSearch) {
             ui::field(dc, app->searchField, p, GetFocus() == app->searchBox, app->dpi);
@@ -1564,8 +1553,20 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
         return 0;
     }
     case WM_GETMINMAXINFO: {
+        // The default handler sizes and positions the maximized window inside the monitor's work
+        // area (above the taskbar); skipping it maximizes over the taskbar on some setups.
+        DefWindowProcW(hwnd, message, w, l);
         auto *info = reinterpret_cast<MINMAXINFO *>(l);
         info->ptMinTrackSize = {(LONG)(640 * app->dpi), (LONG)(420 * app->dpi)};
+        // Pin the maximized rectangle to the work area. The default maximized track covers the
+        // whole monitor (the frame hangs 7 px past every edge), and some DWM configurations treat
+        // such a window as a full-screen surface, compositing it over the taskbar and Start.
+        MONITORINFO monitor{sizeof(monitor)};
+        if (GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor)) {
+            info->ptMaxPosition = {monitor.rcWork.left, monitor.rcWork.top};
+            info->ptMaxSize = {monitor.rcWork.right - monitor.rcWork.left,
+                               monitor.rcWork.bottom - monitor.rcWork.top};
+        }
         return 0;
     }
     case WM_COMMAND:
@@ -1769,7 +1770,7 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
                                       : app->file.encoding == Encoding::Utf8Bom ? L"UTF-8 BOM"
                                       : app->file.encoding == Encoding::Utf16LE ? L"UTF-16 LE"
                                                                                 : L"UTF-16 BE";
-            status(*app, L"阅读 · " + std::wstring(encoding) + L" · " + app->path.filename().wstring());
+            status(*app, L"阅读 · " + std::wstring(encoding));
             if (app->showSearch)
                 find(*app);
             app->openedAt = GetTickCount64();
@@ -1795,14 +1796,23 @@ LRESULT CALLBACK main_proc(HWND hwnd, UINT message, WPARAM w, LPARAM l) {
             queue_preview(*app);
             return 0;
         }
-        if (w == 1 && !app->loading && !app->path.empty()) {
-            std::error_code ec;
-            auto stamp = std::filesystem::last_write_time(app->path, ec);
-            if (!ec && stamp != app->file.stamp) {
-                if (app->editor)
-                    status(*app, L"磁盘文件已变化 · F5 可重新加载；保存时将检查冲突");
-                else
-                    begin_load(*app, app->path, true);
+        if (w == 1) {
+            // A note older than four seconds makes way for the mode again; the match counter
+            // stays while its find bar is open.
+            if (!app->note.empty() && GetTickCount64() - app->noteAt > 4000 &&
+                !(app->showSearch && app->note.starts_with(L"查找"))) {
+                app->note.clear();
+                SetWindowTextW(hwnd, app->title().c_str());
+            }
+            if (!app->loading && !app->path.empty()) {
+                std::error_code ec;
+                auto stamp = std::filesystem::last_write_time(app->path, ec);
+                if (!ec && stamp != app->file.stamp) {
+                    if (app->editor)
+                        status(*app, L"磁盘文件已变化 · F5 可重新加载；保存时将检查冲突");
+                    else
+                        begin_load(*app, app->path, true);
+                }
             }
         }
         if (w == 2 && app->firstPaint && !app->view->assets_pending() &&

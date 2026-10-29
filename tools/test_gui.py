@@ -137,8 +137,7 @@ def run():
         wait(lambda:any(name(h,True)=='KeepMD.Reader' for h in children(hwnd)))
         child = children(hwnd)
         reader = next(h for h in child if name(h,True)=='KeepMD.Reader')
-        status = next(h for h in child if name(h,True)=='msctls_statusbar32')
-        wait(lambda: name(status).startswith('阅读'))
+        wait(lambda: '阅读' in name(hwnd))
         checks.append('document loaded')
         screenshot(hwnd,'gui-top.png')
         u.SendMessageW(hwnd,0x111,105,0)  # table of contents
@@ -159,12 +158,12 @@ def run():
         edit = next(h for h in children(hwnd) if name(h,True)=='Edit')
         query=C.create_unicode_buffer('数据')
         u.SendMessageW(edit,0x000C,0,C.cast(query,C.c_void_p).value)
-        print('Search text:',name(edit),'Status:',name(status),flush=True)
+        print('Search text:',name(edit),'Title:',name(hwnd),flush=True)
         screenshot(hwnd,'gui-search.png')
         try:
-            wait(lambda: '1 / 1' in name(status))
+            wait(lambda: '1 / 1' in name(hwnd))
         except AssertionError:
-            print('Search failure state:',repr(name(edit)),repr(name(status)),flush=True)
+            print('Search failure state:',repr(name(edit)),repr(name(hwnd)),flush=True)
             raise
         checks.append('find Chinese text')
         u.SendMessageW(hwnd,0x111,102,0)

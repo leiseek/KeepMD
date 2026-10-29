@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
+  "exe_sha256": "e83bce52c2ffc4ef43694159654e60bee862074cdece252f303dd8d1abeb6bbd",
   "checks": [
     {
       "case": "width",
@@ -161,28 +161,6 @@
     {
       "case": "code/table/missing/remote fallbacks",
       "asset_bytes": 0
-    },
-    {
-      "case": "external Ghidra README",
-      "document_sha256": "b7c44cfb362d503622e82460995902e9c1754d1166a22267dae8b22e603c22be",
-      "logo_sha256": "aec0eda604fabe87af692340f5e2b95c8d1b72eddd2277a89e65a800e14daeb8",
-      "source_unchanged": true,
-      "logo_pixel_bounds": [
-        34,
-        24,
-        434,
-        116
-      ],
-      "snapshot": "tests\\output\\html-ghidra-readme.png"
-    },
-    {
-      "case": "external TypeWords README",
-      "document_sha256": "347158ab12a8119e50055c6beb8262a536e5c20269643719a558145385d24884",
-      "screenshot_sha256": "69faceb43287fddd0d05e18574272de70040d6accad9a52a7937e16213712a62",
-      "source_unchanged": true,
-      "header_code_pixels": 0,
-      "asset_bytes": 13152000,
-      "snapshot": "tests\\output\\html-typewords-readme.png"
     }
   ]
 }

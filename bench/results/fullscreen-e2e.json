@@ -1,8 +1,8 @@
 {
-  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
+  "exe_sha256": "e83bce52c2ffc4ef43694159654e60bee862074cdece252f303dd8d1abeb6bbd",
   "checks": [
     {
-      "case": "F11 covers the monitor; caption, toolbar, status bar and page card hidden",
+      "case": "F11 covers the monitor; caption, toolbar and page card hidden",
       "window": [
         0,
         0,
@@ -46,19 +46,19 @@
     {
       "case": "find bar opens inside full screen; first Esc closes it, second Esc restores the window",
       "restored": [
-        234,
-        234,
-        1294,
-        1054
+        156,
+        156,
+        1216,
+        976
       ]
     },
     {
       "case": "F11 from a maximized window returns to maximized",
       "maximized": [
-        -7,
-        -7,
-        1927,
-        1087
+        0,
+        0,
+        1920,
+        1032
       ]
     },
     {

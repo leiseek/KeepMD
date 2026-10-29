@@ -20,6 +20,22 @@ namespace {
 // larger than the surrounding text, as KaTeX does.
 constexpr float kMathScale = 1.15f;
 
+// Reader-side timer clearing the expired "已复制" chip label. The reader window has no other timers.
+constexpr UINT kCopyFeedbackTimer = 5;
+
+// Muted, GitHub-like token colours that stay legible on both themes' code surfaces. Order matches
+// the Style token bits; entries without their own hue share a colour by design (numbers and keys).
+struct TokenColor {
+    uint32_t style;
+    COLORREF light, dark;
+};
+constexpr TokenColor kTokenColors[] = {
+    {TokKeyword, RGB(175, 34, 45), RGB(255, 116, 106)},  {TokBuiltin, RGB(150, 62, 8), RGB(255, 166, 87)},
+    {TokString, RGB(14, 52, 118), RGB(165, 214, 255)},   {TokComment, RGB(100, 109, 122), RGB(139, 148, 158)},
+    {TokNumber, RGB(5, 76, 168), RGB(121, 192, 255)},    {TokFunction, RGB(121, 72, 212), RGB(210, 168, 255)},
+    {TokKey, RGB(5, 76, 168), RGB(121, 192, 255)},
+};
+
 // A typeset formula standing in for its LaTeX source inside a text layout. The source text stays in the layout,
 // so selection, copy, search and hit testing keep working on it.
 class FormulaObject final : public IDWriteInlineObject {
@@ -186,6 +202,8 @@ void View::invalidate() {
 void View::reset_device() {
     brush_.Reset();
     target_.Reset();
+    for (auto &brush : tokenBrushes_)
+        brush.Reset();
     ++generation_;
     if (worker_)
         worker_->clear();
@@ -439,6 +457,8 @@ void View::ensure_target() {
         target_->CreateSolidColorBrush(foreground(), brush_.ReleaseAndGetAddressOf());
         target_->CreateSolidColorBrush(foreground(), linkBrush_.ReleaseAndGetAddressOf());
         target_->CreateSolidColorBrush(foreground(), mutedBrush_.ReleaseAndGetAddressOf());
+        for (auto &brush : tokenBrushes_)
+            target_->CreateSolidColorBrush(foreground(), brush.ReleaseAndGetAddressOf());
     }
 }
 bool View::same_group(size_t a, size_t b) const {
@@ -617,6 +637,12 @@ View::Entry &View::layout(size_t index) {
                     tl->SetFontFamilyName(ui::code_font(), range);
                     tl->SetFontSize(fs * .95f, range);
                 }
+                if (code && (span.style & kTokenStyles)) {
+                    if (span.style & TokComment)
+                        tl->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, range);
+                    if (auto *brush = token_brush(span.style))
+                        tl->SetDrawingEffect(brush, range);
+                }
                 if ((!span.link.empty() && !card) || (span.style & Underline))
                     tl->SetUnderline(TRUE, range);
                 if (card)
@@ -772,9 +798,43 @@ void View::picture_icon(ID2D1RenderTarget *target, float x, float y, float size,
     target->DrawLine({x + 12 * s, y + 13 * s}, {x + 15 * s, y + 11 * s}, brush_.Get(), w);
     target->DrawLine({x + 15 * s, y + 11 * s}, {x + 18 * s, y + 14 * s}, brush_.Get(), w);
 }
+ID2D1SolidColorBrush *View::token_brush(uint32_t style) const {
+    for (size_t i = 0; i < sizeof(kTokenColors) / sizeof(kTokenColors[0]); ++i)
+        if (style & kTokenColors[i].style)
+            return tokenBrushes_[i].Get();
+    return nullptr;
+}
+void View::theme_token_brushes() {
+    for (size_t i = 0; i < sizeof(kTokenColors) / sizeof(kTokenColors[0]); ++i)
+        if (tokenBrushes_[i])
+            tokenBrushes_[i]->SetColor(color(dark_ ? kTokenColors[i].dark : kTokenColors[i].light));
+}
+std::optional<D2D1_RECT_F> View::copy_button_rect(size_t index) {
+    if (!doc_ || index >= doc_->blocks.size())
+        return {};
+    const auto &b = doc_->blocks[index];
+    if (b.kind != Kind::Code || !group_first(index))
+        return {};
+    const auto &entry = layout(index);
+    auto group = groupWidth_.find(b.source);
+    float width = std::max(entry.width, group == groupWidth_.end() ? 0.f : group->second);
+    float right = block_left(b) + width - 2 * zoom_; // 10 in from the frame's right edge.
+    float top = heights_.prefix(index) + 24 - scrollY_ + 3 * zoom_;
+    return D2D1::RectF(right - 52 * zoom_, top, right, top + 20 * zoom_);
+}
+std::optional<size_t> View::copy_button_at(float x, float y) {
+    if (!doc_ || doc_->blocks.empty())
+        return {};
+    size_t index = heights_.locate(std::max(0.f, y + scrollY_ - 24));
+    auto rect = copy_button_rect(index);
+    if (!rect || x < rect->left || x >= rect->right || y < rect->top || y >= rect->bottom)
+        return {};
+    return index;
+}
 void View::draw_block(ID2D1RenderTarget *target, size_t index, Entry &entry, float y) {
     const auto &b = doc_->blocks[index];
     const auto p = ui::palette(dark_);
+    theme_token_brushes();
     float x = block_left(b);
     if ((b.kind == Kind::Image || b.kind == Kind::Diagram) && !assets_.contains(index))
         request_asset(index);
@@ -784,10 +844,33 @@ void View::draw_block(ID2D1RenderTarget *target, size_t index, Entry &entry, flo
         float width = std::max(entry.width, groupWidth_[b.source]);
         auto box = D2D1::RectF(x - 10 * zoom_, y, x + width + 10 * zoom_, y + entry.height - (last ? 16 * zoom_ : 0));
         frame(target, box, first, last, color(p.code), color(p.border));
-        if (first && !b.language.empty() && b.kind == Kind::Code)
-            draw_text(target, b.language, D2D1::RectF(box.right - 160 * zoom_, y + 4 * zoom_, box.right - 12 * zoom_,
-                                                       y + 22 * zoom_),
-                      11 * zoom_, color(p.subtle), false, DWRITE_TEXT_ALIGNMENT_TRAILING);
+        if (first && b.kind == Kind::Code) {
+            auto chip = copy_button_rect(index);
+            if (chip) {
+                bool copied = copiedSource_ != SIZE_MAX && b.source == copiedSource_;
+                bool hot = copyHover_ && copy_button_at(mouseX_, mouseY_) == index;
+                bool pressed = copyArmed_ == index;
+                auto face = copied   ? mix(p.surface, p.code, .5f)
+                            : pressed ? color(p.pressed)
+                            : hot     ? color(p.hover)
+                                      : mix(p.surface, p.code, .5f);
+                auto rounded = D2D1::RoundedRect(*chip, 6 * zoom_, 6 * zoom_);
+                brush_->SetColor(face);
+                target->FillRoundedRectangle(rounded, brush_.Get());
+                brush_->SetColor(color(p.border));
+                target->DrawRoundedRectangle(rounded, brush_.Get(), 1.f);
+                draw_text(target, copied ? L"已复制" : L"复制",
+                          D2D1::RectF(chip->left, chip->top + 3 * zoom_, chip->right, chip->bottom),
+                          11 * zoom_, copied ? color(p.accent) : color(p.muted), false,
+                          DWRITE_TEXT_ALIGNMENT_CENTER);
+            }
+            if (!b.language.empty()) {
+                float labelRight = (chip ? chip->left : box.right - 12 * zoom_) - 8 * zoom_;
+                draw_text(target, b.language,
+                          D2D1::RectF(box.right - 220 * zoom_, y + 4 * zoom_, labelRight, y + 22 * zoom_),
+                          11 * zoom_, color(p.subtle), false, DWRITE_TEXT_ALIGNMENT_TRAILING);
+            }
+        }
     } else if (b.kind == Kind::TableRow) {
         bool first = group_first(index), last = group_last(index);
         auto box = D2D1::RectF(x, y, x + entry.width, y + entry.height - (last ? 16 * zoom_ : 0));
@@ -1397,6 +1480,24 @@ std::wstring View::link_at(float x, float y) {
                 return s.link;
     return {};
 }
+// Whole fenced block (or raw HTML block) source, joined from its layout line blocks.
+std::wstring View::code_group_text(size_t index) const {
+    if (!doc_ || index >= doc_->blocks.size())
+        return {};
+    const auto &block = doc_->blocks[index];
+    if (block.kind != Kind::Code && block.kind != Kind::Html)
+        return {};
+    size_t first = index;
+    while (first > 0 && same_group(first - 1, first))
+        --first;
+    std::wstring result;
+    for (size_t i = first; i < doc_->blocks.size() && same_group(first, i); ++i) {
+        result += doc_->blocks[i].text.value;
+        if (!doc_->blocks[i].joins_next)
+            result += L'\n';
+    }
+    return result;
+}
 std::wstring View::source_at(float, float y) const {
     if (!doc_ || doc_->blocks.empty())
         return {};
@@ -1404,21 +1505,7 @@ std::wstring View::source_at(float, float y) const {
     const auto &block = doc_->blocks[index];
     if (block.kind == Kind::Diagram)
         return block.text.value;
-    if (block.kind != Kind::Code && block.kind != Kind::Html)
-        return {};
-    size_t first = index;
-    while (first > 0 && doc_->blocks[first - 1].kind == block.kind &&
-           doc_->blocks[first - 1].source == block.source)
-        --first;
-    std::wstring result;
-    for (size_t i = first; i < doc_->blocks.size() && doc_->blocks[i].kind == block.kind &&
-                           doc_->blocks[i].source == block.source;
-         ++i) {
-        result += doc_->blocks[i].text.value;
-        if (!doc_->blocks[i].joins_next)
-            result += L'\n';
-    }
-    return result;
+    return code_group_text(index);
 }
 void View::toggle_diagram(float, float y) {
     if (!doc_ || doc_->blocks.empty())
@@ -1439,6 +1526,14 @@ void View::toggle_diagram(float, float y) {
 }
 void View::mouse_down(float x, float y, bool extend) {
     SetFocus(hwnd_);
+    if (auto chip = copy_button_at(x, y)) {
+        copyArmed_ = *chip;
+        dragging_ = false;
+        moved_ = false;
+        SetCapture(hwnd_);
+        invalidate();
+        return;
+    }
     clickedLink_ = link_at(x, y);
     selectTo_ = hit(x, y);
     if (!extend)
@@ -1450,6 +1545,15 @@ void View::mouse_down(float x, float y, bool extend) {
     invalidate();
 }
 void View::mouse_move(float x, float y) {
+    mouseX_ = x;
+    mouseY_ = y;
+    bool hover = copy_button_at(x, y).has_value();
+    if (hover != copyHover_) {
+        copyHover_ = hover;
+        invalidate();
+    }
+    if (copyArmed_ != SIZE_MAX)
+        invalidate();
     if (!dragging_)
         return;
     if (std::hypot(x - mouseStart_.x, y - mouseStart_.y) > 3)
@@ -1462,6 +1566,23 @@ void View::mouse_move(float x, float y) {
     invalidate();
 }
 void View::mouse_up(float x, float y) {
+    if (copyArmed_ != SIZE_MAX) {
+        size_t armed = copyArmed_;
+        copyArmed_ = SIZE_MAX;
+        ReleaseCapture();
+        auto inside = copy_button_at(x, y);
+        if (inside && *inside == armed) {
+            auto text = code_group_text(armed);
+            if (!text.empty() && on_copy) {
+                on_copy(text);
+                copiedSource_ = doc_->blocks[armed].source;
+                copiedAt_ = std::chrono::steady_clock::now();
+                SetTimer(hwnd_, kCopyFeedbackTimer, 1500, nullptr);
+            }
+        }
+        invalidate();
+        return;
+    }
     if (!dragging_)
         return;
     dragging_ = false;
@@ -1471,6 +1592,15 @@ void View::mouse_up(float x, float y) {
     else
         selectTo_ = hit(x, y);
     clickedLink_.clear();
+    invalidate();
+}
+void View::expire_copy_feedback() {
+    if (copiedSource_ == SIZE_MAX)
+        return;
+    if (std::chrono::steady_clock::now() - copiedAt_ < std::chrono::milliseconds(1300))
+        return;
+    copiedSource_ = SIZE_MAX;
+    KillTimer(hwnd_, kCopyFeedbackTimer);
     invalidate();
 }
 std::pair<std::wstring, bool> View::image_detail(size_t index) const {

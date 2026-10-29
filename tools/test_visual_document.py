@@ -66,9 +66,8 @@ def launch(*args):
     return process,main
 def reading(main,path):
     wait(lambda:path.name in name(main))
-    status=wait(lambda:next((h for h in children(main) if name(h,True)=='msctls_statusbar32'),None))
-    wait(lambda:name(status).startswith('阅读'),timeout=30)
-    return status
+    wait(lambda:'阅读' in name(main),timeout=30)
+    return None
 def preference():
     return next((line.split('=',1)[1] for line in config.read_text(encoding='utf-8').splitlines() if line.startswith('Visual=')),None)
 
@@ -143,9 +142,9 @@ try:
     # RichEdit turns U+FFFC into a space, so such a document stays in reading mode rather than being rewritten.
     config.write_text('[Reader]\nDark=0\nVisual=1\n',encoding='utf-8')
     reserved=OUT/'visual-reserved.md';reserved.write_text('# 保留 \ufffc 字符\n',encoding='utf-8',newline='')
-    process,main=launch(reserved);status=reading(main,reserved)
+    process,main=launch(reserved);reading(main,reserved)
     command(main,Edit);time.sleep(.3)
-    assert 'U+FFFC' in name(status),name(status)
+    assert 'U+FFFC' in name(main),name(main)
     assert not editable(main) and reserved.read_text(encoding='utf-8')=='# 保留 \ufffc 字符\n'
     close(process,main)
     checks.append('a document with U+FFFC stays in reading mode and says why, instead of being silently rewritten')
@@ -156,11 +155,11 @@ try:
     body='# 大文档\n\n'+''.join(section.format(i=i) for i in range(2200))
     assert len(body)>256*1024,len(body)
     large=OUT/'visual-large.md';large.write_text(body,encoding='utf-8',newline='')
-    process,main=launch(large);status=reading(main,large)
+    process,main=launch(large);reading(main,large)
     command(main,Edit);edit=wait(lambda:editable(main),timeout=20)
-    assert hidden(main,FormatBold) and '26 万字符' in name(status),name(status)
+    assert hidden(main,FormatBold) and '26 万字符' in name(main),name(main)
     command(main,EditMode);time.sleep(.3)
-    assert editable(main)==edit and hidden(main,FormatBold) and '26 万字符' in name(status),name(status)
+    assert editable(main)==edit and hidden(main,FormatBold) and '26 万字符' in name(main),name(main)
     assert not modified(main);close(process,main)
     checks.append('documents beyond the visual limit open in source editing, say why and refuse the visual switch')
 finally:

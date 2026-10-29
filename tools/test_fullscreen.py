@@ -34,8 +34,7 @@ def state():
     u.SendMessageW(main,0x8000+100,0,0);return json.loads(report.read_text())
 try:
     main=wait(lambda:(windows(p.pid)or[None])[0])
-    status=wait(lambda:next((h for h in children(main) if name(h,True)=='msctls_statusbar32'),None))
-    wait(lambda:name(status).startswith('阅读'))
+    wait(lambda:'阅读' in name(main))
     reader=next(h for h in children(main) if name(h,True)=='KeepMD.Reader')
     caption=next(h for h in children(main) if name(h,True)=='Keep.Caption')
     toolbar=next(h for h in children(main) if name(h,True)=='ToolbarWindow32')
@@ -43,10 +42,10 @@ try:
     activate(main,reader);keys(main,VK_F11)
     wait(lambda:rect(main)==monitor(main))
     client=W.RECT();u.GetClientRect(main,C.byref(client))
-    assert not any(u.IsWindowVisible(h) for h in (caption,toolbar,status))
+    assert not any(u.IsWindowVisible(h) for h in (caption,toolbar))
     assert rect(reader)==rect(main),(rect(reader),rect(main),client.right,client.bottom)
     assert state()['fullscreen'] is True
-    checks.append({'case':'F11 covers the monitor; caption, toolbar, status bar and page card hidden','window':rect(main)})
+    checks.append({'case':'F11 covers the monitor; caption, toolbar and page card hidden','window':rect(main)})
     activate(main,reader);dpi=u.GetDpiForWindow(main)/96
     # Every presenter key moves exactly as far as the existing PageDown: 90% of the view, whose height
     # excludes the horizontal scrollbar track.
@@ -75,7 +74,7 @@ try:
     assert not u.IsWindowVisible(search) and state()['fullscreen'] is True and rect(reader)==rect(main)
     activate(main,reader);keys(main,VK_ESCAPE)
     wait(lambda:rect(main)==windowed)
-    assert all(u.IsWindowVisible(h) for h in (caption,toolbar,status)) and state()['fullscreen'] is False
+    assert all(u.IsWindowVisible(h) for h in (caption,toolbar)) and state()['fullscreen'] is False
     checks.append({'case':'find bar opens inside full screen; first Esc closes it, second Esc restores the window','restored':rect(main)})
     u.ShowWindow(main,3);wait(lambda:u.IsZoomed(main));maximized=rect(main)
     activate(main,reader);keys(main,VK_F11);wait(lambda:rect(main)==monitor(main))

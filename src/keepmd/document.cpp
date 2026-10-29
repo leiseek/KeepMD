@@ -2,6 +2,7 @@
 #include "html.h"
 #include "html_image.h"
 #include "md4c.h"
+#include "syntax.h"
 extern "C" {
 #include "entity.h"
 }
@@ -86,6 +87,25 @@ std::wstring slug(std::wstring_view text) {
             result += (wchar_t)towlower(c);
     }
     return result;
+}
+uint32_t token_style(Token token) {
+    switch (token) {
+    case Token::Keyword:
+        return TokKeyword;
+    case Token::Builtin:
+        return TokBuiltin;
+    case Token::String:
+        return TokString;
+    case Token::Comment:
+        return TokComment;
+    case Token::Number:
+        return TokNumber;
+    case Token::Function:
+        return TokFunction;
+    case Token::Key:
+        return TokKey;
+    }
+    return 0;
 }
 namespace {
 size_t scalar_start(std::wstring_view text, size_t pos) {
@@ -237,6 +257,11 @@ struct Builder {
             }
         }
         if (b.kind == Kind::Code || b.kind == Kind::Html) {
+            // Syntax colouring is ordinary spans over unchanged text, so search, selection and
+            // copy keep seeing exactly the fenced source.
+            if (b.kind == Kind::Code)
+                for (const auto &token : highlight(b.language, b.text.value))
+                    b.text.spans.push_back({token.start, token.length, token_style(token.token), L""});
             // Line blocks keep huge code fences bounded in the text layout cache.
             size_t start = 0;
             while (start < b.text.value.size()) {
@@ -259,6 +284,13 @@ struct Builder {
                     line.language = b.language;
                     line.joins_next = fragmentEnd < contentEnd;
                     line.text.value = b.text.value.substr(fragment, fragmentEnd - fragment);
+                    for (const auto &span : b.text.spans) {
+                        size_t a = std::max(fragment, (size_t)span.start),
+                               z = std::min(fragmentEnd, (size_t)span.start + span.length);
+                        if (a < z)
+                            line.text.spans.push_back(
+                                {(uint32_t)(a - fragment), (uint32_t)(z - a), span.style, span.link});
+                    }
                     doc.blocks.push_back(std::move(line));
                     fragment = fragmentEnd;
                 } while (fragment < contentEnd);

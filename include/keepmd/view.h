@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <wincodec.h>
@@ -69,8 +70,9 @@ class View {
     void invalidate();
     void reset_device();
     void cancel_drag() {
-        if (dragging_) {
+        if (dragging_ || copyArmed_ != SIZE_MAX) {
             dragging_ = false;
+            copyArmed_ = SIZE_MAX;
             clickedLink_.clear();
         }
     }
@@ -148,6 +150,13 @@ class View {
         return doc_;
     }
     std::function<void(const std::wstring &)> on_link;
+    // Whole fenced block source, fired when its copy chip is clicked.
+    std::function<void(const std::wstring &)> on_copy;
+    // Clears the expired "已复制" label; called from the reader's WM_TIMER.
+    void expire_copy_feedback();
+    bool copy_hover() const {
+        return copyHover_;
+    }
 
   private:
     struct Entry {
@@ -193,6 +202,8 @@ class View {
     ComPtr<ID2D1SolidColorBrush> brush_;
     // Drawing-effect brushes referenced by cached text layouts; recoloured each frame for the theme.
     ComPtr<ID2D1SolidColorBrush> linkBrush_, mutedBrush_;
+    // One per syntax token class, same recolour-per-frame contract as the link brush.
+    std::array<ComPtr<ID2D1SolidColorBrush>, 7> tokenBrushes_;
     std::wstring bodyFamily_ = L"Segoe UI", headingFamily_ = L"Segoe UI";
     std::shared_ptr<FormulaInk> formulaInk_ = std::make_shared<FormulaInk>();
     ComPtr<ID2D1StrokeStyle> dashed_;
@@ -218,6 +229,12 @@ class View {
     size_t selectFrom_ = 0, selectTo_ = 0;
     D2D1_POINT_2F mouseStart_{};
     std::wstring clickedLink_;
+    // Copy chip in the top-right corner of a code block: press state, hover state and the
+    // "已复制" label shown briefly after a copy.
+    size_t copyArmed_ = SIZE_MAX, copiedSource_ = SIZE_MAX;
+    bool copyHover_ = false;
+    float mouseX_ = -1e9f, mouseY_ = -1e9f;
+    std::chrono::steady_clock::time_point copiedAt_{};
     Heights heights_;
     std::vector<Match> matches_;
     int activeMatch_ = -1;
@@ -250,6 +267,13 @@ class View {
                    D2D1_COLOR_F color, bool bold = false,
                    DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING);
     void fill(ID2D1RenderTarget *target, D2D1_RECT_F rect, D2D1_COLOR_F color);
+    // Brush a cached code layout refers to for one token class, recoloured for the theme.
+    ID2D1SolidColorBrush *token_brush(uint32_t style) const;
+    // The "复制" chip drawn on the first block of each fenced code group.
+    std::optional<D2D1_RECT_F> copy_button_rect(size_t index);
+    std::optional<size_t> copy_button_at(float x, float y);
+    std::wstring code_group_text(size_t index) const;
+    void theme_token_brushes();
     void range_rects(ID2D1RenderTarget *target, IDWriteTextLayout *layout, uint32_t start, uint32_t length,
                      float x, float y, D2D1_COLOR_F color, float radius = 0);
     // One segment of a rounded frame; open edges continue into the neighbouring blocks of the group.

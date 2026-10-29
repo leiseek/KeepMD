@@ -25,8 +25,7 @@ for fixture in ('s100','l10','long-paragraph','long-code','oversized-diagram','t
     try:
         hwnd=wait(lambda:(windows(process.pid)or[None])[0]);wait(lambda:any(name(h,True)=='KeepMD.Reader' for h in children(hwnd)));child=children(hwnd)
         reader=next(h for h in child if name(h,True)=='KeepMD.Reader')
-        status=next(h for h in child if name(h,True)=='msctls_statusbar32')
-        wait(lambda:name(status).startswith('阅读'),timeout=10)
+        wait(lambda:'阅读' in name(hwnd),timeout=10)
         p=psutil.Process(process.pid)
         for step in range(35):
             send(reader,0x100,0x22,0)  # Page Down exercises new blocks/resources.

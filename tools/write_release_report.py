@@ -9,8 +9,8 @@ from datetime import datetime
 
 ROOT=Path(__file__).resolve().parents[1]
 RESULTS=ROOT/'bench/results'
-VERSION='0.6.0'
-PREVIOUS_TAG='v0.5.0' # Comparison baseline: the previous release's own recorded results, read from its tag.
+VERSION='0.7.0'
+PREVIOUS_TAG='v0.6.0' # Comparison baseline: the previous release's own recorded results, read from its tag.
 def read(name):return json.loads((RESULTS/name).read_text(encoding='utf-8-sig'))
 def previous(name):
     text=subprocess.run(['git','show',f'{PREVIOUS_TAG}:bench/results/{name}'],cwd=ROOT,capture_output=True,check=True).stdout
@@ -24,7 +24,8 @@ html=read('html-images-e2e.json')
 prompt_process=read('prompt-process-e2e.json')
 document=read('visual-document-e2e.json');remote=read('remote-images-e2e.json');brand=read('brand-ui-e2e.json');fullscreen=read('fullscreen-e2e.json')
 math=read('math-e2e.json')
-for item in (startup,idle,large,imports,smoke,ui,bars,visual,caption,icons,toggle,html,prompt_process,document,remote,brand,fullscreen,math):
+syntax=read('syntax-e2e.json')
+for item in (startup,idle,large,imports,smoke,ui,bars,visual,caption,icons,toggle,html,prompt_process,document,remote,brand,fullscreen,math,syntax):
     assert item['exe_sha256']==sha, 'Results belong to a different executable; rerun affected checks.'
 assert prompt_process['prompt_exe_sha256']==prompt_sha and brand['prompt_exe_sha256']==prompt_sha, 'KeepPrompt results belong to a different executable.'
 prompt_is_current = prompt.get('exe_sha256') == prompt_sha
@@ -69,6 +70,7 @@ summary={'version':VERSION,'generated_at':datetime.now().astimezone().isoformat(
          'visual_document_e2e_checks':len(document['checks']),'remote_images_e2e_checks':len(remote['checks']),
          'brand_ui_e2e_checks':len(brand['checks']),'fullscreen_e2e_checks':len(fullscreen['checks']),
          'math_e2e_checks':len(math['checks']),'math_formulas_typeset':math['formulas_typeset'],'math_formulas_source':math['formulas_source'],
+         'syntax_e2e_checks':len(syntax['checks']),
          'prompt_ime_verified':prompt_ime_verified,'prompt_ime_commit_verified':prompt_ime_committed,
          'prompt_integration_completed':prompt_complete,'prompt_hotkey_exercised':prompt_hotkey,
          'prompt_measurements':pm,'prompt_e2e_checks':len(prompt['checks']),
@@ -81,7 +83,7 @@ summary={'version':VERSION,'generated_at':datetime.now().astimezone().isoformat(
                               'caption_baseline':'Unmodified v0.5.0 EXE reproduced the same foreground-focus assertion before the harness adjustment.'},
          'previous_release':{'tag':PREVIOUS_TAG,'exe_bytes':before['exe_bytes'],'startup_launch_p50_ms':before_startup['launch_to_first_paint_p50_ms'],
                              'startup_launch_p95_ms':before_startup['launch_to_first_paint_p95_ms'],'private_median_mib':before_startup['private_p50_mib']},
-         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','README HTML subset and HTML images including external READMEs','network image switch and persistent URL cache with a local HTTP server','KeepMD document visual editing','KeepMD/KeepPrompt independence and legacy upgrade paths','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips','custom window caption, native resize/drag, work-area maximize, docking and close guards','shared visual system and compact menus','full screen reading and presenter paging','LaTeX formulas typeset in the reader with find/copy of the LaTeX source, theme and zoom'],
+         'gui_suites':['reader','navigation and real file dialogs','editor encodings/undo/save/conflicts/cache reuse','native IME keyboard input','DPI target rendering/hit testing','bounded stress and device-target recreation','class style/image formats/uppercase MMD','README HTML subset and HTML images including external READMEs','network image switch and persistent URL cache with a local HTTP server','KeepMD document visual editing','KeepMD/KeepPrompt independence and legacy upgrade paths','global prompt keyboard/clipboard/focus/import/persistence/conflicts/IME','native visual editing and inline diagram object round trips','custom window caption, native resize/drag, work-area maximize, docking and close guards','shared visual system and compact menus','full screen reading and presenter paging','LaTeX formulas typeset in the reader with find/copy of the LaTeX source, theme and zoom','code block syntax colours and the per-block copy chip in light and dark themes','status without a status bar: file name and mode in the window title'],
          'limitations':['No verified cold-cache startup number','Physical cross-monitor DPI transitions not exercised','Windows 10/ARM64 not tested','Mermaid flowchart subset; no full Mermaid parity','No complete reader UI Automation text provider','Unsigned portable binary','Visual prompt editor covers common text formatting and 16 inline flowcharts; table grids and inline image editing are not implemented','Custom maximize button does not implement the Windows 11 hover Snap flyout; Win+Arrow docking is tested',
                         'README HTML subset only: no CSS, style or script execution and no arbitrary layout; images inside table cells stay as source','SVG limited to the Direct2D subset: SVGs with text, style sheets, masks, patterns or symbols show a placeholder','Network images load only after the per-document switch is turned on; data: and network-share images are not loaded',
                         'LaTeX formulas: the MicroTeX subset in the reader only; no \\def, \\tag or LaTeX packages; editors show formulas as source',
@@ -118,19 +120,20 @@ report=f'''**KeepMD {VERSION} 交付验证报告**
 
 **{VERSION} 的变化与验证**
 
-- **LaTeX 公式。** 阅读视图用固定版本的 MicroTeX 排版 `$…$` 与 `$$…$$`，由 KeepMD 自己的 Direct2D 后端绘制，字体嵌入 EXE，不联网、不启动浏览器。真实窗口中 {math['formulas_typeset']} 个公式排版、{math['formulas_source']} 个无法恢复的公式按源码显示；{len(math['checks'])} 组检查通过：查找命中公式源码、复制得到原样 LaTeX、主题切换与缩放后重新排版。核心检查覆盖离屏绘制的墨迹位于排版框内、绘制后恢复调用方变换、未知命令标红、无法恢复的错误退回源码、“价格 $5 和 $6”与“售价 $ 100 和 $ 200”不被识别为公式、超长段落切块不切开公式，以及替代符号可见。见 [公式验证](../bench/results/math-e2e.json)。
-- **公式字体许可。** 只嵌入许可明确的 20 个字体；上游 10 个许可或来源不明的字体不随附，其中的 « » ‰ € µ 等符号改用 Windows 自带字体绘制，`\\android` 不显示。逐个字体的依据见第三方说明。
-- **KeepPrompt 托盘与按键。** 运行期间始终显示托盘图标；最小化与关闭都保存并收起到托盘；Esc 不再收起窗口，只关闭设置面板；进程只能从托盘菜单退出。提示词全量套件 {len(prompt['checks'])} 项与视觉系统套件按新行为断言（Esc 后窗口保留、最小化后托盘图标存在、未开启常驻也有托盘图标）。
-- **启动开销。** `keepmd.exe` 静态链接 MicroTeX 与公式字体后体积增大，见下文；在不含公式的文档上，MicroTeX 只在首次遇到公式时初始化，其全局表在启动时约多占 0.3 MiB 私有内存。
+- **代码块语法着色与一键复制。** 围栏代码块按语言原生着色：关键字、常见内置类型与对象、字符串（含模板串与 Python 前缀串）、行/块注释、数字（进制、后缀、CSS 单位）、函数调用及 JSON/YAML/INI 的键，注释为斜体；识别 C、C++、C#、Java、JavaScript、TypeScript、Python、Rust、Go、JSON、YAML、Shell、PowerShell、SQL、CSS 与 HTML/XML 及常见别名，浅色与深色主题各配一套颜色。着色只是显示层：选择、查找和复制得到的仍是代码原文，未知语言与缩进代码块保持单色。每个围栏代码块右上角有“复制”按钮，点击复制整块围栏源码并短暂显示“已复制”，悬停显示手型光标。{len(syntax['checks'])} 组真实窗口检查通过：两种主题下各类 token 颜色以像素断言渲染、点击复制精确整块源码、复制反馈可见；核心检查覆盖 16 种语言的 token 边界与超长行分片后的着色。见 [语法验证](../bench/results/syntax-e2e.json)。
+- **界面收敛：标题栏承载文件名与模式。** 移除阅读器状态栏与页面卡片顶部的文件名/模式标签行；文件名与当前模式（阅读／可视化编辑／源码编辑）显示在自绘标题栏（如 `文件名 — 阅读`），任务栏标题同步，未保存时文件名前有 `*`。保存、读取、查找计数等瞬时消息在同一位置短暂出现，约 4 秒后恢复为模式。工具栏按钮 34×32 DIP 收窄为 30×26 DIP，正文起始位置提前，每屏多显示约一行。GUI 套件改为从窗口标题断言状态。
+- **最大化不再越过任务栏。** 自绘顶栏窗口的最大化矩形钳制到显示器工作区：窗口不再外扩覆盖整个监视器，DWM 不再把它当作全屏面合成，任务栏、开始菜单与窗口底部内容不再被遮挡；最大化状态下非客户区不再绘制。双击标题栏往返（客户区与工作区四边相等、还原逐像素一致）与 F11 全屏（仍覆盖整个显示器，属设计行为）经真实窗口验证。
 
-**0.5.0 引入的能力（本版回归）**
+**0.6.0 引入的能力（本版回归）**
+
+**0.5.0 及更早引入的能力（本版回归）**
 
 - **两个独立程序。** KeepMD 与 KeepPrompt 只共用界面基础库，互不链接、启动或发送消息，各自保存设置。{len(prompt_process['checks'])} 组检查通过：KeepMD 单独运行且没有提示词入口，旧的 `--prompt` 参数不再启动其他程序；KeepPrompt 隐藏常驻并转发第二次启动；关闭 KeepMD 不影响 KeepPrompt；0.4.x 便携目录与登录启动项升级后原位沿用提示词草稿，0.4.5 的 `keepmd.exe --resident` 启动项静默退出。见 [独立性验证](../bench/results/prompt-process-e2e.json)。
 - **README HTML 子集与 HTML 图片。** 常见 README HTML 块转为原生块，子集外的块保留原文。{len(html['checks'])} 组检查覆盖 `<img>` 宽高／缩放／多行属性、中文与空格路径、行内图片、双栏预览、居中与跨块对齐、仓库根相对路径、代码／表格／缺失／远程回退及源码无改动保存；{external_note}见 [HTML 验证](../bench/results/html-images-e2e.json)。
 - **KeepMD 文档可视化编辑。** {len(document['checks'])} 组真实键盘检查通过：打开即为可视化编辑且 Markdown 原样保留，Unicode 输入与 Ctrl+B，保存未触碰的表格和流程图，Ctrl+E 双向切换并记住模式，连续输入合并为一步撤销，新建文档进入可视化，含 U+FFFC 的文件保留阅读，超出可视化上限的文件使用源码编辑并说明原因。见 [文档可视化编辑验证](../bench/results/visual-document-e2e.json)。
 - **网络图片开关与持久缓存。** 默认不联网；工具栏开关加载当前文档全部 HTTP(S) 图片。{len(remote['checks'])} 组检查由本地 HTTP 服务驱动：占位不触发请求、重复 URL 只下载一次、跨进程从磁盘复用、损坏缓存丢弃、跳转按原 URL 保存且不发送 Cookie／凭据／来源、错误不入缓存、取消与超时、两个窗口合并下载、写缓存失败仍显示、按上限淘汰。见 [网络图片验证](../bench/results/remote-images-e2e.json)。
 - **图片失败原因与 SVG。** 占位卡片区分找不到文件、无法读取、无法解码与超出上限。SVG 由 Windows 自带的 Direct2D SVG 支持绘制，按显示尺寸两倍光栅化；Direct2D 不支持文字，含文字、样式表、遮罩、图案或符号的 SVG 显示占位与原因，避免画出缺字的徽章。由核心检查覆盖；实际窗口截图检查在开发构建上完成，没有单列为本版 EXE 的结果文件。
-- **全屏阅读。** {len(fullscreen['checks'])} 组真实键盘／指针检查通过：F11 覆盖显示器并隐藏标题栏、工具栏、状态栏和页面卡片；Space／方向键／PageDown 等翻页位移与 PageDown 一致；指针静止 2.5 秒隐藏；查找栏与两次 Esc；最大化窗口往返；编辑器全屏中 Esc 留给编辑器。见 [全屏验证](../bench/results/fullscreen-e2e.json)。
+- **全屏阅读。** {len(fullscreen['checks'])} 组真实键盘／指针检查通过：F11 覆盖显示器并隐藏标题栏、工具栏和页面卡片（状态栏已在本版移除）；Space／方向键／PageDown 等翻页位移与 PageDown 一致；指针静止 2.5 秒隐藏；查找栏与两次 Esc；最大化窗口往返；编辑器全屏中 Esc 留给编辑器。见 [全屏验证](../bench/results/fullscreen-e2e.json)。
 - **查找。** 横跨长段落切块边界的命中两侧都高亮，查找高亮按位置二分选取；由核心检查覆盖，实际窗口截图检查同样在开发构建上完成。
 - **视觉系统。** 两个程序统一黑白灰浅／深配色、32 DIP 紧凑标题栏、圆角与焦点边框，模式切换移入标题栏图标。{len(brand['checks'])} 组原生交互检查通过，覆盖 640／850／1180 px 标题栏布局、草稿预览保留撤销、模式切换不改 Markdown、收起工具栏与深色主题下的模式图标、提示词设置与 Esc、模板追加与撤销。见 [视觉系统验证](../bench/results/brand-ui-e2e.json)。
 
@@ -163,7 +166,7 @@ report=f'''**KeepMD {VERSION} 交付验证报告**
 
 **界面、滚动条与提示词**
 
-界面通过 {len(ui['checks'])} 组原生窗口检查：阅读器 640px 图标布局、深色主题覆盖工具栏／目录／查找／状态栏和标题菜单、提示词主题独立保存、提示词 720px 设置布局、窗口尺寸保留、按钮键盘操作、菜单导航，以及连续 30 次切换主题后 GDI 对象不累积。测试在 96-DPI 桌面执行；弹出菜单和文件对话框仍使用 Windows 的外观。详见 [UI 验证记录](../bench/results/ui-e2e.json)。
+界面通过 {len(ui['checks'])} 组原生窗口检查：阅读器 640px 图标布局、深色主题覆盖工具栏／目录／查找和标题菜单、提示词主题独立保存、提示词 720px 设置布局、窗口尺寸保留、按钮键盘操作、菜单导航，以及连续 30 次切换主题后 GDI 对象不累积。测试在 96-DPI 桌面执行；弹出菜单和文件对话框仍使用 Windows 的外观。详见 [UI 验证记录](../bench/results/ui-e2e.json)。
 
 正文、源码编辑、提示词可视化编辑区和目录使用与主题一致的自绘窄滑块：禁止系统滚动条样式，使用 WM_NCCALCSIZE 预留 12 DIP 自管轨道并拦截系统轨道绘制；保留原控件滚动模型。{len(bars['checks'])} 组真实鼠标检查通过，包括纵向拖动超过 65,535、横向代码滚动、轨道翻页、滚轮、键盘 Home、虚拟目录、双栏屏幕像素及提示词编辑区滚动。控件本身不增加空闲轮询定时器；自绘滑块尚未提供完整 UI Automation ScrollPattern，原有键盘滚动可用。详见 [滚动条验证记录](../bench/results/scrollbar-e2e.json)。
 

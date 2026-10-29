@@ -1,7 +1,11 @@
-"""Check every packaged checksum and launch the EXE extracted from the actual ZIP."""
+"""Check every packaged checksum and launch the EXEs extracted from the actual ZIPs.
+
+KeepMD and KeepPrompt ship as two separate packages: neither archive may contain the
+other program."""
 from pathlib import Path
 import hashlib
 import json
+import shutil
 import subprocess
 import zipfile
 import ctypes as C
@@ -9,22 +13,30 @@ from ctypes import wintypes as W
 from test_gui import ROOT,OUT,windows,wait,activate,u,name,children,CALLBACK,clipboard
 u.GetWindowLongPtrW.argtypes=[W.HWND,C.c_int];u.GetWindowLongPtrW.restype=C.c_ssize_t
 
-archive=ROOT/'dist/KeepMD-0.6.0-windows-x64.zip'
+VERSION='0.7.0'
+def extract(archive,destination):
+    shutil.rmtree(destination,ignore_errors=True)  # A stale extraction must not pass for the new package.
+    destination.mkdir(parents=True,exist_ok=True)
+    with zipfile.ZipFile(archive)as bundle:
+        for item in bundle.infolist():
+            target=(destination/item.filename).resolve()
+            assert target.is_relative_to(destination),'Unsafe archive member'
+        bundle.extractall(destination)
+    checks=0
+    for line in (destination/'SHA256SUMS.txt').read_text(encoding='utf-8-sig').splitlines():
+        digest,relative=line.split('  ',1)
+        assert hashlib.sha256((destination/relative).read_bytes()).hexdigest()==digest,relative
+        checks+=1
+    return checks
+
+reader=ROOT/f'dist/KeepMD-{VERSION}-windows-x64.zip'
+promptZip=ROOT/f'dist/KeepPrompt-{VERSION}-windows-x64.zip'
 destination=(ROOT/'.cache/package-smoke').resolve()
-destination.mkdir(parents=True,exist_ok=True)
-with zipfile.ZipFile(archive)as bundle:
-    for item in bundle.infolist():
-        target=(destination/item.filename).resolve()
-        assert target.is_relative_to(destination),'Unsafe archive member'
-    bundle.extractall(destination)
-checks=0
-for line in (destination/'SHA256SUMS.txt').read_text(encoding='utf-8-sig').splitlines():
-    digest,relative=line.split('  ',1)
-    assert hashlib.sha256((destination/relative).read_bytes()).hexdigest()==digest,relative
-    checks+=1
+checks=extract(reader,destination)
 summary=json.loads((destination/'bench/results/release-summary.json').read_text(encoding='utf-8'))
 assert hashlib.sha256((destination/'keepmd.exe').read_bytes()).hexdigest()==summary['exe_sha256']
-assert (destination/'KeepPrompt.exe').exists()
+assert not (destination/'KeepPrompt.exe').exists(),'KeepMD package must not contain KeepPrompt'
+assert not any('KeepPrompt' in p.name for p in destination.rglob('*') if p.is_file()),'KeepMD package mentions or ships KeepPrompt artifacts'
 report=OUT/'packaged.json';snapshot=OUT/'packaged-reader.png';config=OUT/'packaged.ini'
 config.write_text('[Reader]\nVisual=0\nDark=0\n',encoding='utf-8')
 process=subprocess.Popen([str(destination/'keepmd.exe'),str(destination/'examples/欢迎.md'),'--config',str(config),'--report',str(report),'--snapshot',str(snapshot),'--exit-after','900'],cwd=destination)
@@ -34,12 +46,15 @@ finally:
     if process.poll()is None:process.terminate();process.wait(timeout=5)
 metrics=json.loads(report.read_text());assert metrics['blocks']>=15 and metrics['first_paint_ms']>0
 assert '../使用说明.md' in (destination/'examples/欢迎.md').read_text(encoding='utf-8-sig')
-assert 'KeepPrompt.exe' in (destination/'输入提示词.cmd').read_text(encoding='ascii')
-# KeepPrompt keeps its own profile and draft; it never reads the reader configuration.
+
+# The prompt package is extracted into its own directory and launched without the reader present.
+promptDestination=(ROOT/'.cache/package-smoke-prompt').resolve()
+promptChecks=extract(promptZip,promptDestination)
+assert not (promptDestination/'keepmd.exe').exists(),'KeepPrompt package must not contain KeepMD'
 promptConfig=OUT/'packaged-prompt.ini'
 promptConfig.write_text('[Prompt]\nHotkey=Ctrl+Alt+Space\n',encoding='utf-8')
 promptConfig.with_suffix('.draft.md').unlink(missing_ok=True)
-process=subprocess.Popen([str(destination/'KeepPrompt.exe'),'--resident','--config',str(promptConfig)],cwd=destination)
+process=subprocess.Popen([str(promptDestination/'KeepPrompt.exe'),'--resident','--config',str(promptConfig)],cwd=promptDestination)
 def prompt_window():
     found=[]
     def collect(h,_):
@@ -73,6 +88,9 @@ try:
     u.SendMessageW(panel,0x111,525,0);process.wait(timeout=8);assert process.returncode==0
 finally:
     if process.poll()is None:process.terminate();process.wait(timeout=5)
-result={'zip_sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'exe_sha256':summary['exe_sha256'],'verified_members':checks,'extracted_package_launch':'passed','extracted_prompt_copy_and_save':'passed','extracted_keep_prompt_process':'passed','snapshot':str(snapshot.relative_to(ROOT))}
+result={'zip_sha256':hashlib.sha256(reader.read_bytes()).hexdigest(),'prompt_zip_sha256':hashlib.sha256(promptZip.read_bytes()).hexdigest(),
+        'exe_sha256':summary['exe_sha256'],'verified_members':checks,'prompt_verified_members':promptChecks,
+        'separate_packages':'KeepMD and KeepPrompt ship in two archives; neither contains the other program',
+        'extracted_package_launch':'passed','extracted_prompt_copy_and_save':'passed','snapshot':str(snapshot.relative_to(ROOT))}
 (ROOT/'bench/results/package.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))

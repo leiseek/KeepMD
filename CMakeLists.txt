@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(KeepMD VERSION 0.6.0 LANGUAGES C CXX)
+project(KeepMD VERSION 0.7.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -43,7 +43,7 @@ target_link_libraries(keep_shared PUBLIC md4c flowchart comctl32 dwmapi imm32 ol
 add_library(keepmd_core STATIC src/keepmd/document.cpp src/keepmd/html.cpp src/keepmd/html_image.cpp
   src/keepmd/settings.cpp src/keepmd/shell_integration.cpp src/keepmd/paths.cpp
   src/keepmd/remote_image.cpp src/keepmd/image_decode.cpp src/keepmd/image_cache.cpp
-  src/keepmd/math_formula.cpp)
+  src/keepmd/math_formula.cpp src/keepmd/syntax.cpp)
 target_include_directories(keepmd_core PUBLIC include/keepmd)
 target_link_libraries(keepmd_core PUBLIC keep_shared advapi32 winhttp windowscodecs d2d1 dwrite bcrypt shell32
   PRIVATE microtex)

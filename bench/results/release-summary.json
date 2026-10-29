@@ -1,12 +1,12 @@
 {
-  "version": "0.6.0",
-  "generated_at": "2026-10-17T10:21:50.471954+08:00",
-  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
-  "exe_bytes": 2795008,
-  "prompt_exe_sha256": "9292b5b0c4425df6cb3726313d07c5ac3aa9704a397b8b04de53d0c8fe5b650b",
+  "version": "0.7.0",
+  "generated_at": "2026-10-29T09:44:24.100454+08:00",
+  "exe_sha256": "e83bce52c2ffc4ef43694159654e60bee862074cdece252f303dd8d1abeb6bbd",
+  "exe_bytes": 2828800,
+  "prompt_exe_sha256": "0fb74d29cd1bb7d585fea4cc2ef6d9177d5e8c5cb8f6de8e8733a98ec6e61088",
   "prompt_exe_bytes": 625152,
-  "core_checks_passed": 273,
-  "html_image_e2e_checks": 17,
+  "core_checks_passed": 283,
+  "html_image_e2e_checks": 15,
   "prompt_process_e2e_checks": 8,
   "visual_document_e2e_checks": 8,
   "remote_images_e2e_checks": 12,
@@ -15,17 +15,18 @@
   "math_e2e_checks": 4,
   "math_formulas_typeset": 15,
   "math_formulas_source": 1,
+  "syntax_e2e_checks": 5,
   "prompt_ime_verified": false,
   "prompt_ime_commit_verified": true,
   "prompt_integration_completed": true,
   "prompt_hotkey_exercised": "Ctrl+Alt+Space",
   "prompt_measurements": {
-    "cold_resident_private_mib": 1.9765625,
-    "first_summon_observed_ms": 95.80690000439063,
+    "cold_resident_private_mib": 1.91796875,
+    "first_summon_observed_ms": 93.47479999996722,
     "hidden_idle_seconds": 5,
     "hidden_idle_cpu_seconds": 0.0,
     "hidden_idle_write_bytes": 0,
-    "hidden_private_mib": 5.02734375,
+    "hidden_private_mib": 5.16796875,
     "hidden_draft_changed": false
   },
   "prompt_e2e_checks": 17,
@@ -35,11 +36,11 @@
   "caption_e2e_checks": 8,
   "icon_e2e_checks": 5,
   "toolbar_toggle_e2e_checks": 4,
-  "startup_launch_p95_ms": 128.391,
-  "private_median_mib": 14.78515625,
-  "working_set_median_mib": 33.666015625,
-  "large_50mib_launch_p95_ms": 778.8006,
-  "large_50mib_private_median_mib": 414.5859375,
+  "startup_launch_p95_ms": 162.3207,
+  "private_median_mib": 15.962890625,
+  "working_set_median_mib": 34.8359375,
+  "large_50mib_launch_p95_ms": 871.195,
+  "large_50mib_private_median_mib": 415.802734375,
   "validation_retries": {
     "initial_failures": [
       "test_dpi.py: local-link hit-test timed out",
@@ -54,11 +55,11 @@
     "caption_baseline": "Unmodified v0.5.0 EXE reproduced the same foreground-focus assertion before the harness adjustment."
   },
   "previous_release": {
-    "tag": "v0.5.0",
-    "exe_bytes": 991232,
-    "startup_launch_p50_ms": 112.95245,
-    "startup_launch_p95_ms": 119.3549,
-    "private_median_mib": 16.419921875
+    "tag": "v0.6.0",
+    "exe_bytes": 2795008,
+    "startup_launch_p50_ms": 106.24355,
+    "startup_launch_p95_ms": 128.391,
+    "private_median_mib": 14.78515625
   },
   "gui_suites": [
     "reader",
@@ -77,7 +78,9 @@
     "custom window caption, native resize/drag, work-area maximize, docking and close guards",
     "shared visual system and compact menus",
     "full screen reading and presenter paging",
-    "LaTeX formulas typeset in the reader with find/copy of the LaTeX source, theme and zoom"
+    "LaTeX formulas typeset in the reader with find/copy of the LaTeX source, theme and zoom",
+    "code block syntax colours and the per-block copy chip in light and dark themes",
+    "status without a status bar: file name and mode in the window title"
   ],
   "limitations": [
     "No verified cold-cache startup number",
@@ -94,6 +97,6 @@
     "LaTeX formulas: the MicroTeX subset in the reader only; no \\def, \\tag or LaTeX packages; editors show formulas as source",
     "Ten upstream MicroTeX fonts with unclear licences are not shipped; their symbols are drawn from Windows fonts and \\android is blank",
     "Visual prompt editor: Chinese IME commit verified, Escape composition-cancel not separately asserted.",
-    "S100 warm first paint p95 is above the 100 ms acceptance target (110.1 ms in-process, 128.4 ms from launch)."
+    "S100 warm first paint p95 is above the 100 ms acceptance target (146.8 ms in-process, 162.3 ms from launch)."
   ]
 }

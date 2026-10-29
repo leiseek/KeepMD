@@ -1,12 +1,12 @@
-**KeepMD 0.6.0 — Windows 原生 Markdown 阅读器与独立提示词工具**
+**KeepMD 0.7.0 — Windows 原生 Markdown 阅读器与独立提示词工具**
 
-阅读、预览优先，附带按需开启的轻量编辑（可视化与源码）。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词与阅读器各自独立运行。
+阅读、预览优先，附带按需开启的轻量编辑（可视化与源码）。使用 C++20、Win32、DirectWrite、Direct2D、WIC 和 MD4C；Mermaid 流程图原生解析与绘制。无 Electron、Tauri、WebView 或 JavaScript 运行时；提示词与阅读器各自独立运行，发布为两个互不包含的便携包。
 
 交付目标为 Windows 11 x64 便携版。应用运行只使用系统动态库，第三方 Markdown/流程图代码静态编入 EXE。可视化与源码编辑均使用按需创建的系统 RichEdit 控件。
 
 **使用**
 
-从 [GitHub Releases](https://github.com/leiseek/KeepMD/releases/latest) 下载 Windows x64 便携包，解压到可写目录后运行 `keepmd.exe`。Release 同时提供完整源码与 SHA-256 校验文件。
+从 [GitHub Releases](https://github.com/leiseek/KeepMD/releases/latest) 下载 Windows x64 便携包，解压到可写目录后运行 `keepmd.exe`。阅读器与提示词是两个独立程序，Release 提供两个互不包含的便携包（`KeepMD-*-windows-x64.zip`、`KeepPrompt-*-windows-x64.zip`），另有完整源码与 SHA-256 校验文件。
 
 打开或拖入 `.md`、`.markdown`、`.mmd` 文件。也可以执行：
 
@@ -14,11 +14,18 @@
 .\keepmd.exe .\example.md
 ```
 
-`Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/编辑，`Ctrl+E` 切换可视化/源码，`F11` 全屏，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。
+`Ctrl+O` 打开，`Ctrl+F` 查找，`F9` 目录，`Ctrl+滚轮` 缩放，`Ctrl+D` 深浅主题，`F6` 切换阅读/编辑，`Ctrl+E` 切换可视化/源码，`F11` 全屏，`Ctrl+S` 保存，`Ctrl+H` 替换。双击流程图切换适应宽度与原始大小，右键可复制图表源码。代码块按语言原生语法着色，右上角“复制”按钮一键复制整块源码。没有状态栏：文件名与当前模式（阅读／可视化编辑／源码编辑）显示在标题栏，瞬时消息短暂出现后恢复。
 
-支持正文、标题、列表、引用、代码、链接、常见表格和任务列表、本地图片、`$…$`／`$$…$$` LaTeX 公式，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
+支持正文、标题、列表、引用、代码（常见语言语法着色与一键复制）、链接、常见表格和任务列表、本地图片、`$…$`／`$$…$$` LaTeX 公式，以及明确范围的 Mermaid flowchart/graph。详见 [使用说明与支持范围](docs/USAGE.zh-CN.md)。
 
 文件菜单的“设为默认打开程序…”会注册 KeepMD 并打开 Windows 默认应用设置，由用户确认扩展名关联。
+
+**0.7.0**
+
+- 围栏代码块按语言原生语法着色：关键字、内置类型与对象、字符串、注释、数字、函数调用及 JSON/YAML/INI 的键各有颜色，浅色与深色主题各配一套，注释为斜体。识别 C、C++、C#、Java、JavaScript、TypeScript、Python、Rust、Go、JSON、YAML、Shell、PowerShell、SQL、CSS 和 HTML/XML；不认识的语言保持单色。着色只是显示层，选择、查找和复制仍是代码原文。
+- 每个围栏代码块右上角有“复制”按钮：点击复制整块围栏源码，短暂显示“已复制”，悬停显示手型光标。
+- 界面收敛：移除状态栏与页面卡片顶部的标签行，文件名与当前模式（阅读／可视化编辑／源码编辑）显示在标题栏，瞬时消息短暂出现后恢复；工具栏按钮收窄为 30×26 DIP。
+- 修复双击标题栏最大化后遮挡任务栏与开始菜单的问题：最大化矩形钳制到显示器工作区，窗口不再被当作全屏面合成。
 
 **0.6.0**
 
@@ -40,7 +47,7 @@
 - `F11` 全屏阅读：Space／方向键／PageDown 翻页，指针静止后隐藏；Esc 或 F11 退出。
 - 查找可高亮横跨超长段落内部分片处的命中。
 
-已在 Windows 11 x64 验证：233 项核心检查和全部 GUI 测试套件通过，提示词全量集成套件完成（本机默认 `Ctrl+Alt+Space` 被其他程序占用，真实全局唤起改用 `Ctrl+Alt+Shift+F9`）。提示词可视化编辑的中文输入法提交已通过真实输入验证；Esc 取消组词的按键路径已执行但没有单独断言，不宣称完整通过。本版提示词套件新增“Esc 后窗口保留”“最小化收起到托盘”“未开启常驻也有托盘图标”三项检查。详见 [版本说明](docs/releases/v0.6.0.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
+已在 Windows 11 x64 验证：283 项核心检查和全部 GUI 测试套件（含新增的语法着色与复制套件）在同一组 Release EXE 上通过；语法颜色的双主题像素断言、芯片点击复制与“已复制”反馈由真实窗口检查覆盖；双击最大化往返、F11 全屏与任务栏可见性经像素级验证。提示词可视化编辑的中文输入法提交仍通过真实输入验证。详见 [版本说明](docs/releases/v0.7.0.md) 和 [验证报告](docs/VALIDATION.zh-CN.md)。
 
 **快捷输入 Markdown 提示词**
 
@@ -101,4 +108,4 @@ python -m pip install -r tools/requirements-dev.txt
 - [原生阅读决策](docs/decisions/0001-native-reader.md) 与 [编辑控件决策](docs/decisions/0002-source-editor.md)
 - [第三方来源与许可证](THIRD_PARTY_NOTICES.md)
 
-阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、完整 LaTeX（公式只支持 MicroTeX 子集）、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.6 的交付范围。
+阅读器是本项目的重点。完整 Mermaid、完整桌面排版软件级的富文本编辑、完整 LaTeX（公式只支持 MicroTeX 子集）、任意 HTML/CSS、SVG 全特性、PDF/DOCX 导出、云同步及跨平台不在 0.7 的交付范围。

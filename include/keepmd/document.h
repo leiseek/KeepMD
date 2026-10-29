@@ -13,7 +13,26 @@ namespace keepmd {
 std::wstring decode_entities(std::string_view text);
 std::wstring slug(std::wstring_view text);
 // Formula marks LaTeX source between $ delimiters; DisplayMath additionally marks $$...$$.
-enum Style : uint32_t { Bold = 1, Italic = 2, Strike = 4, Mono = 8, Underline = 16, Formula = 32, DisplayMath = 64 };
+enum Style : uint32_t {
+    Bold = 1,
+    Italic = 2,
+    Strike = 4,
+    Mono = 8,
+    Underline = 16,
+    Formula = 32,
+    DisplayMath = 64,
+    // Syntax colours inside fenced code blocks. At most one token bit per span, never combined
+    // with the inline styles above; search, copy and selection see the plain code text either way.
+    TokKeyword = 128,
+    TokBuiltin = 256,
+    TokString = 512,
+    TokComment = 1024,
+    TokNumber = 2048,
+    TokFunction = 4096,
+    TokKey = 8192
+};
+constexpr uint32_t kTokenStyles = TokKeyword | TokBuiltin | TokString | TokComment | TokNumber |
+                                  TokFunction | TokKey;
 struct Span {
     uint32_t start = 0, length = 0, style = 0;
     std::wstring link;

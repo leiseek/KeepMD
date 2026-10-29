@@ -1,0 +1,11 @@
+{
+  "exe_sha256": "e83bce52c2ffc4ef43694159654e60bee862074cdece252f303dd8d1abeb6bbd",
+  "fixture": "syntax.md",
+  "checks": [
+    "light theme shows all token colours (min 6 px each): {'keyword': 45, 'builtin': 10, 'string': 52, 'comment': 161, 'number': 80, 'function': 25}",
+    "the chip shows its copied feedback for a while after the click (748 px changed)",
+    "clicking a code block chip copies that block's whole fenced source exactly",
+    "dark theme shows all token colours (min 6 px each): {'keyword': 48, 'builtin': 13, 'string': 61, 'comment': 140, 'number': 73, 'function': 18}",
+    "the copy chip renders in the dark theme too"
+  ]
+}

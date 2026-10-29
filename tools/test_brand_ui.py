@@ -84,8 +84,7 @@ p = subprocess.Popen([str(ROOT/'build/release/keepmd.exe'), str(path), '--config
 try:
     h = wait(lambda: (windows(p.pid) or [None])[0])
     wait(lambda: path.name in name(h))
-    status = wait(lambda: next((c for c in children(h) if name(c, True) == 'msctls_statusbar32'), None))
-    wait(lambda: name(status).startswith('阅读'))
+    wait(lambda: '阅读' in name(h))
     for width in (640, 850, 1180):
         u.MoveWindow(h, 40, 40, width, 700, True)
         bar = caption(h)
@@ -138,7 +137,7 @@ try:
     command(h, 120)
     edit = wait(lambda: u.GetDlgItem(h, 202))
     assert not text(edit) and u.IsWindowVisible(edit)
-    assert name(status) == '可视化编辑'
+    assert name(h).startswith('可视化编辑')
     checks.append('File menu opens from the caption and its New command creates a blank visual document')
     u.PostMessageW(h, 0x10, 0, 0)
     p.wait(timeout=8)

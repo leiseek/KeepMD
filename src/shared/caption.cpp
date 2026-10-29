@@ -316,6 +316,10 @@ LRESULT CALLBACK frame_proc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR id, DWO
         return 0;
     }
     case WM_NCPAINT: {
+        // Maximized: the frame rectangle extends past the screen, and the strip between it and the
+        // client area (the work area) sits over the taskbar. Nothing out there may be painted.
+        if (IsZoomed(h) && !p->fullscreen)
+            return 0;
         auto dc = GetWindowDC(h);
         if (!dc)
             return 0;

@@ -1,5 +1,5 @@
 {
-  "exe_sha256": "9292b5b0c4425df6cb3726313d07c5ac3aa9704a397b8b04de53d0c8fe5b650b",
+  "exe_sha256": "0fb74d29cd1bb7d585fea4cc2ef6d9177d5e8c5cb8f6de8e8733a98ec6e61088",
   "suite_status": "completed",
   "hotkey": "Ctrl+Alt+Space",
   "checks": [
@@ -22,12 +22,12 @@
     "tray icon shown without residency; forwarded --resident request enables residency in an existing window"
   ],
   "measurements": {
-    "cold_resident_private_mib": 1.9765625,
-    "first_summon_observed_ms": 95.80690000439063,
+    "cold_resident_private_mib": 1.91796875,
+    "first_summon_observed_ms": 93.47479999996722,
     "hidden_idle_seconds": 5,
     "hidden_idle_cpu_seconds": 0.0,
     "hidden_idle_write_bytes": 0,
-    "hidden_private_mib": 5.02734375,
+    "hidden_private_mib": 5.16796875,
     "hidden_draft_changed": false
   }
 }

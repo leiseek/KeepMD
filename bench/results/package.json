@@ -1,9 +1,11 @@
 {
-  "zip_sha256": "5cea1b90ec3b351bb3ee257c075da3e186bfdf1dab6c984c00221232e39437da",
-  "exe_sha256": "3ce05bc275370b0fbbe7d3176d99cff41cf0570f500c0c580bf9b8bdfbf97937",
-  "verified_members": 48,
+  "zip_sha256": "e3b2dd599e4a4a7a67c542be48bb5abbba5e4ca2432e75bebbdd4b5b1d67b9e1",
+  "prompt_zip_sha256": "217b88bb1fefcadd0b67cd726969f7fa14c7c854fcd5e1d6bb31f77b5de0084d",
+  "exe_sha256": "e83bce52c2ffc4ef43694159654e60bee862074cdece252f303dd8d1abeb6bbd",
+  "verified_members": 44,
+  "prompt_verified_members": 10,
+  "separate_packages": "KeepMD and KeepPrompt ship in two archives; neither contains the other program",
   "extracted_package_launch": "passed",
   "extracted_prompt_copy_and_save": "passed",
-  "extracted_keep_prompt_process": "passed",
   "snapshot": "tests\\output\\packaged-reader.png"
 }

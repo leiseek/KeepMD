@@ -27,8 +27,7 @@ def counts():
 
 try:
     hwnd = wait(lambda: (windows(process.pid) or [None])[0])
-    status = wait(lambda: next(h for h in children(hwnd) if name(h, True) == 'msctls_statusbar32'))
-    wait(lambda: name(status).startswith('阅读'))
+    wait(lambda: '阅读' in name(hwnd))
     activate(hwnd)
     wait(lambda: counts() == (TYPESET, SOURCE))
     screenshot(hwnd, 'math-light.png')
@@ -38,7 +37,7 @@ try:
     edit = next(h for h in children(hwnd) if name(h, True) == 'Edit')
     query = C.create_unicode_buffer('mc^2')
     u.SendMessageW(edit, 0x000C, 0, C.cast(query, C.c_void_p).value)
-    wait(lambda: '1 / 1' in name(status))
+    wait(lambda: '1 / 1' in name(hwnd))
     screenshot(hwnd, 'math-find.png')
     u.SendMessageW(hwnd, 0x111, 102, 0)
     checks.append('find matches LaTeX source inside a typeset formula')

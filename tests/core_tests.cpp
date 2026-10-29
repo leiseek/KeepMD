@@ -10,6 +10,7 @@
 #include "prompt_model.h"
 #include "settings.h"
 #include "shell_integration.h"
+#include "syntax.h"
 #include "visual_markdown.h"
 #include <cmath>
 #include <d2d1.h>
@@ -862,6 +863,90 @@ $$\int_0^1 x^2 \, dx$$
     auto capped = decode_image_bytes(shapeSvg, 100000, 0);
     check(capped.width == 1600 && capped.height == 800, "requested size stays within the raster cap");
     std::filesystem::remove_all(imageDir, imageEc);
+
+    // Fenced code syntax colours: token spans overlay unchanged text and survive line splitting.
+    {
+        auto has = [](const std::vector<Highlight> &tokens, std::wstring_view text, std::wstring_view word,
+                      Token token) {
+            for (const auto &t : tokens)
+                if (t.token == token && text.substr(t.start, t.length) == word)
+                    return true;
+            return false;
+        };
+        std::wstring_view cpp = L"int total = 42; // answer\nreturn say(\"hi\");";
+        auto cppTokens = highlight(L"cpp", cpp);
+        check(has(cppTokens, cpp, L"int", Token::Builtin) && has(cppTokens, cpp, L"return", Token::Keyword) &&
+                  has(cppTokens, cpp, L"42", Token::Number) &&
+                  has(cppTokens, cpp, L"// answer", Token::Comment) &&
+                  has(cppTokens, cpp, L"\"hi\"", Token::String) && has(cppTokens, cpp, L"say", Token::Function),
+              "c++ tokens: type, keyword, number, comment, string, call");
+        std::wstring_view py = L"def f(x):\n    return None  # note\ns = f\"v={x}\"";
+        auto pyTokens = highlight(L"python", py);
+        check(has(pyTokens, py, L"def", Token::Keyword) && has(pyTokens, py, L"None", Token::Builtin) &&
+                  has(pyTokens, py, L"# note", Token::Comment) && has(pyTokens, py, L"f\"v={x}\"", Token::String),
+              "python tokens: keyword, builtin, comment, prefixed string");
+        std::wstring_view js = L"const s = `multi\nline`;\nif (a) g(); // x";
+        auto jsTokens = highlight(L"js", js);
+        check(has(jsTokens, js, L"const", Token::Keyword) &&
+                  has(jsTokens, js, L"`multi\nline`", Token::String) && has(jsTokens, js, L"g", Token::Function),
+              "javascript tokens: template string spans lines");
+        std::wstring_view rs = L"let x: u32 = 5;\nfn main() { println!(\"hi\"); }";
+        auto rsTokens = highlight(L"rust", rs);
+        check(has(rsTokens, rs, L"fn", Token::Keyword) && has(rsTokens, rs, L"u32", Token::Builtin) &&
+                  has(rsTokens, rs, L"println", Token::Function),
+              "rust tokens: keyword, type, macro call");
+        std::wstring_view json = L"{\"key\": [1, true, null]}";
+        auto jsonTokens = highlight(L"json", json);
+        check(has(jsonTokens, json, L"\"key\"", Token::Key) && has(jsonTokens, json, L"1", Token::Number) &&
+                  has(jsonTokens, json, L"true", Token::Keyword),
+              "json tokens: key, number, literal");
+        std::wstring_view html = L"<div class=\"a\" id=b>text</div><!-- note -->";
+        auto htmlTokens = highlight(L"html", html);
+        check(has(htmlTokens, html, L"div", Token::Keyword) && has(htmlTokens, html, L"class", Token::Builtin) &&
+                  has(htmlTokens, html, L"\"a\"", Token::String) &&
+                  has(htmlTokens, html, L"<!-- note -->", Token::Comment),
+              "markup tokens: tag, attribute, value, comment");
+        std::wstring_view sql = L"SELECT a FROM t WHERE x = 'v'; -- note";
+        auto sqlTokens = highlight(L"sql", sql);
+        check(has(sqlTokens, sql, L"SELECT", Token::Keyword) && has(sqlTokens, sql, L"'v'", Token::String) &&
+                  has(sqlTokens, sql, L"-- note", Token::Comment),
+              "sql tokens are case-insensitive");
+        check(highlight(L"mermaid", L"graph TD; A-->B").empty(), "unknown languages stay plain");
+    }
+    auto colors = parse_document("```cpp\nint total = 42; // answer\nreturn say(\"hi\");\n```\n");
+    bool builtinFirst = false, keywordSecond = false, commentSliced = false, tokensOnly = true;
+    std::wstring joined;
+    for (const auto &b : colors->blocks) {
+        if (b.kind != Kind::Code)
+            continue;
+        joined += b.text.value + L'\n';
+        for (const auto &s : b.text.spans) {
+            if (s.style == TokBuiltin && s.start == 0 && s.length == 3)
+                builtinFirst = true;
+            if (s.style == TokKeyword && s.start == 0 && s.length == 6)
+                keywordSecond = true;
+            if (s.style == TokComment && s.start == 16 && s.length == 9)
+                commentSliced = true;
+            if (s.style & ~kTokenStyles)
+                tokensOnly = false;
+        }
+    }
+    check(builtinFirst && keywordSecond && commentSliced && tokensOnly &&
+              joined == L"int total = 42; // answer\nreturn say(\"hi\");\n" &&
+              search(*colors, L"answer").size() == 1,
+          "code token spans attach without changing searchable text");
+    std::string longLine = "```cpp\n// " + std::string(9000, 'x') + "\n```\n";
+    auto split = parse_document(longLine);
+    bool tailComment = false, splitGroup = false;
+    for (size_t i = 0; i + 1 < split->blocks.size(); ++i)
+        if (split->blocks[i].kind == Kind::Code)
+            splitGroup = split->blocks[i].joins_next || splitGroup;
+    for (const auto &b : split->blocks)
+        if (b.kind == Kind::Code && !b.joins_next)
+            for (const auto &s : b.text.spans)
+                if (s.style == TokComment && s.start == 0 && s.length == b.text.value.size())
+                    tailComment = true;
+    check(splitGroup && tailComment, "overlong code lines keep their token spans after re-splitting");
 
     std::cout << checks << " checks, " << failures << " failures\n";
     if (SUCCEEDED(com))

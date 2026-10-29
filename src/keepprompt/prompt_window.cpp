@@ -1111,6 +1111,18 @@ struct PromptWindow::Impl {
             return 0;
         }
         case WM_GETMINMAXINFO:
+            // The default handler constrains the maximized rectangle to the work area; clamp to it
+            // explicitly so a maximized prompt window never composites over the taskbar.
+            DefWindowProcW(h, m, w, l);
+            {
+                MONITORINFO monitor{sizeof(monitor)};
+                if (GetMonitorInfoW(MonitorFromWindow(h, MONITOR_DEFAULTTONEAREST), &monitor)) {
+                    auto *info = (MINMAXINFO *)l;
+                    info->ptMaxPosition = {monitor.rcWork.left, monitor.rcWork.top};
+                    info->ptMaxSize = {monitor.rcWork.right - monitor.rcWork.left,
+                                       monitor.rcWork.bottom - monitor.rcWork.top};
+                }
+            }
             ((MINMAXINFO *)l)->ptMinTrackSize = {(LONG)(720 * p->dpi), (LONG)((p->options ? 560 : 480) * p->dpi)};
             return 0;
         case WM_SETFOCUS:
